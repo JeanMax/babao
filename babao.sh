@@ -43,7 +43,7 @@ dump_api_data() {
         curl -sS --max-time 90 -o "$req" \
              -X POST "$KRAKEN_URL/public/Trades" --data "\
 pair=$ASSET_PAIR&\
-since=$(test -e "$last_dump" && cat "$last_dump")"
+since=$(test -e "$last_dump" && cat "$last_dump")" || true
         test "$(jq ".error[0]" < "$req")" == "null" && break || true
         print_error "curl request failed (Trades)"
         sleep 3
