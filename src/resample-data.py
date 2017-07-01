@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 # time,open,high,low,close,vwap,volume,count
+# WARNING: an interval with 0 transaction will output a line like this:
+# TIMESTAMP,,,,,,,0
 
 import os #path.isfile
 import sys #argv
 import mmap
-import pandas as pd
+import pandas as pd #that part take a while ><
 
 #the file given as parameter is just the last data, not the whole file
 
@@ -13,9 +15,14 @@ import pandas as pd
 
 data_file=sys.argv[1]
 time_interval=sys.argv[2] + "Min"
-
 unsampled_file=sys.argv[3] + "-unsampled-" + time_interval + ".csv"
 resampled_file=sys.argv[3] + "-resampled-" + time_interval + ".csv" #TODO: this is really ugly
+
+
+# data_file="~/babao/data/trade-XXBTZEUR.csv"
+# time_interval="1Min"
+# unsampled_file="/tmp/us.csv"
+# resampled_file="/tmp/rs.csv"
 
 # current raw data file
 data = pd.read_csv(
@@ -37,11 +44,17 @@ if os.path.isfile(unsampled_file):
 
 data.index = pd.to_datetime(data["time"], unit="s")
 
-# resampled data
+data["vwap"] = data["price"] * data["volume"]
+
+# resample data: it's actually faster to do these one by one (use less memory?)
 ohlc = data["price"].resample(time_interval).ohlc()
-ohlc["vwap"] = data["price"].resample(time_interval).mean() #TODO
-ohlc["volume"] = data["volume"].resample(time_interval).sum()
+vol = data["volume"].resample(time_interval).sum() #tmp var for ordering
+ohlc["vwap"] = data["vwap"].resample(time_interval).sum() / vol #see on top of file for divide by 0 handling
+ohlc["volume"] = vol
 ohlc["count"] = data["price"].resample(time_interval).count()
+
+
+# ohlc["vwap"] = ohlc["vwap"]["sum"] / ohlc["volume"]["sum"] #TODO: catch divide by 0
 
 ohlc.index = ohlc.index.view("int64") // pd.Timedelta(1, unit="s")
 
