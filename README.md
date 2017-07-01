@@ -17,14 +17,13 @@ Just a little bitcoin trade bot, using Parabolic SAR strategy over kraken market
 * real-time simulation (dry-run bot)
 * simulation on a given data file
 * training on a given data file
+* real-time chart with matplotlib would be neat
 
 
 ### TODO:
 
 * run the script as a service? (without main loop)
 * dump transaction to ledger-cli
-* catch signals so bot won't stop halfway trough data fetching/refining
-* real-time chart with matplotlib would be neat
 
 
 ### Process:

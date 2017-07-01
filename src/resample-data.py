@@ -11,14 +11,11 @@ import pandas as pd
 
 #TODO: bitch about wrong argv usage
 
-# data_file="~/babao/data/trade-XXBTZEUR.csv" #TODO: sys.argv[1]
-# time_interval="1Min" #TODO: sys.argv[2] + "Min"
-
 data_file=sys.argv[1]
 time_interval=sys.argv[2] + "Min"
 
 unsampled_file=sys.argv[3] + "-unsampled-" + time_interval + ".csv"
-resampled_file=sys.argv[3] + "-resampled-" + time_interval + ".csv"
+resampled_file=sys.argv[3] + "-resampled-" + time_interval + ".csv" #TODO: this is really ugly
 
 # current raw data file
 data = pd.read_csv(
@@ -26,7 +23,6 @@ data = pd.read_csv(
     names=["time", "price", "volume"],
     engine='c',
     parse_dates=True,
-    # header=1 #TODO: be sure there is no header
 )
 
 # previous raw data used to calculate last candle
