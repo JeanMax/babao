@@ -34,9 +34,10 @@ def resampleData(raw_file, time_interval, unsampled_file, resampled_file):
     raw_data["vwap"] = raw_data["price"] * raw_data["volume"]
 
     # resample data: it's actually faster to do these one by one (use less memory?)
+    # see on top of file for divide by 0 handling
     resampled_data = raw_data["price"].resample(time_interval).ohlc()
     vol = raw_data["volume"].resample(time_interval).sum() #tmp var for ordering
-    resampled_data["vwap"] = raw_data["vwap"].resample(time_interval).sum() / vol #see on top of file for divide by 0 handling
+    resampled_data["vwap"] = raw_data["vwap"].resample(time_interval).sum() / vol
     resampled_data["volume"] = vol
     resampled_data["count"] = raw_data["price"].resample(time_interval).count()
 
@@ -44,16 +45,16 @@ def resampleData(raw_file, time_interval, unsampled_file, resampled_file):
 
     # save raw data used to calculate last candle
     raw_data.truncate(
-        before=pd.to_datetime(resampled_raw_data[-1:].index[0], unit="s")
+        before=pd.to_datetime(resampled_data[-1:].index[0], unit="s")
     ).to_csv(
         unsampled_file, header=False
     )
 
     # remove last entry in resampled_data.csv
     # if match first timestamp of resampled_data
+    # TODO: this would need an update if changing for hdf data files
     if os.path.isfile(resampled_file):
-        with open(resampled_file, 'r+b') as f, mmap.mmap(
-                f.fileno(), 0, access=mmap.ACCESS_WRITE) as mm:
+        with open(resampled_file, 'r+b') as resampled, mmap.mmap(resampled.fileno(), 0, access=mmap.ACCESS_WRITE) as mm:
             last_line_pos = mm.rfind(b'\n', 0, len(mm) - 1) + 1
             if resampled_data.index[0] == int(mm[last_line_pos:last_line_pos + 10]): #timestamps are formated to 10 digits
                 mm.resize(last_line_pos)
@@ -79,10 +80,10 @@ def updateIndicators(resampled_file): #TODO: should handle on the fly flex stuff
             ignore_na=False
         ).mean()
 
-    #TODO:NaN
+    #TODO: NaN
     resampled_data = pd.read_csv(
         resampled_file,
-        names=["time", "open", "high", "low", "close", "vwap", "volume", "count"] ,
+        names=["time", "open", "high", "low", "close", "vwap", "volume", "count"],
         engine='c',
         parse_dates=True,
     )
@@ -112,10 +113,10 @@ def updateIndicators(resampled_file): #TODO: should handle on the fly flex stuff
 resampleData(
     sys.argv[1],
     sys.argv[2] + "Min",
-    sys.argv[3] + "-unsampled-" + time_interval + ".csv", #TODO: this is really ugly + rename, it's actually resampled
-    sys.argv[3] + "-resampled-" + time_interval + ".csv" #TODO: this is really ugly
+    sys.argv[3] + "-unsampled-" + sys.argv[2] + ".csv", #TODO: this is really ugly + rename, it's actually resampled
+    sys.argv[3] + "-resampled-" + sys.argv[2] + ".csv" #TODO: this is really ugly
 )
 
 updateIndicators(
-    sys.argv[3] + "-resampled-" + time_interval + ".csv" #TODO: this is really ugly + redudant
+    sys.argv[3] + "-resampled-" + sys.argv[2] + ".csv" #TODO: this is really ugly + redudant
 )
