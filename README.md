@@ -24,6 +24,7 @@ Just a little bitcoin trade bot, using Parabolic SAR strategy over kraken market
 
 * run the script as a service? (without main loop)
 * dump transaction to ledger-cli
+* use compressed hdf instead of csv
 
 
 ### Process:

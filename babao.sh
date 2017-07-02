@@ -12,6 +12,13 @@ SRC_DIR="$HERE/src"
 KRAKEN_URL="https://api.kraken.com/0"
 
 
+PY=python
+if [ "$DEBUG" ]; then
+    set -x
+    PY=ipython
+    # PYTHON_FLAGS="-m trace -t"
+fi
+
 # shellcheck disable=SC1090
 source "$CONFIG_DIR/babao.conf"
 
@@ -55,7 +62,7 @@ since=$(test -e "$last_dump" && cat "$last_dump")" || true
     jq -r ".result.XXBTZEUR[] | [(.[2] | floor), (.[:2][] | tonumber)] | @csv" \
        < "$req" > "$DATA_DIR/$last_raw_data_dump"
 
-    /usr/bin/env python $PYTHON_FLAGS \
+    /usr/bin/env $PY \
                  "$SRC_DIR/resample-data.py" \
                  "$DATA_DIR/$last_raw_data_dump" \
                  "$TIME_INTERVAL" \
@@ -74,12 +81,6 @@ since=$(test -e "$last_dump" && cat "$last_dump")" || true
     set -e
 }
 
-
-
-if [ "$DEBUG" ]; then
-    set -x
-    # PYTHON_FLAGS="-m trace -t"
-fi
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$DATA_DIR"
