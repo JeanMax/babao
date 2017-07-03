@@ -25,6 +25,7 @@ Just a little bitcoin trade bot, using Parabolic SAR strategy over kraken market
 * run the script as a service? (without main loop)
 * dump transaction to ledger-cli
 * use compressed hdf instead of csv
+* resample data starting from the last time stamp? (that way the current candle is always "full")
 
 
 ### Process:
