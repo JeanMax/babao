@@ -7,8 +7,8 @@ import socket
 import krakenex
 import pandas as pd #TODO: is it imported for EACH file??
 
-import config as conf
-import log
+import babao.config as conf
+import babao.log as log
 
 print("Do you run me only once?") # DEBUG
 K = krakenex.API()
@@ -22,6 +22,7 @@ LAST_DUMP = ""
 def kraken_getRawTrades():
     last_dump_file = os.path.join(conf.DATA_DIR, conf.ASSET_PAIR + "-last_dump.timestamp")
     global LAST_DUMP
+    global C
     if not LAST_DUMP:
         if os.path.isfile(last_dump_file):
             with open(last_dump_file, "r") as f:
@@ -36,6 +37,10 @@ def kraken_getRawTrades():
             }, C)
         except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
             log.error('Network error while querying Kraken API!\n' + repr(e))
+        except http.client.CannotSendRequest as e:
+            log.error('http.client error while querying Kraken API!\nRestarting connection...' + repr(e))
+            C.close()
+            C = krakenex.Connection()
         except ValueError as e:
             log.error('ValueError while querying Kraken API!\n' + repr(e))
         # except Exception as e:

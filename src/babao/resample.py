@@ -4,8 +4,8 @@ import os
 import mmap
 import pandas as pd
 
-import log
-import config as conf
+import babao.log as log
+import babao.config as conf
 
 # from IPython import embed #; embed() # DEBUG
 # import ipdb #; ipdb.set_trace()   # DEBUG

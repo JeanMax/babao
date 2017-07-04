@@ -3,8 +3,8 @@
 import os
 import pandas as pd
 
-import log
-import config as conf
+import babao.log as log
+import babao.config as conf
 
 # https://www.quantinsti.com/blog/build-technical-indicators-in-python
 def updateIndicators(time_interval):

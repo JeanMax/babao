@@ -1,3 +1,17 @@
-data
-log
-__pycache__
+# created while building
+babao
+build/
+dist/
+temp/
+
+# created by babao
+data/
+log/
+
+# python gifts
+*.egg-info/
+*.egg
+*.py[cod]
+__pycache__/
+*.so
+*~
