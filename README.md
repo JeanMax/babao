@@ -2,13 +2,7 @@
 
 > I've got 99 problems But A Bot Ain't One
 
-Just a little bitcoin trade bot, using Parabolic SAR strategy over kraken market api.
-
-
-### Dep: (TODO: add links)
-
-* jq (that could be avoided... not sure I want to parse any json with python tho)
-* pandas
+Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 
 ## Modes:

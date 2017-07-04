@@ -1,13 +1,12 @@
 """TODO"""
 
-import os
 import pandas as pd
 
 import babao.log as log
 import babao.config as conf
 
 # https://www.quantinsti.com/blog/build-technical-indicators-in-python
-def updateIndicators(time_interval):
+def updateIndicators():
     """TODO"""
     log.debug("Entering updateIndicators()") # DEBUG
 
@@ -31,9 +30,8 @@ def updateIndicators(time_interval):
         ).mean()
 
     #TODO: NaN
-    resampled_file = os.path.join(conf.DATA_DIR, conf.ASSET_PAIR + "-resampled-" + time_interval + ".csv") #TODO: duplicate
     resampled_data = pd.read_csv(
-        resampled_file,
+        conf.RESAMPLED_FILE,
         names=["time", "open", "high", "low", "close", "vwap", "volume", "count"],
         engine='c',
         parse_dates=True,
@@ -56,4 +54,8 @@ def updateIndicators(time_interval):
         indicators_data["EWMA_" + str(i)] = indicator_EWMA(close, i)
 
     indicators_data.index = resampled_data["time"]
+    indicators_data.to_csv(conf.INDICATORS_FILE, header=False, mode="a")
+
+    #TODO: remove last entry as in resample.py
+
     return indicators_data      # DEBUG

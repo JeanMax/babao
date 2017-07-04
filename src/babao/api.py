@@ -10,7 +10,6 @@ import pandas as pd #TODO: is it imported for EACH file??
 import babao.config as conf
 import babao.log as log
 
-print("Do you run me only once?") # DEBUG
 K = krakenex.API()
 K.load_key(conf.API_KEY_FILE)
 C = krakenex.Connection()
@@ -20,12 +19,11 @@ LAST_DUMP = ""
 # TODO: block sig INT/TERM
 
 def kraken_getRawTrades():
-    last_dump_file = os.path.join(conf.DATA_DIR, conf.ASSET_PAIR + "-last_dump.timestamp")
     global LAST_DUMP
     global C
     if not LAST_DUMP:
-        if os.path.isfile(last_dump_file):
-            with open(last_dump_file, "r") as f:
+        if os.path.isfile(conf.LAST_DUMP_FILE):
+            with open(conf.LAST_DUMP_FILE, "r") as f:
                 LAST_DUMP = f.readline()
 
     # we loop in case of request error (503...)
@@ -55,7 +53,7 @@ def kraken_getRawTrades():
         time.sleep(0.5)
 
     LAST_DUMP = res["result"]["last"]
-    with open(last_dump_file, "w") as f:
+    with open(conf.LAST_DUMP_FILE, "w") as f:
         f.write(LAST_DUMP)
 
 
@@ -71,7 +69,6 @@ def kraken_getRawTrades():
     del df["time"]
     df["vwap"] = df["price"] * df["volume"] # we'll need this later for resampling
 
-
     # now it looks like this:
     # index="time", columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
 
@@ -82,8 +79,6 @@ def dumpData():
     log.debug("Entering dumpData()") # DEBUG
 
     raw_data = kraken_getRawTrades()
-
-    raw_data_file = os.path.join(conf.DATA_DIR, conf.ASSET_PAIR + "-raw.csv")
-    raw_data.to_csv(raw_data_file, header=False, mode="a")
+    raw_data.to_csv(conf.RAW_FILE, header=False, mode="a")
 
     return raw_data
