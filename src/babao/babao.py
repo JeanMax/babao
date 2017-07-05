@@ -17,8 +17,8 @@ Why does this file exist, and why not put this in __main__?
 import time
 import argparse
 
-# from IPython import embed # DEBUG
-# from ipdb import set_trace   # DEBUG
+# from IPython import embed
+# from ipdb import set_trace
 
 import babao.config as conf
 import babao.api as api
@@ -30,19 +30,28 @@ parser = argparse.ArgumentParser(description='Command description.')
 parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
                     help="A name of something.")
 
+
 def mainLoop():
-    resamp.resampleData(api.dumpData()) #TODO: this could use a renaming
-    indic.updateIndicators()
+    """TODO"""
+
+    indic.updateIndicators(
+        resamp.resampleData(
+            api.dumpData()  # TODO: this could use a renaming
+        )
+    )
 
 
 def init():
+    """TODO"""
+
     conf.readFile()
 
 
 def main(args=None):
+    """TODO"""
+
     try:
         args = parser.parse_args(args=args)
-        print(args.names)           # DEBUG
     except:
         parser.print_help()
         exit
@@ -51,5 +60,5 @@ def main(args=None):
     while True:
         mainLoop()
         time.sleep(3)
-        #TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
-        # time.sleep() shouldn't be used under 0.01s (usally sleep slightly too much)
+        # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
+        # time.sleep() shouldn't be used under 0.01s

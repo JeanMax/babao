@@ -20,7 +20,8 @@ setup(
     name='babao',
     version='0.1.0',
     license='MIT',
-    description='A bitcoin trading machine - "I\'ve got 99 problems But A Bot Ain\'t One".',
+    description='A bitcoin trading machine - '
+    '"I\'ve got 99 problems But A Bot Ain\'t One".',
     long_description=long_description,
     author='JeanMax',
     author_email='mcanal@student.42.fr',
@@ -54,7 +55,7 @@ setup(
     ],
     extras_require={
         # 'dev': ['check-manifest'],
-        'test': ['pytest', 'pylint'],
+        'test': ['pytest', 'pylint', 'flake8'],
     },
     package_data={
         # 'babao': ['package_data.dat'],

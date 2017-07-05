@@ -18,8 +18,9 @@ CP = cp -nv
 ECHO = echo -e
 PY = python3
 
-DEBUGER = ipython
+DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest
+FLAKE = flake8
 LINTER = pylint
 SETUP = python3 setup.py
 BUILD_FLAGS = build -j4
@@ -33,7 +34,7 @@ endif
 
 ifdef DEBUG
 BUILD_FLAGS += -g
-PY = ipython --no-confirm-exit --no-banner -i #--pdb
+PY = $(DEBUGER)
 endif
 
 
@@ -72,14 +73,16 @@ rebuild: fclean all
 
 reinstall: uninstall install
 
+flake:
+	$(FLAKE)
+
 lint:
-	find . -name flycheck_\*.py | xargs $(RM)
-	$(LINTER) $(SRC_DIR)
+	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_' | xargs $(LINTER)
 
 test:
 	$(TESTER)
 
-check: reinstall test lint
+check: reinstall test flake
 
 commit: check fclean
 	git add -A .

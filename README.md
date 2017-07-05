@@ -20,6 +20,7 @@ Just a little [insert crypto-currency] trade bot, using [insert strategy] over [
 * dump transaction to ledger-cli
 * use compressed hdf instead of csv
 * resample data starting from the last time stamp? (that way the current candle is always "full")
+* fun fact about python: it deletes every file wrote recently if a keyboard interrupt is caught...
 
 
 ### Process:

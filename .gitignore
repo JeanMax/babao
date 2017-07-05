@@ -1,12 +1,8 @@
 # created while building
-babao
+/babao
 build/
 dist/
 temp/
-
-# created by babao
-data/
-log/
 
 # python gifts
 *.egg-info/

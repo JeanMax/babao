@@ -10,7 +10,7 @@ API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
 
 LAST_DUMP_FILE = None
 RAW_FILE = None
-UNSAMPLED_FILE = None  #TODO: rename, it's actually resampled
+UNSAMPLED_FILE = None  # TODO: rename, it's actually resampled
 RESAMPLED_FILE = None
 INDICATORS_FILE = None
 
@@ -22,6 +22,8 @@ TIME_INTERVAL = None
 
 
 def readFile():
+    """TODO"""
+
     # TODO: find a better way to handle config
     global LOG_DIR
     global DATA_DIR
@@ -36,10 +38,26 @@ def readFile():
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
 
-    LOG_DIR = config.get("babao", "LOG_DIR", fallback="/tmp")
-    DATA_DIR = config.get("babao", "DATA_DIR", fallback=os.path.join(CONFIG_DIR, "data"))
-    ASSET_PAIR = config.get("babao", "ASSET_PAIR", fallback="XXBTZEUR")
-    TIME_INTERVAL = config.getint("babao", "TIME_INTERVAL", fallback=1)
+    LOG_DIR = config.get(
+        "babao",
+        "LOG_DIR",
+        fallback="/tmp"
+    )
+    DATA_DIR = config.get(
+        "babao",
+        "DATA_DIR",
+        fallback=os.path.join(CONFIG_DIR, "data")
+    )
+    ASSET_PAIR = config.get(
+        "babao",
+        "ASSET_PAIR",
+        fallback="XXBTZEUR"
+    )
+    TIME_INTERVAL = config.getint(
+        "babao",
+        "TIME_INTERVAL",
+        fallback=1
+    )
 
     LAST_DUMP_FILE = os.path.join(
         DATA_DIR,
