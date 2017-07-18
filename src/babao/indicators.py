@@ -62,6 +62,8 @@ def updateIndicators(numberoflinestoread):
 
     indicators_data.index = resampled_data.index
 
+    ret = resampled_data.join(indicators_data)
+
     # removing extra data used for calculations
     # TODO: find a way to optimize that:
     # you need the resampled data for the indicators,
@@ -71,4 +73,4 @@ def updateIndicators(numberoflinestoread):
     fu.removeLastLine(conf.INDICATORS_FILE, indicators_data.index[0])
     fu.writeFile(conf.INDICATORS_FILE, indicators_data, mode="a")
 
-    return indicators_data
+    return ret

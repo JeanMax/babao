@@ -1,6 +1,7 @@
 """TODO"""
 
 import os
+import time
 import configparser as cp
 
 # globad vars
@@ -13,6 +14,7 @@ RAW_FILE = None
 UNSAMPLED_FILE = None  # TODO: rename, it's actually resampled
 RESAMPLED_FILE = None
 INDICATORS_FILE = None
+LEDGER_FILE = None
 
 # config vars (TODO: this is kinda ugly)
 LOG_DIR = None
@@ -34,6 +36,7 @@ def readFile():
     global UNSAMPLED_FILE
     global RESAMPLED_FILE
     global INDICATORS_FILE
+    global LEDGER_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -78,4 +81,9 @@ def readFile():
     INDICATORS_FILE = os.path.join(
         DATA_DIR,
         ASSET_PAIR + "-indicators-" + str(TIME_INTERVAL) + "Min.csv"
+    )
+    LEDGER_FILE = os.path.join(
+        DATA_DIR,
+        ASSET_PAIR + time.strftime("-ledger-simulation-%Y-%m-%d_%H-%M-%S.csv")
+        # TODO: bot-mode only
     )

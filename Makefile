@@ -54,6 +54,9 @@ all: $(NAME) conf
 install: all
 	$(SETUP) $(INSTALL_FLAGS)
 
+install_tests: all
+	pip install --user .[test] # TODO
+
 clean:
 	$(RM) $(TMP_FILES)
 
@@ -64,7 +67,7 @@ uninstall: fclean
 	$(SETUP) $(RECORD_FLAGS)
 	xargs $(RM) < $(INSTALL_FILES_LOG)
 	$(RM) $(INSTALL_FILES_LOG)
-	find ~/.local/lib -name $(NAME)-\*\.egg | xargs $(RM)
+	find ~/.local/lib -name $(NAME)\* | xargs $(RM)
 	find ~/.local/lib -name easy-install.pth | xargs sed -i 's!\./$(NAME)-.*\.egg!!'
 	make fclean #ouch
 # $(RM) $(ROOT_DIR)

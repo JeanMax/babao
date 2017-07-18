@@ -20,55 +20,72 @@ LAST_DUMP = ""
 # TODO: block sig INT/TERM
 
 
-def kraken_getRawTrades():
+def kraken_doRequest(method, req={}):
     """TODO"""
 
-    global LAST_DUMP
     global C
-    if not LAST_DUMP:
-        if os.path.isfile(conf.LAST_DUMP_FILE):
-            with open(conf.LAST_DUMP_FILE, "r") as f:
-                LAST_DUMP = f.readline()
 
     # we loop in case of request error (503...)
     fail_counter = 1
     while fail_counter > 0:  # really nice loop bro, respect... no goto tho
         try:
-            res = K.query_public("Trades", {
-                "pair": conf.ASSET_PAIR,
-                "since": LAST_DUMP
-            }, C)
+            if method == "Trades":
+                res = K.query_public(method, req, C)
+            else:
+                res = K.query_private(method, req, C)
         except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
-            log.error('Network error while querying Kraken API!\n' + repr(e))
+            log.error("Network error while querying Kraken API!\n" + repr(e))
         except http.client.CannotSendRequest as e:
             log.error(
-                'http.client error while querying Kraken API!'
-                + 'Restarting connection...'
+                "http.client error while querying Kraken API!"
+                + "Restarting connection..."
                 + repr(e)
             )
             C.close()
             C = krakenex.Connection()
         except ValueError as e:
-            log.error('ValueError while querying Kraken API!\n' + repr(e))
+            log.error("ValueError while querying Kraken API!\n" + repr(e))
         # except Exception as e:
-            # log.error('Exception while querying Kraken API!\n' + repr(e))
+            # log.error("Exception while querying Kraken API!\n" + repr(e))
         else:
-            err = res.get('error', [])
+            err = res.get("error", [])
             if err:
                 for e in err:
-                    log.error('Exception returned by Kraken API!\n' + e)
+                    log.error("Exception returned by Kraken API!\n" + e)
             else:
-                break
+                return res["result"]
         log.debug("Connection fail #" + str(fail_counter))
         fail_counter += 1
         time.sleep(0.5)
 
-    LAST_DUMP = res["result"]["last"]
+
+def kraken_getBalance():
+    """TODO"""
+
+    res = kraken_doRequest("Balance")
+    return res
+
+
+def kraken_getRawTrades():
+    """TODO"""
+
+    global LAST_DUMP
+    if not LAST_DUMP:
+        if os.path.isfile(conf.LAST_DUMP_FILE):
+            with open(conf.LAST_DUMP_FILE, "r") as f:
+                LAST_DUMP = f.readline()
+
+    res = kraken_doRequest("Trades", {
+        "pair": conf.ASSET_PAIR,
+        "since": LAST_DUMP
+    })
+
+    LAST_DUMP = res["last"]
     with open(conf.LAST_DUMP_FILE, "w") as f:
         f.write(LAST_DUMP)
 
     df = pd.DataFrame(
-        res["result"][conf.ASSET_PAIR],
+        res[conf.ASSET_PAIR],
         columns=["price", "volume", "time", "buy-sell", "market-limit", "misc"],
         dtype=float  # TODO: dtypes: object(2) (replace bsml letters with 0/1?)
     )

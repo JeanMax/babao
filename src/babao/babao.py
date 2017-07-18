@@ -14,6 +14,7 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+
 import time
 import argparse
 
@@ -24,6 +25,7 @@ import babao.config as conf
 import babao.api as api
 import babao.resample as resamp
 import babao.indicators as indic
+import babao.strategy as strat
 
 # TODO: for some reasons this was outside any scope in the example
 parser = argparse.ArgumentParser(description='Command description.')
@@ -34,9 +36,11 @@ parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
 def mainLoop():
     """TODO"""
 
-    indic.updateIndicators(
-        resamp.resampleData(
-            api.dumpData()  # TODO: this could use a renaming
+    strat.analyse(
+        indic.updateIndicators(
+            resamp.resampleData(
+                api.dumpData()  # TODO: this could use a renaming
+            )
         )
     )
 
