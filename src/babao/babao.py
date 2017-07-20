@@ -15,54 +15,105 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
-import time
-import argparse
-
 # from IPython import embed
 # from ipdb import set_trace
 
+import argparse
+
+import babao.log as log
 import babao.config as conf
-import babao.api as api
-import babao.resample as resamp
-import babao.indicators as indic
-import babao.strategy as strat
-
-# TODO: for some reasons this was outside any scope in the example
-parser = argparse.ArgumentParser(description='Command description.')
-parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
-                    help="A name of something.")
+import babao.commands as cmd
 
 
-def mainLoop():
-    """TODO"""
+def parseArgv(args):
+    """Parse argv ARGS"""
 
-    strat.analyse(
-        indic.updateIndicators(
-            resamp.resampleData(
-                api.dumpData()  # TODO: this could use a renaming
-            )
-        )
+    parser = argparse.ArgumentParser(
+        description="A bitcoin trading machine.",
+        epilog="Run 'babao <command> --help' for detailed help."
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        help="increase output verbosity",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-g", "--graph",
+        help="show a chart (matplotlib)",
+        action="store_true"
     )
 
+    # group = parser.add_mutually_exclusive_group()
+    subparsers = parser.add_subparsers(
+        title="commands",
+        metavar="<command> [<args>]"
+    )
 
-def init():
-    """TODO"""
+    parser_d = subparsers.add_parser(
+        "dry-run",
+        aliases="d",
+        help="real-time bot simulation",
+        description="real-time bot simulation",  # TODO
+    )
+    parser_d.set_defaults(func=cmd.dryRun)
 
-    conf.readFile()
+    parser_w = subparsers.add_parser(
+        "wet-run",
+        aliases="w",
+        help="real-time bot with real-money!",
+        description="real-time bot with real-money!",  # TODO
+    )
+    parser_w.set_defaults(func=cmd.notImplemented)
+
+    parser_t = subparsers.add_parser(
+        "training",
+        aliases="t",
+        help="train bot on the given raw trade data file",
+        description="train bot on the given raw trade data file",  # TODO
+    )
+    parser_t.add_argument('FILE', help="raw trade data file")
+    parser_t.set_defaults(func=cmd.notImplemented)
+
+    parser_b = subparsers.add_parser(
+        "backtest",
+        aliases="b",
+        help="test strategy on the given raw trade data file",
+        description="test strategy on the given raw trade data file",  # TODO
+    )
+    parser_b.add_argument('FILE', help="raw trade data file")
+    parser_b.set_defaults(func=cmd.notImplemented)
+
+    parser_f = subparsers.add_parser(
+        "fetch",
+        aliases="f",
+        help="fetch raw trade data since the given date",
+        description="fetch raw trade data since the given date",  # TODO
+    )
+    parser_f.add_argument('TIMESTAMP', type=int, default=0, help="start date")
+    parser_f.set_defaults(func=cmd.notImplemented)
+
+    args = parser.parse_args(args=args)
+
+    try:
+        args.func
+    except AttributeError:
+        parser.print_help()
+        parser.exit()
+
+    return args
+
+
+def init(args=None):
+    """Initialize config and parse argv"""
+
+    conf.readConfigFile()
+    args = parseArgv(args)
+    log.initLogLevel(args.verbose)
+    return args
 
 
 def main(args=None):
-    """TODO"""
+    """Babao entry point"""
 
-    try:
-        args = parser.parse_args(args=args)
-    except:
-        parser.print_help()
-        exit
-
-    init()
-    while True:
-        mainLoop()
-        time.sleep(3)
-        # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
-        # time.sleep() shouldn't be used under 0.01s
+    args = init()
+    args.func(args)

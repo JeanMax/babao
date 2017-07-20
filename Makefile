@@ -21,7 +21,7 @@ PY = python3
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest
 FLAKE = flake8
-LINTER = pylint
+LINTER = pylint --rcfile=setup.cfg
 SETUP = python3 setup.py
 BUILD_FLAGS = build -j4
 INSTALL_FLAGS = install -O2 --user
@@ -34,7 +34,9 @@ endif
 
 ifdef DEBUG
 BUILD_FLAGS += -g
-PY = $(DEBUGER)
+EXEC = $(DEBUGER) -m $(NAME) --
+else
+EXEC = $(PY) -m $(NAME)
 endif
 
 
@@ -42,7 +44,7 @@ endif
 
 $(NAME):
 	$(SETUP) $(BUILD_FLAGS)
-	$(ECHO) '#!/bin/bash\n\n$(PY) -m$(NAME) "$$@"' > $(NAME)
+	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)
 	chmod 755 $(NAME)
 
 conf:
@@ -87,7 +89,7 @@ test:
 
 check: reinstall test flake
 
-commit: check fclean
+commit: check lint fclean
 	git add -A .
 	git diff --cached --minimal
 	git commit

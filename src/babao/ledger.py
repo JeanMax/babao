@@ -1,4 +1,4 @@
-"""TODO"""
+"""Handle money related stuffs"""
 
 import time
 
@@ -13,6 +13,7 @@ LAST_TRANSACTION_PRICE = None
 
 
 def initLastTransactionPrice():
+    """Initialize last transaction price"""
     global LAST_TRANSACTION_PRICE
 
     try:
@@ -21,12 +22,16 @@ def initLastTransactionPrice():
                 "time", "price", "volume", "buy-sell", "market-limit"
             ])["price"]
         )
-    except:
+    except FileNotFoundError:
         LAST_TRANSACTION_PRICE = -1
 
 
 def minSellPrice():
-    """TODO"""
+    """
+    Return the minimum price to sell coins and make profit
+
+    Based on the last transaction price and transaction fee
+    """
 
     if not LAST_TRANSACTION_PRICE:
         initLastTransactionPrice()
@@ -38,7 +43,11 @@ def minSellPrice():
 
 
 def maxBuyPrice():
-    """TODO"""
+    """
+    Return the maximum price to buy coins and make profit
+
+    Based on the last transaction price and transaction fee
+    """
 
     if not LAST_TRANSACTION_PRICE:
         initLastTransactionPrice()
@@ -50,8 +59,12 @@ def maxBuyPrice():
 
 
 def logTransaction(buy_sell, price, volume):
-    """TODO
-    timestamp,price,volume(btc),buy-sell,market-limit """
+    """
+    Log transaction in a csv ledger file
+
+    Format:
+    timestamp,price,volume(btc),buy-sell,market-limit
+    """
 
     # TODO: bot-mode only
     if buy_sell == "buy":

@@ -1,4 +1,5 @@
-"""TODO"""
+"""Here we take the raw trade data and resample it
+based on the time interval given in the config file"""
 
 import os
 import pandas as pd
@@ -9,9 +10,13 @@ import babao.fileutils as fu
 
 
 def resampleData(raw_data):
-    """´raw_data´ is just the last fecthed data, not the whole file
-       WARNING: an interval with 0 transaction will output a line like this:
-       TIMESTAMP,,,,,,,0
+    """
+    Resample ´raw_data´ based on ´conf.TIME_INTERVAL´
+
+    return a DataFrame of the resampled data
+    ´raw_data´ is just the last fecthed data, not the whole file
+    WARNING: an interval with 0 transaction will output a line like this:
+    TIMESTAMP,,,,,,,0
     """
     log.debug("Entering resampleData()")
 

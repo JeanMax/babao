@@ -1,29 +1,35 @@
-"""TODO"""
+"""This file will handle all the api requests"""
 
 import os
 import time
 import http
 import socket
 import krakenex
-import pandas as pd  # TODO: is it imported for EACH file??
+import pandas as pd
 
 import babao.config as conf
 import babao.log as log
 import babao.fileutils as fu
 
 K = krakenex.API()
-K.load_key(conf.API_KEY_FILE)
 C = krakenex.Connection()
-# krakenex.set_conection(c)
 LAST_DUMP = ""
 
 # TODO: block sig INT/TERM
 
 
-def kraken_doRequest(method, req={}):
-    """TODO"""
+def initKey():
+    """Load the api key from config folder"""
+
+    K.load_key(conf.API_KEY_FILE)
+
+
+def kraken_doRequest(method, req=None):
+    """General function for kraken api requests"""
 
     global C
+    if not req:
+        req = {}
 
     # we loop in case of request error (503...)
     fail_counter = 1
@@ -60,14 +66,20 @@ def kraken_doRequest(method, req={}):
 
 
 def kraken_getBalance():
-    """TODO"""
+    """Return account balance (associatives arrays, keys = assets)"""
 
     res = kraken_doRequest("Balance")
     return res
 
 
 def kraken_getRawTrades():
-    """TODO"""
+    """
+    Fetch last trades from api and return them as a DataFrame
+
+    (only fetch results since ´LAST_DUMP´)
+    index -> time,
+    columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
+    """
 
     global LAST_DUMP
     if not LAST_DUMP:
@@ -98,15 +110,11 @@ def kraken_getRawTrades():
     # we'll need this later for resampling
     df["vwap"] = df["price"] * df["volume"]
 
-    # now it looks like this:
-    # index -> time,
-    # columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
-
     return df
 
 
 def dumpData():
-    """TODO"""
+    """Return a DataFrame of the last trades and append it to ´conf.RAW_FILE´"""
 
     log.debug("Entering dumpData()")
 

@@ -1,4 +1,4 @@
-"""TODO"""
+"""Here we'll handle the config file and the various file/dir paths"""
 
 import os
 import time
@@ -16,15 +16,15 @@ RESAMPLED_FILE = None
 INDICATORS_FILE = None
 LEDGER_FILE = None
 
-# config vars (TODO: this is kinda ugly)
+# config vars
 LOG_DIR = None
 DATA_DIR = None
 ASSET_PAIR = None
 TIME_INTERVAL = None
 
 
-def readFile():
-    """TODO"""
+def readConfigFile():
+    """Read config file and initialize file/dir paths"""
 
     # TODO: find a better way to handle config
     global LOG_DIR

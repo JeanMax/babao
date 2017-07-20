@@ -1,10 +1,21 @@
-"""TODO"""
+"""Some utils functions for logging"""
 
 import time
 
+VERBOSE = False
+
+
+def initLogLevel(verbose):
+    """Initialize log level based on verbose flag"""
+
+    global VERBOSE
+    if verbose:
+        VERBOSE = True
+
 
 def _log(header, msg):
-    """TODO"""
+    """Genreral logging function, shouldn't be used directly"""
+
     print(
         header
         + time.strftime("\033[37;01m [%Y/%m/%d %H:%M:%S]\033[0m\n")
@@ -14,22 +25,26 @@ def _log(header, msg):
 
 
 def error(msg):
-    """TODO"""
+    """Log an error (red)"""
+
     _log("\033[31;01m[ERROR]", msg)
 
 
 def warning(msg):
-    """TODO"""
-    _log("\033[33;01m[WARNING]", msg)
+    """Log a warning (yellow)"""
+
+    if VERBOSE:
+        _log("\033[33;01m[WARNING]", msg)
 
 
-# TODO: something like 'if getenv("DEBUG"):'
-# or 'if getenv("LOG_LEVEL") == "DEBUG":'
 def debug(msg):
-    """TODO"""
-    _log("\033[35;01m[DEBUG]", msg)
+    """Log a debug (purple)"""
+
+    if VERBOSE:
+        _log("\033[35;01m[DEBUG]", msg)
 
 
 def log(msg):
-    """TODO"""
+    """Log a simple message (blue)"""
+
     _log("\033[34;01m[LOG]", msg)
