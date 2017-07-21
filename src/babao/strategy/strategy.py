@@ -1,7 +1,7 @@
 """Buy/Sell strategy"""
 
-import babao.ledger as ledger
-import babao.log as log
+import babao.utils.log as log
+import babao.strategy.ledger as ledger
 
 
 def analyse(indicators_data):

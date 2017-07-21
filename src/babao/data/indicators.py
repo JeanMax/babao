@@ -2,9 +2,9 @@
 
 import pandas as pd
 
-import babao.log as log
 import babao.config as conf
-import babao.fileutils as fu
+import babao.utils.log as log
+import babao.utils.fileutils as fu
 
 MAX_LOOK_BACK = 77  # TODO: I'm not sure how to handle that
 

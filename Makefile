@@ -2,11 +2,14 @@
 
 NAME = babao
 
-ROOT_DIR = ~/.$(NAME).d
+ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
+INSTALL_DIR= $(HOME)/.local/
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
+
+export PATH := $(INSTALL_DIR)/bin:$(PATH)
 
 INSTALL_FILES_LOG = .install_files.list
 TMP_FILES = build dist temp __pycache__ $(NAME).egg-info\
@@ -19,9 +22,9 @@ ECHO = echo -e
 PY = python3
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
-TESTER = pytest
+TESTER = pytest --pdb --fulltrace
 FLAKE = flake8
-LINTER = pylint --rcfile=setup.cfg
+LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
 SETUP = python3 setup.py
 BUILD_FLAGS = build -j4
 INSTALL_FLAGS = install -O2 --user
@@ -69,8 +72,8 @@ uninstall: fclean
 	$(SETUP) $(RECORD_FLAGS)
 	xargs $(RM) < $(INSTALL_FILES_LOG)
 	$(RM) $(INSTALL_FILES_LOG)
-	find ~/.local/lib -name $(NAME)\* | xargs $(RM)
-	find ~/.local/lib -name easy-install.pth | xargs sed -i 's!\./$(NAME)-.*\.egg!!'
+	find $(INSTALL_DIR)/lib -name $(NAME)\* | xargs $(RM)
+	find $(INSTALL_DIR)/lib -name easy-install.pth | xargs sed -i 's!\./$(NAME)-.*\.egg!!'
 	make fclean #ouch
 # $(RM) $(ROOT_DIR)
 
@@ -87,9 +90,9 @@ lint:
 test:
 	$(TESTER)
 
-check: reinstall test flake
+check: reinstall flake lint test
 
-commit: check lint fclean
+commit: check fclean
 	git add -A .
 	git diff --cached --minimal
 	git commit

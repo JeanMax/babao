@@ -41,13 +41,25 @@ def getLastLines(filename, numberoflines, names=None):
 
 
 def removeLastLine(filename, timestamp):  # TODO: rename or something
-    """Remove last entry in ´filename´ if it match ´timestamp´"""
+    """
+    Remove last entry in ´filename´ if it match ´timestamp´
+
+    Return True if an entry was actually removed
+    """
 
     if os.path.isfile(filename):  # TODO: catch exception instead?
         with open(filename, 'r+b') as f, mmap.mmap(
             f.fileno(), 0, access=mmap.ACCESS_WRITE
         ) as mm:
-            last_line_pos = mm.rfind(b'\n', 0, len(mm) - 1) + 1
+            mm_len = len(mm)
+            if mm_len < 12:
+                return False
+            last_line_pos = mm.rfind(b'\n', 0, mm_len - 1) + 1
             # timestamps are formated to 10 digits
             if timestamp == int(mm[last_line_pos:last_line_pos + 10]):
-                mm.resize(last_line_pos)
+                if last_line_pos > 0:
+                    mm.resize(last_line_pos)
+                else:
+                    f.truncate()
+                return True
+    return False

@@ -4,9 +4,9 @@ based on the time interval given in the config file"""
 import os
 import pandas as pd
 
-import babao.log as log
 import babao.config as conf
-import babao.fileutils as fu
+import babao.utils.log as log
+import babao.utils.fileutils as fu
 
 
 def resampleData(raw_data):

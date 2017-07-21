@@ -2,9 +2,9 @@
 
 import time
 
-import babao.fileutils as fu
 import babao.config as conf
-import babao.log as log
+import babao.utils.log as log
+import babao.utils.fileutils as fu
 # import babao.api as api
 
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode

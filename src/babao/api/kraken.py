@@ -1,4 +1,4 @@
-"""This file will handle all the api requests"""
+"""Kraken market api methods"""
 
 import os
 import time
@@ -8,14 +8,11 @@ import krakenex
 import pandas as pd
 
 import babao.config as conf
-import babao.log as log
-import babao.fileutils as fu
+import babao.utils.log as log
 
 K = krakenex.API()
 C = krakenex.Connection()
 LAST_DUMP = ""
-
-# TODO: block sig INT/TERM
 
 
 def initKey():
@@ -24,7 +21,7 @@ def initKey():
     K.load_key(conf.API_KEY_FILE)
 
 
-def kraken_doRequest(method, req=None):
+def doRequest(method, req=None):
     """General function for kraken api requests"""
 
     global C
@@ -65,36 +62,41 @@ def kraken_doRequest(method, req=None):
         time.sleep(0.5)
 
 
-def kraken_getBalance():
+def getBalance():
     """Return account balance (associatives arrays, keys = assets)"""
 
-    res = kraken_doRequest("Balance")
+    res = doRequest("Balance")
     return res
 
 
-def kraken_getRawTrades():
+def getRawTrades(last_dump=None):
     """
     Fetch last trades from api and return them as a DataFrame
 
-    (only fetch results since ´LAST_DUMP´)
+    If the argument ´last_dump´ is empty, fetch the last data and store
+    the ´LAST_DUMP´ timestamp into a file for next calls;
+    Otherwise, fetch data since the given (stringified) timestamp
+
     index -> time,
     columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
     """
 
-    global LAST_DUMP
-    if not LAST_DUMP:
-        if os.path.isfile(conf.LAST_DUMP_FILE):
-            with open(conf.LAST_DUMP_FILE, "r") as f:
-                LAST_DUMP = f.readline()
+    if last_dump is None:
+        global LAST_DUMP
+        if not LAST_DUMP:
+            if os.path.isfile(conf.LAST_DUMP_FILE):
+                with open(conf.LAST_DUMP_FILE, "r") as f:
+                    LAST_DUMP = f.readline()
 
-    res = kraken_doRequest("Trades", {
+    res = doRequest("Trades", {
         "pair": conf.ASSET_PAIR,
         "since": LAST_DUMP
     })
 
-    LAST_DUMP = res["last"]
-    with open(conf.LAST_DUMP_FILE, "w") as f:
-        f.write(LAST_DUMP)
+    if last_dump is None:
+        LAST_DUMP = res["last"]
+        with open(conf.LAST_DUMP_FILE, "w") as f:
+            f.write(LAST_DUMP)
 
     df = pd.DataFrame(
         res[conf.ASSET_PAIR],
@@ -111,14 +113,3 @@ def kraken_getRawTrades():
     df["vwap"] = df["price"] * df["volume"]
 
     return df
-
-
-def dumpData():
-    """Return a DataFrame of the last trades and append it to ´conf.RAW_FILE´"""
-
-    log.debug("Entering dumpData()")
-
-    raw_data = kraken_getRawTrades()
-    fu.writeFile(conf.RAW_FILE, raw_data, mode="a")
-
-    return raw_data

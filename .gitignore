@@ -4,6 +4,9 @@ build/
 dist/
 temp/
 
+# pytest
+.cache
+
 # python gifts
 *.egg-info/
 *.egg

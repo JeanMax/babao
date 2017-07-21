@@ -3,10 +3,10 @@
 import time
 import sys
 
-import babao.api as api
-import babao.resample as resamp
-import babao.indicators as indic
-import babao.strategy as strat
+import babao.api.api as api
+import babao.data.resample as resamp
+import babao.data.indicators as indic
+import babao.strategy.strategy as strat
 
 
 def mainLoop():
