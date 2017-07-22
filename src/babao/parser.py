@@ -66,11 +66,11 @@ def parseArgv(args):
     parser_f = subparsers.add_parser(
         "fetch",
         aliases="f",
-        help="fetch raw trade data since the given date",
-        description="fetch raw trade data since the given date",  # TODO
+        help="fetch raw trade data since the beginning of times",
+        description="fetch raw trade data since the beginning of times",  # TODO
     )
-    parser_f.add_argument('TIMESTAMP', type=int, default=0, help="start date")
-    parser_f.set_defaults(func=cmd.notImplemented)
+    # parser_f.add_argument('TIMESTAMP', type=int, default=0, help="start date")
+    parser_f.set_defaults(func=cmd.fetch)
 
     args = parser.parse_args(args=args)
 

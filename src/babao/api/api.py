@@ -14,12 +14,12 @@ def initKey():
     kraken.initKey()
 
 
-def dumpData():
+def dumpData(since=None):
     """Return a DataFrame of the last trades and append it to ´conf.RAW_FILE´"""
 
     log.debug("Entering dumpData()")
 
-    raw_data = kraken.getRawTrades()
+    raw_data = kraken.getRawTrades(since)
     fu.writeFile(conf.RAW_FILE, raw_data, mode="a")
 
     return raw_data

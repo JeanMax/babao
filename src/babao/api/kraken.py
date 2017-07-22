@@ -81,22 +81,22 @@ def getRawTrades(last_dump=None):
     columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
     """
 
-    if last_dump is None:
-        global LAST_DUMP
-        if not LAST_DUMP:
-            if os.path.isfile(conf.LAST_DUMP_FILE):
-                with open(conf.LAST_DUMP_FILE, "r") as f:
-                    LAST_DUMP = f.readline()
+    global LAST_DUMP
+    if last_dump is not None:
+        LAST_DUMP = last_dump
+    elif not LAST_DUMP:
+        if os.path.isfile(conf.LAST_DUMP_FILE):
+            with open(conf.LAST_DUMP_FILE, "r") as f:
+                LAST_DUMP = f.readline()
 
     res = doRequest("Trades", {
         "pair": conf.ASSET_PAIR,
         "since": LAST_DUMP
     })
 
-    if last_dump is None:
-        LAST_DUMP = res["last"]
-        with open(conf.LAST_DUMP_FILE, "w") as f:
-            f.write(LAST_DUMP)
+    LAST_DUMP = res["last"]
+    with open(conf.LAST_DUMP_FILE, "w") as f:
+        f.write(LAST_DUMP)
 
     df = pd.DataFrame(
         res[conf.ASSET_PAIR],
