@@ -13,17 +13,24 @@ def parseArgv(args):
         epilog="Run 'babao <command> --help' for detailed help."
     )
     parser.add_argument(
-        "-v", "--verbose",
-        help="increase output verbosity",
-        action="store_true"
-    )
-    parser.add_argument(
         "-g", "--graph",
         help="show a chart (matplotlib)",
         action="store_true"
     )
 
-    # group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-v", "--verbose",
+        help="increase output verbosity",
+        action="count",
+        default=1
+    )
+    group.add_argument(
+        "-q", "--quiet",
+        help="stfu damn bot",
+        action="store_true"
+    )
+
     subparsers = parser.add_subparsers(
         title="commands",
         metavar="<command> [<args>]"

@@ -28,7 +28,7 @@ def init(args=None):
 
     conf.readConfigFile()
     args = pars.parseArgv(args)
-    log.initLogLevel(args.verbose)
+    log.initLogLevel(args.verbose, args.quiet)
     return args
 
 

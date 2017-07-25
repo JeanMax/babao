@@ -1,18 +1,28 @@
+import pytest
+
 import babao.utils.log as log
 
 
 def test_initLogLevel():
-    assert not log.VERBOSE
+    assert log.VERBOSE == 1
 
-    log.initLogLevel(False)
-    assert not log.VERBOSE
+    log.initLogLevel(1, False)
+    assert log.VERBOSE == 1
 
-    log.initLogLevel(True)
-    assert log.VERBOSE
+    log.initLogLevel(2, False)
+    assert log.VERBOSE == 2
+
+    log.initLogLevel(3, False)
+    assert log.VERBOSE == 3
+
+    log.initLogLevel(42, True)
+    assert log.VERBOSE == 0
+
 
 
 def test_error():
-    log.error("error")
+    with pytest.raises(SystemExit):
+        log.error("error")
 
 
 def test_warning():

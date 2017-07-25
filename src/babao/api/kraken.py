@@ -37,9 +37,9 @@ def doRequest(method, req=None):
             else:
                 res = K.query_private(method, req, C)
         except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
-            log.error("Network error while querying Kraken API!\n" + repr(e))
+            log.warning("Network error while querying Kraken API!\n" + repr(e))
         except http.client.CannotSendRequest as e:
-            log.error(
+            log.warning(
                 "http.client error while querying Kraken API!"
                 + "Restarting connection..."
                 + repr(e)
@@ -47,14 +47,14 @@ def doRequest(method, req=None):
             C.close()
             C = krakenex.Connection()
         except ValueError as e:
-            log.error("ValueError while querying Kraken API!\n" + repr(e))
+            log.warning("ValueError while querying Kraken API!\n" + repr(e))
         # except Exception as e:
-            # log.error("Exception while querying Kraken API!\n" + repr(e))
+            # log.warning("Exception while querying Kraken API!\n" + repr(e))
         else:
             err = res.get("error", [])
             if err:
                 for e in err:
-                    log.error("Exception returned by Kraken API!\n" + e)
+                    log.warning("Exception returned by Kraken API!\n" + e)
             else:
                 return res["result"]
         log.debug("Connection fail #" + str(fail_counter))

@@ -84,6 +84,6 @@ def readConfigFile():
     )
     LEDGER_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + time.strftime("-ledger-simulation-%Y-%m-%d_%H-%M-%S.csv")
+        ASSET_PAIR + time.strftime("-ledger-simulation-%y-%m-%d_%H-%M-%S.csv")
         # TODO: bot-mode only
     )
