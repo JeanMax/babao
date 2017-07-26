@@ -11,10 +11,15 @@ API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
 
 LAST_DUMP_FILE = None
 RAW_FILE = None
-UNSAMPLED_FILE = None  # TODO: rename, it's actually resampled
+UNSAMPLED_FILE = None
 RESAMPLED_FILE = None
 INDICATORS_FILE = None
 LEDGER_FILE = None
+
+RAW_COLUMNS = ["price", "volume", "buy-sell", "market-limit", "vwap"]
+RESAMPLED_COLUMNS = ["open", "high", "low", "close", "vwap", "volume", "count"]
+# INDICATORS_COLUMNS =
+LEDGER_COLUMNS = ["price", "volume", "buy-sell", "market-limit"]
 
 # config vars
 LOG_DIR = None

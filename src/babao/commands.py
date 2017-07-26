@@ -18,6 +18,7 @@ def dryRun(unused_args):
     api.initKey()
 
     while True:
+        # TODO: block sig INT/TERM
         strat.analyse(
             indic.updateIndicators(
                 resamp.resampleData(
@@ -25,9 +26,9 @@ def dryRun(unused_args):
                 )
             )
         )
-        time.sleep(3)
+
         # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
-        # time.sleep() shouldn't be used under 0.01s
+        time.sleep(3)
 
 
 def fetch(unused_args):
@@ -41,15 +42,20 @@ def fetch(unused_args):
               conf.RESAMPLED_FILE,
               conf.INDICATORS_FILE]:
         if os.path.isfile(f):
-            os.remove(f)
+            os.remove(f)  # TODO: warn user / create backup?
 
+    # TODO: block sig INT/TERM
     raw_data = api.dumpData("0")
     indic.updateIndicators(
         resamp.resampleData(raw_data)
     )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         log.debug("Fetched data since " + str(raw_data.index[0]))
+
+        # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
         time.sleep(3)
+
+        # TODO: block sig INT/TERM
         raw_data = api.dumpData()
         indic.updateIndicators(
             resamp.resampleData(raw_data)

@@ -44,9 +44,7 @@ def updateIndicators(numberOfLinesToRead):
     resampled_data = fu.getLastLines(
         conf.RESAMPLED_FILE,
         numberOfLinesToRead + MAX_LOOK_BACK,
-        names=[
-            "time", "open", "high", "low", "close", "vwap", "volume", "count"
-        ]
+        names=conf.RESAMPLED_COLUMNS
     )
 
     close = resampled_data['close']  # TODO: test if this is really faster

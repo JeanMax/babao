@@ -1,6 +1,5 @@
 """Kraken market api methods"""
 
-import os
 import time
 import http
 import socket
@@ -12,7 +11,6 @@ import babao.utils.log as log
 
 K = krakenex.API()
 C = krakenex.Connection()
-LAST_DUMP = ""
 
 
 def initKey():
@@ -69,47 +67,34 @@ def getBalance():
     return res
 
 
-def getRawTrades(last_dump=None):
+def getRawTrades(since):
     """
-    Fetch last trades from api and return them as a DataFrame
+    Fetch last trades from api since the given (stringified) timestamp
 
-    If the argument ´last_dump´ is empty, fetch the last data and store
-    the ´LAST_DUMP´ timestamp into a file for next calls;
-    Otherwise, fetch data since the given (stringified) timestamp
+    Return a tuple (DataFrame(raw_data), str(last_timestamp))
 
     index -> time,
     columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
     """
 
-    global LAST_DUMP
-    if last_dump is not None:
-        LAST_DUMP = last_dump
-    elif not LAST_DUMP:
-        if os.path.isfile(conf.LAST_DUMP_FILE):
-            with open(conf.LAST_DUMP_FILE, "r") as f:
-                LAST_DUMP = f.readline()
-
     res = doRequest("Trades", {
         "pair": conf.ASSET_PAIR,
-        "since": LAST_DUMP
+        "since": since
     })
 
-    LAST_DUMP = res["last"]
-    with open(conf.LAST_DUMP_FILE, "w") as f:
-        f.write(LAST_DUMP)
-
-    df = pd.DataFrame(
+    raw_data = pd.DataFrame(
         res[conf.ASSET_PAIR],
+        # not conf.RAW_COLUMNS, this is specific to kraken
         columns=["price", "volume", "time", "buy-sell", "market-limit", "misc"],
         dtype=float  # TODO: dtypes: object(2) (replace bsml letters with 0/1?)
     )
-    df.index = df["time"].astype(int)
-    del df["misc"]
-    # del df ["market-limit"]  # TODO: this could be useful
-    # del df["buy-sell"]  # TODO: this could be useful
-    del df["time"]
+    raw_data.index = raw_data["time"].astype(int)
+    del raw_data["misc"]
+    # del raw_data ["market-limit"]  # TODO: this could be useful
+    # del raw_data["buy-sell"]  # TODO: this could be useful
+    del raw_data["time"]
 
     # we'll need this later for resampling
-    df["vwap"] = df["price"] * df["volume"]
+    raw_data["vwap"] = raw_data["price"] * raw_data["volume"]
 
-    return df
+    return raw_data, res["last"]

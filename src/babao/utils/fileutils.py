@@ -6,16 +6,16 @@ import mmap
 import pandas as pd
 
 
-def readFile(filename, names=None):
+def readFile(filename, names=None, chunksize=None):
     """Return the content of the given csv file as a DataFrame"""
 
     return pd.read_csv(
         filename,
-        engine='c',
+        names=names,
+        chunksize=chunksize,
         header=None,
         parse_dates=True,
-        index_col=0,
-        names=names
+        index_col=0
     )
 
 
@@ -35,7 +35,6 @@ def getLastLines(filename, numberoflines, names=None):
         start = end
         for unused_counter in range(numberoflines):
             start = mm.rfind(b'\n', 0, start)  # TODO: catch errors?
-        # the while loop is slower, so we'll keep the unused var...
 
         return readFile(io.BytesIO(mm[start + 1:end]), names)
 
