@@ -54,7 +54,7 @@ setup(
         'krakenex'
     ],
     extras_require={
-        # 'dev': ['check-manifest'],
+        'graph': ['matplotlib'],
         'test': ['pytest', 'pylint', 'flake8'],
     },
     package_data={

@@ -43,7 +43,7 @@ EXEC = $(PY) -m $(NAME)
 endif
 
 
-.PHONY: conf all install lint test check clean fclean uninstall rebuild reinstall commit
+.PHONY: conf all install install_test install_graph clean fclean uninstall rebuild reinstall flake lint test check commit
 
 $(NAME):
 	$(SETUP) $(BUILD_FLAGS)
@@ -59,8 +59,11 @@ all: $(NAME) conf
 install: all
 	$(SETUP) $(INSTALL_FLAGS)
 
-install_tests: all
+install_test: all
 	pip install --user .[test] # TODO
+
+install_graph: all
+	pip install --user .[graph] # TODO
 
 clean:
 	$(RM) $(TMP_FILES)

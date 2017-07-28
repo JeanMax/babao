@@ -3,35 +3,82 @@
 import time
 import sys
 import os
+import signal
+from multiprocessing import Process
 
 import babao.config as conf
 import babao.utils.log as log
+import babao.utils.fileutils as fu
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
+import babao.data.graph as graph
 import babao.strategy.strategy as strat
 
+EXIT = False
+TICK = None
 
-def dryRun(unused_args):
+
+def signal_handler(unused_signal, unused_frame):
+    """TODO"""
+
+    global EXIT
+    EXIT = True
+
+
+def delay():
+    """TODO"""
+
+    global TICK
+    if TICK is not None:
+        delta = time.time() - TICK
+    else:
+        delta = 0
+    log.debug("Loop took " + str(delta) + "s")
+
+    delta = 3 - delta + 0.1  # TODO: define API_DELAY, LIL_DELAY_JUST_IN_CASE
+    if delta > 0:
+        time.sleep(delta)
+    TICK = time.time()
+
+
+def dryRun(args):
     """Real-time bot simulation"""
 
     api.initKey()
-
-    while True:
-        # TODO: block sig INT/TERM
-        strat.analyse(
-            indic.updateIndicators(
-                resamp.resampleData(
-                    api.dumpData()  # TODO: this could use a renaming
-                )
+    if args.graph:
+        full_data = fu.getLastLines(
+            conf.RESAMPLED_FILE,
+            graph.MAX_POINTS,
+            conf.RESAMPLED_COLUMNS
+        )
+        full_data = full_data.join(
+            fu.getLastLines(
+                conf.INDICATORS_FILE,
+                graph.MAX_POINTS,
+                conf.INDICATORS_COLUMNS
             )
         )
+        p = Process(target=graph.initGraph, args=(full_data,))
+        p.start()
 
-        # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
-        time.sleep(3)
+    signal.signal(signal.SIGINT, signal_handler)
+    while True:
+        full_data = indic.updateIndicators(
+            resamp.resampleData(
+                api.dumpData()  # TODO: this could use a renaming
+            )
+        )
+        strat.analyse(full_data)
+        if EXIT:
+            break
+        delay()
+
+    if args.graph and p.is_alive():
+        p.terminate()
 
 
-def fetch(unused_args):
+def fetch(args):
     """fetch raw trade data since the beginning of times"""
 
     api.initKey()
@@ -44,22 +91,32 @@ def fetch(unused_args):
         if os.path.isfile(f):
             os.remove(f)  # TODO: warn user / create backup?
 
-    # TODO: block sig INT/TERM
+    signal.signal(signal.SIGINT, signal_handler)
     raw_data = api.dumpData("0")
-    indic.updateIndicators(
+    full_data = indic.updateIndicators(
         resamp.resampleData(raw_data)
     )
-    while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
-        log.debug("Fetched data since " + str(raw_data.index[0]))
+    if args.graph:
+        p = Process(target=graph.initGraph, args=(full_data,))
+        p.start()
 
-        # TODO: sleep(API_DELAY - time(mainLoop()) + LIL_DELAY_JUST_IN_CASE)
-        time.sleep(3)
+    while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
+        log.debug(
+            "Fetched data from " + str(raw_data.index[0])
+            + " to " + str(raw_data.index[-1])
+        )
+        if EXIT:
+            break
+        delay()
 
         # TODO: block sig INT/TERM
         raw_data = api.dumpData()
-        indic.updateIndicators(
+        full_data = indic.updateIndicators(
             resamp.resampleData(raw_data)
         )
+
+    if args.graph and p.is_alive():
+        p.terminate()
 
 
 def notImplemented(args):
