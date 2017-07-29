@@ -1,10 +1,9 @@
-"""Commands launched by conf.parseArgv"""
+"""Commands launched by parseArgv"""
 
 import time
 import sys
 import os
 import signal
-from multiprocessing import Process
 
 import babao.config as conf
 import babao.utils.log as log
@@ -12,7 +11,6 @@ import babao.utils.fileutils as fu
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
-import babao.data.graph as graph
 import babao.strategy.strategy as strat
 
 EXIT = False
@@ -47,6 +45,8 @@ def dryRun(args):
 
     api.initKey()
     if args.graph:
+        from multiprocessing import Process
+        import babao.data.graph as graph
         full_data = fu.getLastLines(
             conf.RESAMPLED_FILE,
             graph.MAX_POINTS,
@@ -97,6 +97,8 @@ def fetch(args):
         resamp.resampleData(raw_data)
     )
     if args.graph:
+        from multiprocessing import Process
+        import babao.data.graph as graph
         p = Process(target=graph.initGraph, args=(full_data,))
         p.start()
 

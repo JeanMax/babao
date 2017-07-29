@@ -3,9 +3,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib import dates as mdates
-from matplotlib import ticker as mticker
-# from matplotlib.widgets import Cursor
+from matplotlib.widgets import MultiCursor
 
 MAX_POINTS = 42000  # TODO: move to config/arg
 DATA = None
@@ -19,91 +17,110 @@ def initGraph(full_data):
     DATA = full_data
 
     fig = plt.figure()
-    ax1 = plt.subplot2grid((1, 1), (0, 0))
-    ax1_bis = ax1.twinx()
+    axes = {}
+    axes["vwap"] = fig.add_subplot(2, 1, 1)
+    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["vwap"])
 
-    # ax1 = fig.add_subplot(2, 1, 1)
-    # ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-
-    ln1, = ax1.plot_date(
+    lines = {}
+    lines["vwap"], = axes["vwap"].plot_date(
         DATA.index,
         DATA["vwap"],
         "-",
         label="vwap",
-        animated=True
+        color="b",
+        alpha=0.7
     )
 
-    ax1_bis.fill_between(
+    lines["volume"], = axes["volume"].plot_date(
         DATA.index,
-        0,
         DATA["volume"],
+        "-",
         label="volume",
-        facecolor="g",
-        alpha=0.4
+        color="g",
+        alpha=0.7
     )
-
-    # ax1.plot_date(DATA.index, DATA["vwap"], "-", label="vwap")
-    # ax2.plot_date(DATA.index, DATA["volume"], "-", label="volume")
-
-    # DATA["vwap"].plot(secondary_y=True, legend=True) #logy=True
-    # DATA["volume"].plot(legend=True)
 
     # slow and ugly, plus there is something wrong with date format
     # candlestick_ohlc(
-    #    ax1, DATA.values,
+    #    axes["vwap"], DATA.values,
     #    width=0.05, colorup='g', colordown='r'
     # )
 
-    # not so good when zooming in :/
-    # ax1.annotate(
-    #     str(int(DATA["vwap"][-1])),
-    #     (DATA.index[-1], DATA["vwap"][-1]),
-    #     xytext=(
-    #         DATA.index[-1]
-    #         + (DATA.index[-1] - DATA.index[-100]),
-    #         DATA["vwap"][-1]
-    #     ),
-    #     bbox={"boxstyle":"larrow"}
-    # )
+    unused_cursor = MultiCursor(  # NOQA: F841
+        fig.canvas,
+        list(axes.values()),
+        useblit=True,
+        color='black',
+        lw=0.5,
+        horizOn=True
+    )
 
-    ax1.grid(True)
-    ax1_bis.grid(False)
-
-    h1, l1 = ax1.get_legend_handles_labels()
-    h2, l2 = ax1_bis.get_legend_handles_labels()
-    plt.legend(h1 + h2, l1 + l2, loc="upper left")
-
-    for label in ax1.xaxis.get_ticklabels():
+    plt.setp(axes["vwap"].get_xticklabels(), visible=False)
+    for label in axes["volume"].xaxis.get_ticklabels():
         label.set_rotation(45)
-    # ax1.set_yticks(range(0, 4000, 100))
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%y %H:%M"))
-    ax1.xaxis.set_major_locator(mticker.MaxNLocator(14))
-    # plt.xlabel("Date")
 
-    ax1_bis.axes.yaxis.set_ticklabels([])
-    ax1.set_ylabel("price")
+    adf = axes["volume"].xaxis.get_major_formatter()
+    adf.scaled[1./86400] = '%d/%m/%y %H:%M'
+    adf.scaled[1./1440] = '%d/%m/%y %H:%M'
+    adf.scaled[1./24] = '%d/%m/%y %H:%M'
+    adf.scaled[1.] = '%d/%m/%y'
+    adf.scaled[30.] = '%d/%m/%y'
+    adf.scaled[365.] = '%d/%m/%y'
 
-    plt.subplots_adjust(top=0.95)
+    axes["vwap"].set_ylabel("EUR")
+    axes["volume"].set_ylabel("BTC")
 
-    # bugged since using animation (flash)
-    # unused_cursor = Cursor(ax1_bis, useblit=True, color='black', linewidth=.5)
+    for key in axes:
+        axes[key].grid(True)
+        axes[key].legend(loc="upper left")
+        axes[key].yaxis.set_label_position("right")
+        axes[key].yaxis.tick_right()
 
-    # the assignation are needed to avoid garbage collection...
+        # won't update ticks when zooming :(
+        # import numpy as np
+        # axes[key].yaxis.set_ticks(
+        #     np.append(
+        #         axes[key].yaxis.get_majorticklocs(),
+        #         DATA[key].iloc[-1]
+        #     )
+        # )
+
+        # not so good when zooming in :/
+        # last_x = DATA.index[-1]
+        # last_y = DATA[key].iloc[-1]
+        # axes[key].annotate(
+        #     str(int(last_y)),
+        #     (last_x, last_y),
+        #     xytext=(
+        #         last_x + (last_x - DATA.index[-int(MAX_POINTS / 4)]),
+        #         last_y
+        #     ),
+        #     bbox={"boxstyle": "larrow"}
+        # )
+        # lines[key + "last"] = axes[key].axhline(
+        #     y=last_y,
+        #     color="b",
+        #     linewidth=0.5
+        # )
+
+    plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
+
+    # the assignations are needed to avoid garbage collection...
     unused_animation = animation.FuncAnimation(  # NOQA: F841
         fig,
         updateGraph,
-        fargs=(ln1,),
-        blit=True,
-        interval=50
+        fargs=(lines, axes),
+        # blit=True,  # bug?
+        interval=3000
     )
 
     plt.show()  # this is blocking!
 
 
-def updateGraph(unused_counter, line):
+def updateGraph(unused_counter, lines, unused_axes):
     """TODO"""
     # print(repr(DATA.head()))
 
     # line.set_data([1,2,3], [i,i,i])
 
-    return line,
+    return lines.values()
