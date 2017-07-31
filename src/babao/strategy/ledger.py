@@ -91,3 +91,5 @@ def logTransaction(buy_sell, price, volume):
         + "balance: " + str(BALANCE["XXBT"]) + " BTC / "
         + str(BALANCE["ZEUR"]) + " EUR"
     )
+
+# time,currency_in,volume_in,fee_in,currency_out,volume_out,fee_out,balance

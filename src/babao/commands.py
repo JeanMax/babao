@@ -58,7 +58,7 @@ def launchGraph():
 
     # we import here, so matplotlib can stay an optional dependency
     from multiprocessing import Process
-    import babao.data.graph as graph
+    import babao.graph as graph
 
     p = Process(
         target=graph.initGraph,

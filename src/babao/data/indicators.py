@@ -6,24 +6,24 @@ import babao.config as conf
 import babao.utils.log as log
 import babao.utils.fileutils as fu
 
-MAX_LOOK_BACK = 77  # TODO: I'm not sure how to handle that
+# these should be trained
+SMA_LOOK_BACK = [9, 26, 77]
+MAX_LOOK_BACK = SMA_LOOK_BACK[-1]
 
 
-# I think you should differentiate actual parameters from data parameter
-def indicator_SMA(close_price, look_back_delay):
+def indicator_SMA(column, look_back_delay):
     """Simple Moving Average"""
 
-    return close_price.rolling(
+    return column.rolling(
         window=look_back_delay,
         center=False
     ).mean()
 
 
-# idem
-def indicator_EWMA(close_price, look_back_delay):
+def indicator_EWMA(column, look_back_delay):
     """Exponentially-weighted Moving Average"""
 
-    return close_price.ewm(
+    return column.ewm(
         span=look_back_delay,
         min_periods=look_back_delay - 1,
         adjust=True,
@@ -46,12 +46,14 @@ def updateIndicators(numberOfLinesToRead):
         names=conf.RESAMPLED_COLUMNS
     )
 
-    close = resampled_data['close']  # TODO: test if this is really faster
     indicators_data = pd.DataFrame()
-
-    for i in [3, 5, 7]:
-        indicators_data["SMA_" + str(i)] = indicator_SMA(close, i)
-        indicators_data["EWMA_" + str(i)] = indicator_EWMA(close, i)
+    # pylint: disable=consider-using-enumerate
+    for i in range(len(SMA_LOOK_BACK)):
+        for col in ["vwap", "volume"]:
+            indicators_data["SMA_" + col + "_" + str(i + 1)] = indicator_SMA(
+                resampled_data[col],
+                SMA_LOOK_BACK[i]
+            )
 
     indicators_data.index = resampled_data.index
 

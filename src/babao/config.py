@@ -19,7 +19,11 @@ LEDGER_FILE = None
 
 RAW_COLUMNS = ["price", "volume", "buy-sell", "market-limit", "vwap"]
 RESAMPLED_COLUMNS = ["open", "high", "low", "close", "vwap", "volume", "count"]
-INDICATORS_COLUMNS = ["SMA_3", "SMA_5", "SMA_7", "EWMA_3", "EWMA_5", "EWMA_7"]
+INDICATORS_COLUMNS = [
+    "SMA_vwap_1", "SMA_volume_1",
+    "SMA_vwap_2", "SMA_volume_2",
+    "SMA_vwap_3", "SMA_volume_3"
+]
 LEDGER_COLUMNS = ["price", "volume", "buy-sell", "market-limit"]
 
 # config vars

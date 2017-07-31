@@ -12,8 +12,9 @@ from matplotlib.widgets import MultiCursor
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.fileutils as fu
+import babao.data.indicators as indic
 
-MAX_POINTS = 42000  # TODO: move to config/arg
+MAX_POINTS = 10000  # TODO: move to config/arg
 DATA = None
 
 
@@ -116,42 +117,31 @@ def initGraph():
 
     fig = plt.figure()
     axes = {}
-    axes["price"] = fig.add_subplot(2, 1, 1)
-    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["price"])
+    axes["vwap"] = fig.add_subplot(2, 1, 1)
+    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["vwap"])
 
     lines = {}
-    lines["vwap"], = axes["price"].plot_date(
-        DATA.index,
-        DATA["vwap"],
-        "-",
-        label="vwap",
-        color="b",
-        alpha=0.7
-    )
-    lines["SMA_7"], = axes["price"].plot_date(
-        DATA.index,
-        DATA["SMA_7"],
-        "-",
-        label="SMA_7",
-        color="r",
-        alpha=0.7
-    )
+    for key in axes.keys():  # pylint: disable=consider-iterating-dictionary
+        lines[key], = axes[key].plot_date(
+            DATA.index,
+            DATA[key],
+            "-",
+            label=key,
+            color="b",
+            alpha=0.8
+        )
+        for i in range(len(indic.SMA_LOOK_BACK)):
+            col = "SMA_" + key + "_" + str(i + 1)
+            lines[col], = axes[key].plot_date(
+                DATA.index,
+                DATA[col],
+                "-",
+                label="SMA " + str(indic.SMA_LOOK_BACK[i]),
+                color="r",
+                alpha=0.7 - 0.2 * i
+            )
 
-    lines["volume"], = axes["volume"].plot_date(
-        DATA.index,
-        DATA["volume"],
-        "-",
-        label="volume",
-        color="g",
-        alpha=0.7
-    )
-
-    # slow and ugly, plus there is something wrong with date format
-    # candlestick_ohlc(
-    #    axes["price"], DATA.values,
-    #    width=0.05, colorup='g', colordown='r'
-    # )
-
+    # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841
         fig.canvas,
         list(axes.values()),
@@ -161,7 +151,7 @@ def initGraph():
         horizOn=True
     )
 
-    plt.setp(axes["price"].get_xticklabels(), visible=False)
+    plt.setp(axes["vwap"].get_xticklabels(), visible=False)
     for label in axes["volume"].xaxis.get_ticklabels():
         label.set_rotation(45)
 
@@ -173,12 +163,13 @@ def initGraph():
     adf.scaled[30.] = '%d/%m/%y'
     adf.scaled[365.] = '%d/%m/%y'
 
-    axes["price"].set_ylim(
+    axes["vwap"].set_ylim(
         bottom=DATA["vwap"].min()
-        - (axes["price"].get_ylim()[1] - DATA["vwap"].max())
+        - (axes["vwap"].get_ylim()[1] - DATA["vwap"].max())
     )
+    axes["volume"].set_ylim(bottom=0)
 
-    axes["price"].set_ylabel("EUR")
+    axes["vwap"].set_ylabel("EUR")
     axes["volume"].set_ylabel("BTC")
 
     for key in axes:
@@ -186,33 +177,6 @@ def initGraph():
         axes[key].legend(loc="best")
         axes[key].yaxis.set_label_position("right")
         axes[key].yaxis.tick_right()
-
-        # won't update ticks when zooming :(
-        # import numpy as np
-        # axes[key].yaxis.set_ticks(
-        #     np.append(
-        #         axes[key].yaxis.get_majorticklocs(),
-        #         DATA[key].iloc[-1]
-        #     )
-        # )
-
-        # not so good when zooming in :/
-        # last_x = DATA.index[-1]
-        # last_y = DATA[key].iloc[-1]
-        # axes[key].annotate(
-        #     str(int(last_y)),
-        #     (last_x, last_y),
-        #     xytext=(
-        #         last_x + (last_x - DATA.index[-int(MAX_POINTS / 4)]),
-        #         last_y
-        #     ),
-        #     bbox={"boxstyle": "larrow"}
-        # )
-        # lines[key + "last"] = axes[key].axhline(
-        #     y=last_y,
-        #     color="b",
-        #     linewidth=0.5
-        # )
 
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
 
