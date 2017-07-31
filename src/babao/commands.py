@@ -7,81 +7,105 @@ import signal
 
 import babao.config as conf
 import babao.utils.log as log
-import babao.utils.fileutils as fu
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
 import babao.strategy.strategy as strat
 
-EXIT = False
+EXIT = 0
 TICK = None
 
 
-def signal_handler(unused_signal, unused_frame):
-    """TODO"""
+def signal_handler(signal_code, unused_frame):
+    """Catch signal INT/TERM, so we won't exit while playing with data files"""
 
     global EXIT
-    EXIT = True
+    EXIT = 128 + signal_code
 
 
 def delay():
-    """TODO"""
+    """
+    Sleep the min amount of time required to still be friend with the api
+
+    Also handle a lock file to avoid having the graph read data while we write;
+    exit before sleeping if a signal have been caught.
+    """
+
+    if EXIT:
+        sys.exit(EXIT)
+
+    if os.path.isfile(conf.LOCK_FILE):
+        os.remove(conf.LOCK_FILE)
 
     global TICK
     if TICK is not None:
         delta = time.time() - TICK
+        log.debug("Loop took " + str(round(delta, 3)) + "s")
     else:
         delta = 0
-    log.debug("Loop took " + str(delta) + "s")
 
-    delta = 3 - delta + 0.1  # TODO: define API_DELAY, LIL_DELAY_JUST_IN_CASE
+    delta = 3 - delta  # TODO: define API_DELAY
     if delta > 0:
         time.sleep(delta)
     TICK = time.time()
+
+    open(conf.LOCK_FILE, "w")
+    time.sleep(0.1)  # TODO: define LIL_DELAY_JUST_IN_CASE
+
+
+def launchGraph():
+    """Start the graph process"""
+
+    # we import here, so matplotlib can stay an optional dependency
+    from multiprocessing import Process
+    import babao.data.graph as graph
+
+    p = Process(
+        target=graph.initGraph,
+        # args=(full_data,),
+        # name="babao-graph",
+        daemon=True  # so we don't have to terminate it
+    )
+    p.start()
+
+
+def initCmd(args):
+    """
+    Generic command init function
+
+    Init: lock file, signal handlers, api key, graph
+    """
+
+    # init lock file
+    open(conf.LOCK_FILE, "w")
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    api.initKey()
+    if args.graph:
+        launchGraph()
 
 
 def dryRun(args):
     """Real-time bot simulation"""
 
-    api.initKey()
-    if args.graph:
-        from multiprocessing import Process
-        import babao.data.graph as graph
-        full_data = fu.getLastLines(
-            conf.RESAMPLED_FILE,
-            graph.MAX_POINTS,
-            conf.RESAMPLED_COLUMNS
-        )
-        full_data = full_data.join(
-            fu.getLastLines(
-                conf.INDICATORS_FILE,
-                graph.MAX_POINTS,
-                conf.INDICATORS_COLUMNS
-            )
-        )
-        p = Process(target=graph.initGraph, args=(full_data,))
-        p.start()
+    initCmd(args)
 
-    signal.signal(signal.SIGINT, signal_handler)
     while True:
-        full_data = indic.updateIndicators(
+        indic.updateIndicators(
             resamp.resampleData(
                 api.dumpData()  # TODO: this could use a renaming
             )
         )
-        strat.analyse(full_data)
-        if EXIT:
-            break
+        strat.analyse()
         delay()
-
-    if args.graph and p.is_alive():
-        p.terminate()
 
 
 def fetch(args):
     """fetch raw trade data since the beginning of times"""
 
-    api.initKey()
+    initCmd(args)
 
     for f in [conf.LAST_DUMP_FILE,
               conf.RAW_FILE,
@@ -91,34 +115,21 @@ def fetch(args):
         if os.path.isfile(f):
             os.remove(f)  # TODO: warn user / create backup?
 
-    signal.signal(signal.SIGINT, signal_handler)
     raw_data = api.dumpData("0")
-    full_data = indic.updateIndicators(
+    indic.updateIndicators(
         resamp.resampleData(raw_data)
     )
-    if args.graph:
-        from multiprocessing import Process
-        import babao.data.graph as graph
-        p = Process(target=graph.initGraph, args=(full_data,))
-        p.start()
-
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         log.debug(
             "Fetched data from " + str(raw_data.index[0])
             + " to " + str(raw_data.index[-1])
         )
-        if EXIT:
-            break
         delay()
 
-        # TODO: block sig INT/TERM
         raw_data = api.dumpData()
-        full_data = indic.updateIndicators(
+        indic.updateIndicators(
             resamp.resampleData(raw_data)
         )
-
-    if args.graph and p.is_alive():
-        p.terminate()
 
 
 def notImplemented(args):

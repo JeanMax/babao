@@ -18,7 +18,7 @@ def _doResample(raw_data, time_interval):
     """
 
     # datetime needed for .resample()
-    raw_data.index = pd.to_datetime(raw_data.index, unit="s")
+    raw_data.index = pd.to_datetime(raw_data.index, unit="us")
 
     # resample data: it's actually faster to do these one by one
     resampled_data = raw_data["price"].resample(time_interval).ohlc()
@@ -29,9 +29,8 @@ def _doResample(raw_data, time_interval):
     resampled_data["volume"] = v
     resampled_data["count"] = raw_data["price"].resample(time_interval).count()
 
-    # back to unix timestamp
-    resampled_data.index = resampled_data.index.view("int64") \
-        // pd.Timedelta(1, unit="s")
+    # back to unix timestamp (// pd.Timedelta(1, unit="us"))
+    resampled_data.index = resampled_data.index.view("int64") // 1000
 
     return resampled_data
 
@@ -66,7 +65,7 @@ def _getPreviousResampledLine(resampled_data):
     """Search for line preceding ´resampled_data´ in conf.RESAMPLED_FILE"""
 
     prev = fu.getLastLines(conf.RESAMPLED_FILE, 42, conf.RESAMPLED_COLUMNS)
-    prev.index = pd.to_datetime(prev.index, unit="s")
+    prev.index = pd.to_datetime(prev.index, unit="us")
     try:
         return prev.loc[
             resampled_data.index[0]
@@ -82,16 +81,16 @@ def _getUnsampled(raw_data, resampled_data):
 
     # "before" is a concept
     unsampled_data = raw_data.truncate(
-        before=pd.to_datetime(resampled_data[-1:].index[0], unit="s")
+        before=pd.to_datetime(resampled_data[-1:].index[0], unit="us")
     )
 
-    # back to unix timestamp
-    unsampled_data.index = unsampled_data.index.view("int64") \
-        // pd.Timedelta(1, unit="s")
+    # back to unix timestamp (// pd.Timedelta(1, unit="us"))
+    unsampled_data.index = unsampled_data.index.view("int64") // 1000
 
     return unsampled_data
 
 
+# TODO: test empty raw_data
 def resampleData(raw_data):
     """
     Resample ´raw_data´ based on ´conf.TIME_INTERVAL´
@@ -126,7 +125,7 @@ def resampleData(raw_data):
     unsampled_data = _getUnsampled(raw_data, resampled_data)
 
     fu.writeFile(conf.UNSAMPLED_FILE, unsampled_data)
-    fu.removeLastLine(conf.RESAMPLED_FILE, resampled_data.index[0])
+    fu.removeLastLine(conf.RESAMPLED_FILE, int(resampled_data.index[0]))
     fu.writeFile(conf.RESAMPLED_FILE, resampled_data, mode="a")
 
     return len(resampled_data)

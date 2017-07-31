@@ -41,24 +41,44 @@ def getLastLines(filename, numberoflines, names=None):
 
 def removeLastLine(filename, timestamp):  # TODO: rename or something
     """
-    Remove last entry in ´filename´ if it match ´timestamp´
+    Remove last entry in ´filename´ if it match ´timestamp(int)´
 
     Return True if an entry was actually removed
     """
 
-    if os.path.isfile(filename):  # TODO: catch exception instead?
+    if os.path.isfile(filename):
         with open(filename, 'r+b') as f, mmap.mmap(
             f.fileno(), 0, access=mmap.ACCESS_WRITE
         ) as mm:
-            mm_len = len(mm)
-            if mm_len < 12:
-                return False
-            last_line_pos = mm.rfind(b'\n', 0, mm_len - 1) + 1
-            # timestamps are formated to 10 digits
-            if timestamp == int(mm[last_line_pos:last_line_pos + 10]):
+            end = len(mm) - 1
+            last_line_pos = mm.rfind(b'\n', 0, end) + 1
+            next_comma = mm.find(b',', last_line_pos, end)
+            if timestamp == int(mm[last_line_pos:next_comma]):
                 if last_line_pos > 0:
                     mm.resize(last_line_pos)
                 else:
                     f.truncate()
                 return True
     return False
+
+
+def getLinesAfter(filename, timestamp, names=None):
+    """
+    Remove all entries in ´filename´ after ´timestamp(int)´ included
+
+    Return None if the timestamp wasn't found
+    """
+
+    with open(filename, 'r') as f, mmap.mmap(
+        f.fileno(), 0, access=mmap.ACCESS_READ
+    ) as mm:
+        end = len(mm) - 1
+        start = end
+        while True:
+            start = mm.rfind(b'\n', 0, start)
+            next_comma = mm.find(b',', start + 1, end)
+            t = int(mm[start + 1:next_comma])
+            if timestamp == t:
+                return readFile(io.BytesIO(mm[start + 1:]), names)
+            if timestamp > t or start == -1:
+                return None

@@ -1,33 +1,139 @@
 """Data visualisation inside"""
 
+import os
+import sys
+import time
+import traceback
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
+import babao.config as conf
+import babao.utils.log as log
+import babao.utils.fileutils as fu
+
 MAX_POINTS = 42000  # TODO: move to config/arg
 DATA = None
 
 
-def initGraph(full_data):
-    """TODO"""
+def updateData():
+    """
+    Update ´DATA´ global
+
+    Basically merge previous data with new data in files
+    """
 
     global DATA
-    full_data.index = pd.to_datetime(full_data.index, unit="s")
-    DATA = full_data
+
+    if not os.path.isfile(conf.RESAMPLED_FILE) \
+       or not os.path.isfile(conf.INDICATORS_FILE):
+        log.warning("Data files not found... Is it your first time around?")
+        return False
+
+    if os.path.isfile(conf.LOCK_FILE):
+        log.warning("graph.updateData(): won't update, lock file found")
+        return False
+
+    last_time = int(DATA.index.view("int64")[-1] // 1000)
+    fresh_data = fu.getLinesAfter(
+        conf.RESAMPLED_FILE,
+        last_time,
+        conf.RESAMPLED_COLUMNS
+    )
+    fresh_data = fresh_data.join(
+        fu.getLinesAfter(
+            conf.INDICATORS_FILE,
+            last_time,
+            conf.INDICATORS_COLUMNS
+        )
+    )
+    fresh_data.index = pd.to_datetime(fresh_data.index, unit="us")
+
+    DATA = DATA.iloc[:-1].append(fresh_data).iloc[-MAX_POINTS:]
+
+    return True
+
+
+def initData():
+    """
+    Initialize ´DATA´ global
+
+    Basically read ´MAX_POINTS´ from data files
+    """
+
+    global DATA
+
+    # init lock file
+    while os.path.isfile(conf.LOCK_FILE):
+        time.sleep(0.1)
+
+    if not os.path.isfile(conf.RESAMPLED_FILE) \
+       or not os.path.isfile(conf.INDICATORS_FILE):
+        log.warning("Data files not found... Is it your first time around?")
+        DATA = pd.DataFrame(
+            columns=conf.RESAMPLED_COLUMNS + conf.INDICATORS_COLUMNS
+        )
+        return
+
+    DATA = fu.getLastLines(
+        conf.RESAMPLED_FILE,
+        MAX_POINTS,
+        conf.RESAMPLED_COLUMNS
+    )
+    DATA = DATA.join(
+        fu.getLastLines(
+            conf.INDICATORS_FILE,
+            MAX_POINTS,
+            conf.INDICATORS_COLUMNS
+        )
+    )
+    DATA.index = pd.to_datetime(DATA.index, unit="us")
+
+
+def updateGraph(unused_counter, lines):
+    """Function called (back) by FuncAnimation, will update graph"""
+
+    try:
+        if not updateData():
+            return lines.values()
+
+        for key in lines:
+            lines[key].set_data(DATA.index, DATA[key])
+    except:  # pylint: disable=bare-except
+        # running in a separate process, so we need tricks to display errors
+        # print("".join(traceback.format_exception(*(sys.exc_info))))
+        traceback.print_exc()
+        sys.exit(1)
+
+    return lines.values()
+
+
+def initGraph():
+    """Launch an awesome matplotlib graph!"""
+
+    initData()
 
     fig = plt.figure()
     axes = {}
-    axes["vwap"] = fig.add_subplot(2, 1, 1)
-    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["vwap"])
+    axes["price"] = fig.add_subplot(2, 1, 1)
+    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["price"])
 
     lines = {}
-    lines["vwap"], = axes["vwap"].plot_date(
+    lines["vwap"], = axes["price"].plot_date(
         DATA.index,
         DATA["vwap"],
         "-",
         label="vwap",
         color="b",
+        alpha=0.7
+    )
+    lines["SMA_7"], = axes["price"].plot_date(
+        DATA.index,
+        DATA["SMA_7"],
+        "-",
+        label="SMA_7",
+        color="r",
         alpha=0.7
     )
 
@@ -42,7 +148,7 @@ def initGraph(full_data):
 
     # slow and ugly, plus there is something wrong with date format
     # candlestick_ohlc(
-    #    axes["vwap"], DATA.values,
+    #    axes["price"], DATA.values,
     #    width=0.05, colorup='g', colordown='r'
     # )
 
@@ -55,7 +161,7 @@ def initGraph(full_data):
         horizOn=True
     )
 
-    plt.setp(axes["vwap"].get_xticklabels(), visible=False)
+    plt.setp(axes["price"].get_xticklabels(), visible=False)
     for label in axes["volume"].xaxis.get_ticklabels():
         label.set_rotation(45)
 
@@ -67,12 +173,17 @@ def initGraph(full_data):
     adf.scaled[30.] = '%d/%m/%y'
     adf.scaled[365.] = '%d/%m/%y'
 
-    axes["vwap"].set_ylabel("EUR")
+    axes["price"].set_ylim(
+        bottom=DATA["vwap"].min()
+        - (axes["price"].get_ylim()[1] - DATA["vwap"].max())
+    )
+
+    axes["price"].set_ylabel("EUR")
     axes["volume"].set_ylabel("BTC")
 
     for key in axes:
         axes[key].grid(True)
-        axes[key].legend(loc="upper left")
+        axes[key].legend(loc="best")
         axes[key].yaxis.set_label_position("right")
         axes[key].yaxis.tick_right()
 
@@ -109,18 +220,8 @@ def initGraph(full_data):
     unused_animation = animation.FuncAnimation(  # NOQA: F841
         fig,
         updateGraph,
-        fargs=(lines, axes),
+        fargs=(lines,),
         # blit=True,  # bug?
-        interval=3000
+        interval=2500
     )
-
     plt.show()  # this is blocking!
-
-
-def updateGraph(unused_counter, lines, unused_axes):
-    """TODO"""
-    # print(repr(DATA.head()))
-
-    # line.set_data([1,2,3], [i,i,i])
-
-    return lines.values()

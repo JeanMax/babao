@@ -40,7 +40,6 @@ def updateIndicators(numberOfLinesToRead):
 
     log.debug("Entering updateIndicators()")
 
-    # TODO: NaN: df.ffill()
     resampled_data = fu.getLastLines(
         conf.RESAMPLED_FILE,
         numberOfLinesToRead + MAX_LOOK_BACK,
@@ -56,15 +55,13 @@ def updateIndicators(numberOfLinesToRead):
 
     indicators_data.index = resampled_data.index
 
-    ret = resampled_data.join(indicators_data)
-
     # removing extra data used for calculations
     # TODO: find a way to optimize that:
     # you need the resampled data for the indicators,
     # but you don't want to recalculate the indicators already computed)
-    indicators_data = indicators_data[-numberOfLinesToRead:]
+    indicators_data = indicators_data.tail(numberOfLinesToRead)
 
-    fu.removeLastLine(conf.INDICATORS_FILE, indicators_data.index[0])
+    fu.removeLastLine(conf.INDICATORS_FILE, int(indicators_data.index[0]))
     fu.writeFile(conf.INDICATORS_FILE, indicators_data, mode="a")
 
-    return ret
+    return indicators_data
