@@ -11,6 +11,7 @@ import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
 import babao.strategy.strategy as strat
+import babao.strategy.ledger as ledger
 
 EXIT = 0
 TICK = None
@@ -69,7 +70,7 @@ def launchGraph():
     p.start()
 
 
-def initCmd(args):
+def initCmd(graph=False, simulate=False):
     """
     Generic command init function
 
@@ -83,14 +84,19 @@ def initCmd(args):
     signal.signal(signal.SIGTERM, signal_handler)
 
     api.initKey()
-    if args.graph:
+
+    ledger.initBalance()
+    if simulate and not os.path.isfile(conf.LEDGER_FILE):
+        ledger.logQuoteDeposit(100)
+
+    if graph:
         launchGraph()
 
 
 def dryRun(args):
     """Real-time bot simulation"""
 
-    initCmd(args)
+    initCmd(args.graph, simulate=True)
 
     while True:
         indic.updateIndicators(
@@ -105,7 +111,7 @@ def dryRun(args):
 def fetch(args):
     """fetch raw trade data since the beginning of times"""
 
-    initCmd(args)
+    initCmd(args.graph)
 
     for f in [conf.LAST_DUMP_FILE,
               conf.RAW_FILE,

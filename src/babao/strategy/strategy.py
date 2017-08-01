@@ -1,4 +1,8 @@
-"""Buy/Sell strategy"""
+"""
+Buy/Sell strategy
+
+This whole shit is temporary, don't worry
+"""
 
 import babao.config as conf
 import babao.utils.log as log
@@ -10,6 +14,7 @@ LAST_TRANSACTION_PRICE = None
 
 def initLastTransactionPrice():
     """Initialize last transaction price"""
+
     global LAST_TRANSACTION_PRICE
 
     try:
@@ -18,7 +23,6 @@ def initLastTransactionPrice():
         )
     except FileNotFoundError:
         LAST_TRANSACTION_PRICE = 0
-        ledger.logQuoteDeposit(100)
 
 
 def minSellPrice():

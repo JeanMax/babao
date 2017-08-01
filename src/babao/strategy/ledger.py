@@ -12,6 +12,23 @@ import babao.utils.fileutils as fu
 BALANCE = {"crypto": 0, "quote": 0}
 
 
+def initBalance():
+    """Init ´BALANCE´ global var"""
+
+    global BALANCE
+
+    try:
+        last_ledger = fu.getLastLines(
+            conf.LEDGER_FILE,
+            1,
+            conf.LEDGER_COLUMNS
+        )
+        BALANCE["crypto"] = float(last_ledger["crypto_bal"])
+        BALANCE["quote"] = float(last_ledger["quote_bal"])
+    except FileNotFoundError:
+        log.warning("No ledger file found.")
+
+
 def _logTransaction(ledger):
     """
     Log transaction in a csv ledger file

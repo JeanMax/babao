@@ -27,8 +27,8 @@ def init(args=None):
     """Initialize config and parse argv"""
 
     args = pars.parseArgv(args)
-    conf.readConfigFile(args.func.__name__)
     log.initLogLevel(args.verbose, args.quiet)
+    conf.readConfigFile(args.func.__name__)
     return args
 
 
