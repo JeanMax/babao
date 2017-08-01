@@ -26,8 +26,8 @@ import babao.utils.log as log
 def init(args=None):
     """Initialize config and parse argv"""
 
-    conf.readConfigFile()
     args = pars.parseArgv(args)
+    conf.readConfigFile(args.func.__name__)
     log.initLogLevel(args.verbose, args.quiet)
     return args
 

@@ -1,7 +1,7 @@
 """Here we'll handle the config file and the various file/dir paths"""
 
 import os
-import time
+# import time
 import configparser as cp
 
 # globad vars
@@ -24,7 +24,12 @@ INDICATORS_COLUMNS = [
     "SMA_vwap_2", "SMA_volume_2",
     "SMA_vwap_3", "SMA_volume_3"
 ]
-LEDGER_COLUMNS = ["price", "volume", "buy-sell", "market-limit"]
+LEDGER_COLUMNS = [
+    "type", "price",
+    "crypto_vol", "quote_vol",
+    "crypto_fee", "quote_fee",
+    "crypto_bal", "quote_bal"
+]
 
 # config vars
 LOG_DIR = None
@@ -33,7 +38,7 @@ ASSET_PAIR = None
 TIME_INTERVAL = None
 
 
-def readConfigFile():
+def readConfigFile(cmd_name="unamed"):
     """Read config file and initialize file/dir paths"""
 
     # TODO: find a better way to handle config
@@ -71,6 +76,7 @@ def readConfigFile():
         "TIME_INTERVAL",
         fallback=1
     )
+    # TODO: check if these vars are valid
 
     LAST_DUMP_FILE = os.path.join(
         DATA_DIR,
@@ -94,6 +100,7 @@ def readConfigFile():
     )
     LEDGER_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + time.strftime("-ledger-simulation-%y-%m-%d_%H-%M-%S.csv")
-        # TODO: bot-mode only
+        ASSET_PAIR + "-ledger-" + cmd_name + ".csv"
+        # TODO: for simulations:
+        # ASSET_PAIR + time.strftime("-ledger-simulation-%y-%m-%d_%H-%M-%S.csv")
     )

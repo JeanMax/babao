@@ -1,6 +1,7 @@
 """Handle money related stuffs"""
 
 import time
+import pandas as pd
 
 import babao.config as conf
 import babao.utils.log as log
@@ -8,88 +9,116 @@ import babao.utils.fileutils as fu
 # import babao.api as api
 
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
-BALANCE = {"XXBT": 0.0000000000, "ZEUR": 100}  # TODO: config var for pair?
-LAST_TRANSACTION_PRICE = None
+BALANCE = {"crypto": 0, "quote": 0}
 
 
-def initLastTransactionPrice():
-    """Initialize last transaction price"""
-    global LAST_TRANSACTION_PRICE
-
-    try:
-        LAST_TRANSACTION_PRICE = float(
-            fu.getLastLines(conf.LEDGER_FILE, 1, names=[
-                "time", "price", "volume", "buy-sell", "market-limit"
-            ])["price"]
-        )
-    except FileNotFoundError:
-        LAST_TRANSACTION_PRICE = -1
-
-
-def minSellPrice():
-    """
-    Return the minimum price to sell coins and make profit
-
-    Based on the last transaction price and transaction fee
-    """
-
-    if not LAST_TRANSACTION_PRICE:
-        initLastTransactionPrice()
-
-    if LAST_TRANSACTION_PRICE > 0:
-        # +1% for transaction cost/delay
-        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.01
-    return -1
-
-
-def maxBuyPrice():
-    """
-    Return the maximum price to buy coins and make profit
-
-    Based on the last transaction price and transaction fee
-    """
-
-    if not LAST_TRANSACTION_PRICE:
-        initLastTransactionPrice()
-
-    if LAST_TRANSACTION_PRICE > 0:
-        # -1% for transaction cost/delay
-        return LAST_TRANSACTION_PRICE - LAST_TRANSACTION_PRICE * 0.01
-    return 1 << 16
-
-
-def logTransaction(buy_sell, price, volume):
+def _logTransaction(ledger):
     """
     Log transaction in a csv ledger file
 
-    Format:
-    timestamp,price,volume(btc),buy-sell,market-limit
+    ´ledger´ is a dict with keys == conf.LEDGER_COLUMNS
     """
 
-    # TODO: bot-mode only
-    if buy_sell == "buy":
-        BALANCE["XXBT"] = volume - volume * 0.01
-        BALANCE["ZEUR"] = 0
-    else:
-        BALANCE["ZEUR"] = (volume - volume * 0.01) * price
-        BALANCE["XXBT"] = 0
+    global BALANCE
+    ledger["crypto_bal"] = BALANCE["crypto"] + ledger.get("crypto_vol", 0)
+    ledger["quote_bal"] = BALANCE["quote"] + ledger.get("quote_vol", 0)
+    BALANCE["crypto"] = ledger["crypto_bal"]
+    BALANCE["quote"] = ledger["quote_bal"]
 
-    with open(conf.LEDGER_FILE, "a") as f:
-        f.write(
-            str(int(time.time())) + ","
-            + str(price) + ","
-            + str(volume) + ","
-            + buy_sell[0] + ","
-            + "m" + "\n"
-        )
-
-    global LAST_TRANSACTION_PRICE
-    LAST_TRANSACTION_PRICE = price
-
-    log.log(
-        buy_sell + " " + str(volume) + " @ " + str(price) + "\n"
-        + "balance: " + str(BALANCE["XXBT"]) + " BTC / "
-        + str(BALANCE["ZEUR"]) + " EUR"
+    fu.writeFile(
+        conf.LEDGER_FILE,
+        pd.DataFrame(
+            ledger,
+            columns=conf.LEDGER_COLUMNS,
+            index=[int(time.time() * 1e6)]
+        ).fillna(0),
+        mode="a"
     )
 
-# time,currency_in,volume_in,fee_in,currency_out,volume_out,fee_out,balance
+
+def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0):
+    """
+    Log a buy transaction (quote -> crypto)
+
+    ´quote_vol´ quantity spent in quote (including fees)
+    """
+
+    _logTransaction(
+        {
+            "type": "b",
+            "price": price,
+            "crypto_fee": crypto_fee,
+            "quote_fee": quote_fee,
+            "crypto_vol": (quote_vol - quote_fee - crypto_fee * price) / price,
+            "quote_vol": -quote_vol
+        }
+    )
+    log.log("Bought for " + str(quote_vol) + " quote @ " + str(price))
+
+
+def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0):
+    """
+    Log a sell transaction (crypto -> quote)
+
+    ´crypto_vol´ quantity spent in crypto (including fees)
+    """
+
+    _logTransaction(
+        {
+            "type": "s",
+            "price": price,
+            "crypto_fee": crypto_fee,
+            "quote_fee": quote_fee,
+            "crypto_vol": -crypto_vol,
+            "quote_vol": (crypto_vol - crypto_fee - quote_fee / price) * price
+        }
+    )
+    log.log("Sold for " + str(crypto_vol) + " crypto @ " + str(price))
+
+
+def logCryptoDeposit(crypto_vol, crypto_fee=0):
+    """Log a crypto deposit transaction (wallet -> market)"""
+
+    _logTransaction(
+        {
+            "type": "d",
+            "crypto_vol": crypto_vol,
+            "crypto_fee": crypto_fee
+        }
+    )
+
+
+def logCryptoWithdraw(crypto_vol, crypto_fee=0):
+    """Log a crypto withdraw transaction (market -> wallet)"""
+
+    _logTransaction(
+        {
+            "type": "w",
+            "crypto_vol": -crypto_vol,
+            "crypto_fee": crypto_fee
+        }
+    )
+
+
+def logQuoteDeposit(quote_vol, quote_fee=0):
+    """Log a quote deposit transaction (bank -> market)"""
+
+    _logTransaction(
+        {
+            "type": "d",
+            "quote_vol": quote_vol,
+            "quote_fee": quote_fee
+        }
+    )
+
+
+def logQuoteWithdraw(quote_vol, quote_fee=0):
+    """Log a quote withdraw transaction (market -> bank)"""
+
+    _logTransaction(
+        {
+            "type": "w",
+            "quote_vol": -quote_vol,
+            "quote_fee": quote_fee
+        }
+    )

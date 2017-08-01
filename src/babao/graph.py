@@ -14,7 +14,7 @@ import babao.utils.log as log
 import babao.utils.fileutils as fu
 import babao.data.indicators as indic
 
-MAX_POINTS = 10000  # TODO: move to config/arg
+MAX_POINTS = 420  # TODO: move to config/arg
 DATA = None
 
 
