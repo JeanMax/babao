@@ -86,7 +86,7 @@ def initCmd(graph=False, simulate=False):
     api.initKey()
 
     ledger.initBalance()
-    if simulate and not os.path.isfile(conf.LEDGER_FILE):
+    if simulate and not os.path.isfile(conf.RAW_LEDGER_FILE):
         ledger.logQuoteDeposit(100)
 
     if graph:
@@ -100,11 +100,13 @@ def dryRun(args):
 
     while True:
         indic.updateIndicators(
-            resamp.resampleData(
+            resamp.resampleTradeData(
                 api.dumpData()  # TODO: this could use a renaming
             )
         )
         strat.analyse()
+        if args.graph:
+            resamp.resampleLedgerData()
         delay()
 
 
@@ -114,16 +116,16 @@ def fetch(args):
     initCmd(args.graph)
 
     for f in [conf.LAST_DUMP_FILE,
-              conf.RAW_FILE,
-              conf.UNSAMPLED_FILE,
-              conf.RESAMPLED_FILE,
+              conf.RAW_TRADES_FILE,
+              conf.UNSAMPLED_TRADES_FILE,
+              conf.RESAMPLED_TRADES_FILE,
               conf.INDICATORS_FILE]:
         if os.path.isfile(f):
             os.remove(f)  # TODO: warn user / create backup?
 
     raw_data = api.dumpData("0")
     indic.updateIndicators(
-        resamp.resampleData(raw_data)
+        resamp.resampleTradeData(raw_data)
     )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         log.debug(
@@ -134,7 +136,7 @@ def fetch(args):
 
         raw_data = api.dumpData()
         indic.updateIndicators(
-            resamp.resampleData(raw_data)
+            resamp.resampleTradeData(raw_data)
         )
 
 

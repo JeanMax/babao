@@ -3,7 +3,6 @@
 import pandas as pd
 
 import babao.config as conf
-import babao.utils.log as log
 import babao.utils.fileutils as fu
 
 # these should be trained
@@ -20,15 +19,16 @@ def indicator_SMA(column, look_back_delay):
     ).mean()
 
 
-def indicator_EWMA(column, look_back_delay):
-    """Exponentially-weighted Moving Average"""
+# unused
+# def indicator_EWMA(column, look_back_delay):
+#     """Exponentially-weighted Moving Average"""
 
-    return column.ewm(
-        span=look_back_delay,
-        min_periods=look_back_delay - 1,
-        adjust=True,
-        ignore_na=False
-    ).mean()
+#     return column.ewm(
+#         span=look_back_delay,
+#         min_periods=look_back_delay - 1,
+#         adjust=True,
+#         ignore_na=False
+#     ).mean()
 
 
 # https://www.quantinsti.com/blog/build-technical-indicators-in-python
@@ -38,12 +38,10 @@ def updateIndicators(numberOfLinesToRead):
     ´numberOfLinesToRead´ is the number of entries resampled without indicators
     """
 
-    log.debug("Entering updateIndicators()")
-
     resampled_data = fu.getLastLines(
-        conf.RESAMPLED_FILE,
+        conf.RESAMPLED_TRADES_FILE,
         numberOfLinesToRead + MAX_LOOK_BACK,
-        names=conf.RESAMPLED_COLUMNS
+        names=conf.RESAMPLED_TRADES_COLUMNS
     )
 
     indicators_data = pd.DataFrame()

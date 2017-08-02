@@ -84,7 +84,7 @@ def getRawTrades(since):
 
     raw_data = pd.DataFrame(
         res[conf.ASSET_PAIR],
-        # not conf.RAW_COLUMNS, this is specific to kraken
+        # not conf.RAW_TRADES_COLUMNS, this is specific to kraken
         columns=["price", "volume", "time", "buy-sell", "market-limit", "misc"],
         dtype=float  # TODO: dtypes: object(2) (replace bsml letters with 0/1?)
     )

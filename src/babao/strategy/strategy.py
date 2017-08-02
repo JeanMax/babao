@@ -5,7 +5,6 @@ This whole shit is temporary, don't worry
 """
 
 import babao.config as conf
-import babao.utils.log as log
 import babao.utils.fileutils as fu
 import babao.strategy.ledger as ledger
 
@@ -19,7 +18,11 @@ def initLastTransactionPrice():
 
     try:
         LAST_TRANSACTION_PRICE = float(
-            fu.getLastLines(conf.LEDGER_FILE, 1, conf.LEDGER_COLUMNS)["price"]
+            fu.getLastLines(
+                conf.RAW_LEDGER_FILE,
+                1,
+                conf.RAW_LEDGER_COLUMNS
+            )["price"]
         )
     except FileNotFoundError:
         LAST_TRANSACTION_PRICE = 0
@@ -60,12 +63,10 @@ def maxBuyPrice():
 def analyse():
     """Just a dummy strategy"""
 
-    log.debug("Entering analyse()")
-
     current_price = float(fu.getLastLines(
-        conf.RESAMPLED_FILE,
+        conf.RESAMPLED_TRADES_FILE,
         1,
-        conf.RESAMPLED_COLUMNS
+        conf.RESAMPLED_TRADES_COLUMNS
     ).tail(1)["close"])
 
     global LAST_TRANSACTION_PRICE

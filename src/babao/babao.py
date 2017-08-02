@@ -15,8 +15,8 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
-# from IPython import embed
-# from ipdb import set_trace
+# from IPython import embed; embed()
+# from ipdb import set_trace; set_trace()
 
 import babao.config as conf
 import babao.parser as pars

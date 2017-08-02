@@ -19,9 +19,9 @@ def initBalance():
 
     try:
         last_ledger = fu.getLastLines(
-            conf.LEDGER_FILE,
+            conf.RAW_LEDGER_FILE,
             1,
-            conf.LEDGER_COLUMNS
+            conf.RAW_LEDGER_COLUMNS
         )
         BALANCE["crypto"] = float(last_ledger["crypto_bal"])
         BALANCE["quote"] = float(last_ledger["quote_bal"])
@@ -29,28 +29,31 @@ def initBalance():
         log.warning("No ledger file found.")
 
 
-def _logTransaction(ledger):
+def _logTransaction(led_dic, write_to_file=True):
     """
     Log transaction in a csv ledger file
 
-    ´ledger´ is a dict with keys == conf.LEDGER_COLUMNS
+    ´led_dic´ is a dict with keys == conf.RAW_LEDGER_COLUMNS
+    if ´write_to_file´ is True, write entry to conf.LEDGER_FILE
     """
 
     global BALANCE
-    ledger["crypto_bal"] = BALANCE["crypto"] + ledger.get("crypto_vol", 0)
-    ledger["quote_bal"] = BALANCE["quote"] + ledger.get("quote_vol", 0)
-    BALANCE["crypto"] = ledger["crypto_bal"]
-    BALANCE["quote"] = ledger["quote_bal"]
+    led_dic["crypto_bal"] = BALANCE["crypto"] + led_dic.get("crypto_vol", 0)
+    led_dic["quote_bal"] = BALANCE["quote"] + led_dic.get("quote_vol", 0)
+    BALANCE["crypto"] = led_dic["crypto_bal"]
+    BALANCE["quote"] = led_dic["quote_bal"]
 
-    fu.writeFile(
-        conf.LEDGER_FILE,
-        pd.DataFrame(
-            ledger,
-            columns=conf.LEDGER_COLUMNS,
-            index=[int(time.time() * 1e6)]
-        ).fillna(0),
-        mode="a"
-    )
+    led_df = pd.DataFrame(
+        led_dic,
+        columns=conf.RAW_LEDGER_COLUMNS,
+        index=[int(time.time() * 1e6)]
+    ).fillna(0)
+
+    if write_to_file:
+        for f in [conf.RAW_LEDGER_FILE, conf.UNSAMPLED_LEDGER_FILE]:
+            fu.writeFile(f, led_df, mode="a")
+
+    return led_df
 
 
 def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0):

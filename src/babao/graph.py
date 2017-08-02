@@ -14,7 +14,7 @@ import babao.utils.log as log
 import babao.utils.fileutils as fu
 import babao.data.indicators as indic
 
-MAX_POINTS = 420  # TODO: move to config/arg
+MAX_POINTS = 42000  # TODO: move to config/arg
 DATA = None
 
 
@@ -27,7 +27,7 @@ def updateData():
 
     global DATA
 
-    if not os.path.isfile(conf.RESAMPLED_FILE) \
+    if not os.path.isfile(conf.RESAMPLED_TRADES_FILE) \
        or not os.path.isfile(conf.INDICATORS_FILE):
         log.warning("Data files not found... Is it your first time around?")
         return False
@@ -38,9 +38,9 @@ def updateData():
 
     last_time = int(DATA.index.view("int64")[-1] // 1000)
     fresh_data = fu.getLinesAfter(
-        conf.RESAMPLED_FILE,
+        conf.RESAMPLED_TRADES_FILE,
         last_time,
-        conf.RESAMPLED_COLUMNS
+        conf.RESAMPLED_TRADES_COLUMNS
     )
     fresh_data = fresh_data.join(
         fu.getLinesAfter(
@@ -49,6 +49,22 @@ def updateData():
             conf.INDICATORS_COLUMNS
         )
     )
+    try:
+        # we assume this is a "small" file
+        fresh_len = len(fresh_data)
+        fresh_data = fresh_data.join(
+            fu.readFile(
+                conf.RESAMPLED_LEDGER_FILE,
+                conf.RESAMPLED_LEDGER_COLUMNS
+            ),
+            how="outer"
+        ).ffill().fillna(0)[-fresh_len:]
+        fresh_data["bal"] = fresh_data["quote_bal"] \
+            + fresh_data["crypto_bal"] * fresh_data["vwap"]
+    except FileNotFoundError:
+        fresh_data["crypto_bal"] = 0
+        fresh_data["quote_bal"] = 0
+        fresh_data["bal"] = 0
     fresh_data.index = pd.to_datetime(fresh_data.index, unit="us")
 
     DATA = DATA.iloc[:-1].append(fresh_data).iloc[-MAX_POINTS:]
@@ -69,18 +85,21 @@ def initData():
     while os.path.isfile(conf.LOCK_FILE):
         time.sleep(0.1)
 
-    if not os.path.isfile(conf.RESAMPLED_FILE) \
+    if not os.path.isfile(conf.RESAMPLED_TRADES_FILE) \
        or not os.path.isfile(conf.INDICATORS_FILE):
         log.warning("Data files not found... Is it your first time around?")
         DATA = pd.DataFrame(
-            columns=conf.RESAMPLED_COLUMNS + conf.INDICATORS_COLUMNS
+            columns=conf.RESAMPLED_TRADES_COLUMNS
+            + conf.INDICATORS_COLUMNS
+            + conf.RESAMPLED_LEDGER_COLUMNS
+            + ["bal"]  # hmmm... we'll calculate this on the fly
         )
         return
 
     DATA = fu.getLastLines(
-        conf.RESAMPLED_FILE,
+        conf.RESAMPLED_TRADES_FILE,
         MAX_POINTS,
-        conf.RESAMPLED_COLUMNS
+        conf.RESAMPLED_TRADES_COLUMNS
     )
     DATA = DATA.join(
         fu.getLastLines(
@@ -89,88 +108,109 @@ def initData():
             conf.INDICATORS_COLUMNS
         )
     )
+    try:
+        DATA = DATA.join(
+            fu.getLastLines(
+                conf.RESAMPLED_LEDGER_FILE,
+                MAX_POINTS,
+                conf.RESAMPLED_LEDGER_COLUMNS
+            ),
+            how="outer"
+        ).ffill().fillna(0)[-MAX_POINTS:]
+        DATA["bal"] = DATA["quote_bal"] \
+            + DATA["crypto_bal"] * DATA["vwap"]
+    except FileNotFoundError:
+        DATA["crypto_bal"] = 0
+        DATA["quote_bal"] = 0
+        DATA["bal"] = 0
     DATA.index = pd.to_datetime(DATA.index, unit="us")
 
 
 def updateGraph(unused_counter, lines):
     """Function called (back) by FuncAnimation, will update graph"""
 
-    try:
-        if not updateData():
-            return lines.values()
+    if not updateData():
+        return lines.values()
 
-        for key in lines:
-            lines[key].set_data(DATA.index, DATA[key])
-    except:  # pylint: disable=bare-except
-        # running in a separate process, so we need tricks to display errors
-        # print("".join(traceback.format_exception(*(sys.exc_info))))
-        traceback.print_exc()
-        sys.exit(1)
-
+    for key in lines:
+        lines[key].set_data(DATA.index, DATA[key])
     return lines.values()
 
 
-def initGraph():
-    """Launch an awesome matplotlib graph!"""
+def _initGraph():
+    """Wrapped to display errors (this is running in a separate process)"""
 
     initData()
 
     fig = plt.figure()
     axes = {}
-    axes["vwap"] = fig.add_subplot(2, 1, 1)
-    axes["volume"] = fig.add_subplot(2, 1, 2, sharex=axes["vwap"])
+    axes["vwap"] = fig.add_subplot(3, 1, 1)
+    axes["volume"] = fig.add_subplot(3, 1, 2, sharex=axes["vwap"])
+    axes["bal"] = fig.add_subplot(3, 1, 3, sharex=axes["vwap"])
 
     lines = {}
-    for key in axes.keys():  # pylint: disable=consider-iterating-dictionary
-        lines[key], = axes[key].plot_date(
+    for key in axes:
+        lines[key], = axes[key].plot(
             DATA.index,
             DATA[key],
-            "-",
+            # "-",
             label=key,
             color="b",
-            alpha=0.8
+            alpha=0.5
         )
-        for i in range(len(indic.SMA_LOOK_BACK)):
-            col = "SMA_" + key + "_" + str(i + 1)
-            lines[col], = axes[key].plot_date(
+        if key == "bal":
+            col = "quote_bal"
+            lines[col], = axes[key].plot(
                 DATA.index,
                 DATA[col],
-                "-",
-                label="SMA " + str(indic.SMA_LOOK_BACK[i]),
+                label=col,
                 color="r",
-                alpha=0.7 - 0.2 * i
+                alpha=0.5
             )
+        else:
+            for i in range(len(indic.SMA_LOOK_BACK)):
+                col = "SMA_" + key + "_" + str(i + 1)
+                lines[col], = axes[key].plot(
+                    DATA.index,
+                    DATA[col],
+                    label="SMA " + str(indic.SMA_LOOK_BACK[i]),
+                    color="r",
+                    alpha=0.7 - 0.2 * i
+                )
 
     # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841
         fig.canvas,
         list(axes.values()),
         useblit=True,
-        color='black',
+        color="black",
         lw=0.5,
         horizOn=True
     )
 
     plt.setp(axes["vwap"].get_xticklabels(), visible=False)
-    for label in axes["volume"].xaxis.get_ticklabels():
+    plt.setp(axes["volume"].get_xticklabels(), visible=False)
+    for label in axes["bal"].xaxis.get_ticklabels():
         label.set_rotation(45)
 
-    adf = axes["volume"].xaxis.get_major_formatter()
-    adf.scaled[1./86400] = '%d/%m/%y %H:%M'
-    adf.scaled[1./1440] = '%d/%m/%y %H:%M'
-    adf.scaled[1./24] = '%d/%m/%y %H:%M'
-    adf.scaled[1.] = '%d/%m/%y'
-    adf.scaled[30.] = '%d/%m/%y'
-    adf.scaled[365.] = '%d/%m/%y'
+    adf = axes["bal"].xaxis.get_major_formatter()
+    adf.scaled[1. / 86400] = "%d/%m/%y %H:%M"
+    adf.scaled[1. / 1440] = "%d/%m/%y %H:%M"
+    adf.scaled[1. / 24] = "%d/%m/%y %H:%M"
+    adf.scaled[1.] = "%d/%m/%y"
+    adf.scaled[30.] = "%d/%m/%y"
+    adf.scaled[365.] = "%d/%m/%y"
 
-    axes["vwap"].set_ylim(
-        bottom=DATA["vwap"].min()
-        - (axes["vwap"].get_ylim()[1] - DATA["vwap"].max())
-    )
+    y_min = DATA["vwap"].min()
+    y_max = DATA["vwap"].max()
+    space = (y_max - y_min) * 0.05  # 5% space up and down
+    axes["vwap"].set_ylim(bottom=y_min - space, top=y_max + space)
     axes["volume"].set_ylim(bottom=0)
+    axes["bal"].set_ylim(bottom=0)
 
     axes["vwap"].set_ylabel("EUR")
     axes["volume"].set_ylabel("BTC")
+    axes["bal"].set_ylabel("EUR")
 
     for key in axes:
         axes[key].grid(True)
@@ -189,3 +229,14 @@ def initGraph():
         interval=2500
     )
     plt.show()  # this is blocking!
+
+
+def initGraph():
+    """Launch an awesome matplotlib graph!"""
+
+    try:
+        _initGraph()
+    except:  # pylint: disable=bare-except
+        # print("".join(traceback.format_exception(*(sys.exc_info))))
+        traceback.print_exc()
+        sys.exit(1)

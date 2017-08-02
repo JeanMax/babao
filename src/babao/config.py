@@ -11,23 +11,33 @@ API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
 LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 
 LAST_DUMP_FILE = None
-RAW_FILE = None
-UNSAMPLED_FILE = None
-RESAMPLED_FILE = None
+RAW_TRADES_FILE = None
+UNSAMPLED_TRADES_FILE = None
+RESAMPLED_TRADES_FILE = None
 INDICATORS_FILE = None
-LEDGER_FILE = None
+RAW_LEDGER_FILE = None
+UNSAMPLED_LEDGER_FILE = None
+RESAMPLED_LEDGER_FILE = None
 
-RAW_COLUMNS = ["price", "volume", "buy-sell", "market-limit", "vwap"]
-RESAMPLED_COLUMNS = ["open", "high", "low", "close", "vwap", "volume", "count"]
+RAW_TRADES_COLUMNS = [
+    "price", "volume", "buy-sell", "market-limit", "vwap"
+]
+RESAMPLED_TRADES_COLUMNS = [
+    "open", "high", "low", "close",
+    "vwap", "volume", "count"
+]
 INDICATORS_COLUMNS = [
     "SMA_vwap_1", "SMA_volume_1",
     "SMA_vwap_2", "SMA_volume_2",
     "SMA_vwap_3", "SMA_volume_3"
 ]
-LEDGER_COLUMNS = [
+RAW_LEDGER_COLUMNS = [
     "type", "price",
     "crypto_vol", "quote_vol",
     "crypto_fee", "quote_fee",
+    "crypto_bal", "quote_bal"
+]
+RESAMPLED_LEDGER_COLUMNS = [
     "crypto_bal", "quote_bal"
 ]
 
@@ -47,11 +57,13 @@ def readConfigFile(cmd_name="unamed"):
     global ASSET_PAIR
     global TIME_INTERVAL
     global LAST_DUMP_FILE
-    global RAW_FILE
-    global UNSAMPLED_FILE
-    global RESAMPLED_FILE
+    global RAW_TRADES_FILE
+    global UNSAMPLED_TRADES_FILE
+    global RESAMPLED_TRADES_FILE
     global INDICATORS_FILE
-    global LEDGER_FILE
+    global RAW_LEDGER_FILE
+    global UNSAMPLED_LEDGER_FILE
+    global RESAMPLED_LEDGER_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -80,27 +92,35 @@ def readConfigFile(cmd_name="unamed"):
 
     LAST_DUMP_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + "-last_dump.timestamp"
+        ASSET_PAIR + "-lastDump.timestamp"
     )
-    RAW_FILE = os.path.join(
+    RAW_TRADES_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + "-raw.csv"
+        ASSET_PAIR + "-raw-trades.csv"
     )
-    UNSAMPLED_FILE = os.path.join(
+    UNSAMPLED_TRADES_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + "-unsampled-" + str(TIME_INTERVAL) + "Min.csv"
+        ASSET_PAIR + "-unsampled-trades-" + str(TIME_INTERVAL) + "Min.csv"
     )
-    RESAMPLED_FILE = os.path.join(
+    RESAMPLED_TRADES_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + "-resampled-" + str(TIME_INTERVAL) + "Min.csv"
+        ASSET_PAIR + "-resampled-trades-" + str(TIME_INTERVAL) + "Min.csv"
     )
     INDICATORS_FILE = os.path.join(
         DATA_DIR,
         ASSET_PAIR + "-indicators-" + str(TIME_INTERVAL) + "Min.csv"
     )
-    LEDGER_FILE = os.path.join(
+    RAW_LEDGER_FILE = os.path.join(
         DATA_DIR,
-        ASSET_PAIR + "-ledger-" + cmd_name + ".csv"
-        # TODO: for simulations:
-        # ASSET_PAIR + time.strftime("-ledger-simulation-%y-%m-%d_%H-%M-%S.csv")
+        ASSET_PAIR + "-raw-ledger-" + cmd_name + ".csv"
+    )
+    UNSAMPLED_LEDGER_FILE = os.path.join(
+        DATA_DIR,
+        ASSET_PAIR + "-unsampled-ledger-" + cmd_name
+        + "-" + str(TIME_INTERVAL) + "Min.csv"
+    )
+    RESAMPLED_LEDGER_FILE = os.path.join(
+        DATA_DIR,
+        ASSET_PAIR + "-resampled-ledger-" + cmd_name
+        + "-" + str(TIME_INTERVAL) + "Min.csv"
     )
