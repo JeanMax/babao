@@ -123,7 +123,8 @@ def dryRun(args):
                     strat.LOOK_BACK,
                     conf.INDICATORS_COLUMNS
                 )
-            )
+            ),
+            timestamp=int(time.time() * 1e6)
         )
         delay()
 
@@ -178,12 +179,17 @@ def backtest(args):
     for col in big_fat_data.columns:
         if col not in strat.REQUIRED_COLUMNS:
             del big_fat_data[col]
+    big_fat_data_index = big_fat_data.index
+    big_fat_data_values = big_fat_data.values
 
     initCmd(args.graph, simulate=True, with_api=False)
 
-    for i in range(len(big_fat_data) - strat.LOOK_BACK + 1):
+    start_time = time.time()
+
+    for i in range(len(big_fat_data_index) - strat.LOOK_BACK):
         strat.analyse(
-            big_fat_data.iloc[i: i + strat.LOOK_BACK]
+            big_fat_data_values[i: i + strat.LOOK_BACK],
+            timestamp=big_fat_data_index[i + strat.LOOK_BACK]
         )
         if EXIT:
             sys.exit(EXIT)
@@ -205,6 +211,10 @@ def backtest(args):
             * 100
         ))
         + "%"
+    )
+    log.debug(
+        "Backtesting took "
+        + str(round(time.time() - start_time, 3)) + "s"
     )
 
     if args.graph:

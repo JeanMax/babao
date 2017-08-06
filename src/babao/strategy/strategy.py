@@ -12,7 +12,7 @@ import babao.data.ledger as ledger
 LAST_TRANSACTION_PRICE = None
 LAST_TRANSACTION_TIME = None
 LOOK_BACK = 42  # TODO
-REQUIRED_COLUMNS = ["close"]
+REQUIRED_COLUMNS = ["close", "SMA_vwap_1", "SMA_vwap_2"]
 
 
 def initLastTransactionPrice():
@@ -22,13 +22,13 @@ def initLastTransactionPrice():
     global LAST_TRANSACTION_TIME
 
     try:
-        df = fu.getLastLines(
+        ledger_data = fu.getLastLines(
             conf.RAW_LEDGER_FILE,
             1,
             conf.RAW_LEDGER_COLUMNS
         )
-        LAST_TRANSACTION_TIME = df.index[0]
-        LAST_TRANSACTION_PRICE = df.at[df.index[0], "price"]
+        LAST_TRANSACTION_TIME = ledger_data.index[0]
+        LAST_TRANSACTION_PRICE = ledger_data.at[ledger_data.index[0], "price"]
     except FileNotFoundError:
         LAST_TRANSACTION_PRICE = 0
         LAST_TRANSACTION_TIME = 0
@@ -43,8 +43,8 @@ def minSellPrice():
 
     if LAST_TRANSACTION_PRICE > 0:
         # +1% for transaction cost/delay
-        # +4% for moneyz
-        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.05
+        # +9% for moneyz
+        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.1
     return -1
 
 
@@ -62,12 +62,13 @@ def maxBuyPrice():
     return 1 << 16
 
 
-def analyse(sample_data):
+def analyse(sample_data, timestamp):
     """Just a dummy strategy"""
 
-    # TODO: 0 is hardcoded "close" column location... (iat is realllly faster)
-    current_price = sample_data.iat[-1, 0]
-    i = sample_data.index[-1]
+    # TODO: 0 is hardcoded "close" column location...
+    current_price = sample_data[-1, 0]
+    # current_sma1 = sample_data[-1, 1]
+    # current_sma2 = sample_data[-1, 2]
 
     global LAST_TRANSACTION_PRICE
     global LAST_TRANSACTION_TIME
@@ -78,12 +79,12 @@ def analyse(sample_data):
                 ledger.BALANCE["crypto"],
                 current_price,
                 crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
-                timestamp=i
+                timestamp=timestamp
             )
             LAST_TRANSACTION_PRICE = current_price
-            LAST_TRANSACTION_TIME = i
+            LAST_TRANSACTION_TIME = timestamp
     else:
-        if i - LAST_TRANSACTION_TIME > 604800000000:
+        if timestamp - LAST_TRANSACTION_TIME > 604800000000:
             log.warning("Transaction failed (1 week) :/")
             LAST_TRANSACTION_PRICE = 0
             LAST_TRANSACTION_TIME = 0
@@ -92,7 +93,7 @@ def analyse(sample_data):
                 ledger.BALANCE["quote"],
                 current_price,
                 quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
-                timestamp=i
+                timestamp=timestamp
             )
             LAST_TRANSACTION_PRICE = current_price
-            LAST_TRANSACTION_TIME = i
+            LAST_TRANSACTION_TIME = timestamp
