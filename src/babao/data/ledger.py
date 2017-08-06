@@ -53,8 +53,7 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
     ).fillna(0)
 
     if write_to_file:  # TODO
-        for f in [conf.RAW_LEDGER_FILE, conf.UNSAMPLED_LEDGER_FILE]:
-            fu.writeFile(f, led_df, mode="a")
+        fu.writeFile(conf.RAW_LEDGER_FILE, led_df, mode="a")
 
     return led_df
 

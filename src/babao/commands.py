@@ -125,8 +125,6 @@ def dryRun(args):
                 )
             )
         )
-        if args.graph:
-            resamp.resampleLedgerData()
         delay()
 
 
@@ -187,12 +185,6 @@ def backtest(args):
         strat.analyse(
             big_fat_data.iloc[i: i + strat.LOOK_BACK]
         )
-
-        if i % 50000 == 0:
-            delay()
-        #     if args.graph:
-        #         delay()
-        #         resamp.resampleLedgerData()
         if EXIT:
             sys.exit(EXIT)
 
@@ -215,10 +207,10 @@ def backtest(args):
         + "%"
     )
 
-    # if args.graph:
-    #     resamp.resampleLedgerData()
-    #     while not EXIT:
-    #         delay()
+    if args.graph:
+        while not EXIT:
+            delay()
+        # TODO: exit if graph is closed
 
 
 def notImplemented(args):

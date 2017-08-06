@@ -14,8 +14,45 @@ import babao.utils.log as log
 import babao.utils.fileutils as fu
 import babao.data.indicators as indic
 
-MAX_POINTS = 420  # TODO: move to config/arg
 DATA = None
+
+
+def resampleLedgerAndJoinTo(resampled_data):
+    """
+    Resample ´conf.RAW_LEDGER_FILE´ and join it to ´resampled_data´
+
+    Only entries included in ´resampled_data.index´ time window will be joined
+    Return the result of this join
+    """
+
+    try:
+        raw_ledger = fu.readFile(
+            conf.RAW_LEDGER_FILE,
+            conf.RAW_LEDGER_COLUMNS
+        )
+        raw_ledger.index = pd.to_datetime(raw_ledger.index, unit="us")
+        for col in raw_ledger.columns:
+            if col not in conf.RESAMPLED_LEDGER_COLUMNS:
+                del raw_ledger[col]
+        resampled_ledger = raw_ledger.resample(
+            str(conf.TIME_INTERVAL) + "Min"
+        ).last()
+
+        resampled_data_first = resampled_data.index[0]
+        resampled_data_last = resampled_data.index[-1]
+        resampled_data = resampled_data.join(
+            resampled_ledger,
+            how="outer"
+        ).ffill().fillna(0).loc[resampled_data_first:resampled_data_last]
+
+        resampled_data["bal"] = resampled_data["quote_bal"] \
+            + resampled_data["crypto_bal"] * resampled_data["vwap"]
+    except FileNotFoundError:
+        resampled_data["crypto_bal"] = 0
+        resampled_data["quote_bal"] = 0
+        resampled_data["bal"] = 0
+
+    return resampled_data
 
 
 def updateData():
@@ -49,25 +86,10 @@ def updateData():
             conf.INDICATORS_COLUMNS
         )
     )
-    try:
-        # we assume this is a "small" file
-        fresh_len = len(fresh_data)
-        fresh_data = fresh_data.join(
-            fu.readFile(
-                conf.RESAMPLED_LEDGER_FILE,
-                conf.RESAMPLED_LEDGER_COLUMNS
-            ),
-            how="outer"
-        ).ffill().fillna(0)[-fresh_len:]
-        fresh_data["bal"] = fresh_data["quote_bal"] \
-            + fresh_data["crypto_bal"] * fresh_data["vwap"]
-    except FileNotFoundError:
-        fresh_data["crypto_bal"] = 0
-        fresh_data["quote_bal"] = 0
-        fresh_data["bal"] = 0
     fresh_data.index = pd.to_datetime(fresh_data.index, unit="us")
+    fresh_data = resampleLedgerAndJoinTo(fresh_data)
 
-    DATA = DATA.iloc[:-1].append(fresh_data).iloc[-MAX_POINTS:]
+    DATA = DATA.iloc[:-1].append(fresh_data).iloc[-conf.MAX_GRAPH_POINTS:]
 
     return True
 
@@ -76,7 +98,7 @@ def initData():
     """
     Initialize ´DATA´ global
 
-    Basically read ´MAX_POINTS´ from data files
+    Basically read ´conf.MAX_GRAPH_POINTS´ from data files
     """
 
     global DATA
@@ -92,38 +114,24 @@ def initData():
             columns=conf.RESAMPLED_TRADES_COLUMNS
             + conf.INDICATORS_COLUMNS
             + conf.RESAMPLED_LEDGER_COLUMNS
-            + ["bal"]  # hmmm... we'll calculate this on the fly
+            + ["bal"]  # hmmm... we'll calculate this on the fly:
         )
         return
 
     DATA = fu.getLastLines(
         conf.RESAMPLED_TRADES_FILE,
-        MAX_POINTS,
+        conf.MAX_GRAPH_POINTS,
         conf.RESAMPLED_TRADES_COLUMNS
     )
     DATA = DATA.join(
         fu.getLastLines(
             conf.INDICATORS_FILE,
-            MAX_POINTS,
+            conf.MAX_GRAPH_POINTS,
             conf.INDICATORS_COLUMNS
         )
     )
-    try:
-        DATA = DATA.join(
-            fu.getLastLines(
-                conf.RESAMPLED_LEDGER_FILE,
-                MAX_POINTS,
-                conf.RESAMPLED_LEDGER_COLUMNS
-            ),
-            how="outer"
-        ).ffill().fillna(0)[-MAX_POINTS:]
-        DATA["bal"] = DATA["quote_bal"] \
-            + DATA["crypto_bal"] * DATA["vwap"]
-    except FileNotFoundError:
-        DATA["crypto_bal"] = 0
-        DATA["quote_bal"] = 0
-        DATA["bal"] = 0
     DATA.index = pd.to_datetime(DATA.index, unit="us")
+    DATA = resampleLedgerAndJoinTo(DATA)
 
 
 def updateGraph(unused_counter, lines):
@@ -214,7 +222,12 @@ def _initGraph():
 
     for key in axes:
         axes[key].grid(True)
-        axes[key].legend(loc="upper left", prop={'size': 8})
+        axes[key].legend(
+            loc="upper left",
+            prop={'size': 8},
+            fancybox=True,
+            framealpha=0.3
+        )
         axes[key].yaxis.set_label_position("right")
         axes[key].yaxis.tick_right()
 

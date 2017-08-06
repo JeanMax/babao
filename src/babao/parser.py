@@ -6,7 +6,7 @@ import babao.commands as cmd
 
 
 def parseArgv(args):
-    """Parse argv ARGS"""
+    """Parse argv ´args´"""
 
     parser = argparse.ArgumentParser(
         description="A bitcoin trading machine.",

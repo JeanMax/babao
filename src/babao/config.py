@@ -16,8 +16,6 @@ UNSAMPLED_TRADES_FILE = None
 RESAMPLED_TRADES_FILE = None
 INDICATORS_FILE = None
 RAW_LEDGER_FILE = None
-UNSAMPLED_LEDGER_FILE = None
-RESAMPLED_LEDGER_FILE = None
 
 RAW_TRADES_COLUMNS = [
     "price", "volume", "buy-sell", "market-limit", "vwap"
@@ -46,6 +44,7 @@ LOG_DIR = None
 DATA_DIR = None
 ASSET_PAIR = None
 TIME_INTERVAL = None
+MAX_GRAPH_POINTS = None
 
 
 def readConfigFile(cmd_name="unamed"):
@@ -56,14 +55,13 @@ def readConfigFile(cmd_name="unamed"):
     global DATA_DIR
     global ASSET_PAIR
     global TIME_INTERVAL
+    global MAX_GRAPH_POINTS
     global LAST_DUMP_FILE
     global RAW_TRADES_FILE
     global UNSAMPLED_TRADES_FILE
     global RESAMPLED_TRADES_FILE
     global INDICATORS_FILE
     global RAW_LEDGER_FILE
-    global UNSAMPLED_LEDGER_FILE
-    global RESAMPLED_LEDGER_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -86,7 +84,12 @@ def readConfigFile(cmd_name="unamed"):
     TIME_INTERVAL = config.getint(
         "babao",
         "TIME_INTERVAL",
-        fallback=1
+        fallback=5
+    )
+    MAX_GRAPH_POINTS = config.getint(
+        "babao",
+        "MAX_GRAPH_POINTS",
+        fallback=420
     )
     # TODO: check if these vars are valid
 
@@ -104,5 +107,3 @@ def readConfigFile(cmd_name="unamed"):
     if cmd_name == "backtest":
         cmd_name += time.strftime("-%y-%m-%d_%H-%M-%S.csv")
     RAW_LEDGER_FILE = pre + "-raw-ledger-" + cmd_name + ".csv"
-    UNSAMPLED_LEDGER_FILE = pre + "-unsampled-ledger-" + cmd_name + "-" + post
-    RESAMPLED_LEDGER_FILE = pre + "-resampled-ledger-" + cmd_name + "-" + post
