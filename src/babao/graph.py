@@ -14,7 +14,7 @@ import babao.utils.log as log
 import babao.utils.fileutils as fu
 import babao.data.indicators as indic
 
-MAX_POINTS = 42000  # TODO: move to config/arg
+MAX_POINTS = 420  # TODO: move to config/arg
 DATA = None
 
 
@@ -33,7 +33,7 @@ def updateData():
         return False
 
     if os.path.isfile(conf.LOCK_FILE):
-        log.warning("graph.updateData(): won't update, lock file found")
+        # log.warning("graph.updateData(): won't update, lock file found")
         return False
 
     last_time = int(DATA.index.view("int64")[-1] // 1000)
@@ -144,9 +144,9 @@ def _initGraph():
 
     fig = plt.figure()
     axes = {}
-    axes["vwap"] = fig.add_subplot(3, 1, 1)
-    axes["volume"] = fig.add_subplot(3, 1, 2, sharex=axes["vwap"])
-    axes["bal"] = fig.add_subplot(3, 1, 3, sharex=axes["vwap"])
+    axes["vwap"] = plt.subplot2grid((6, 1), (0, 0), rowspan=4)
+    axes["volume"] = plt.subplot2grid((6, 1), (4, 0), sharex=axes["vwap"])
+    axes["bal"] = plt.subplot2grid((6, 1), (5, 0), sharex=axes["vwap"])
 
     lines = {}
     for key in axes:
@@ -214,7 +214,7 @@ def _initGraph():
 
     for key in axes:
         axes[key].grid(True)
-        axes[key].legend(loc="best")
+        axes[key].legend(loc="upper left", prop={'size': 8})
         axes[key].yaxis.set_label_position("right")
         axes[key].yaxis.tick_right()
 

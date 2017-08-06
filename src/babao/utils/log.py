@@ -30,10 +30,11 @@ def _log(header, msg, file=sys.stdout):
     """Genreral logging function, shouldn't be used directly"""
 
     print(
-        header
-        + time.strftime(WHITE + " [%Y/%m/%d %H:%M:%S]\n" + RESET)
-        + msg
-        + "\n",
+        WHITE
+        + time.strftime("[%Y/%m/%d %H:%M:%S] ")
+        + header
+        + RESET
+        + msg,
         file=file
     )
 
@@ -41,7 +42,7 @@ def _log(header, msg, file=sys.stdout):
 def error(msg):
     """Log an error (red)"""
 
-    _log(RED + "[ERROR]", msg, file=sys.stderr)
+    _log(RED + "[ERROR] ", msg, file=sys.stderr)
     sys.exit(42)
 
 
@@ -49,18 +50,18 @@ def log(msg):
     """Log a simple message (blue)"""
 
     if VERBOSE >= 1:
-        _log(BLUE + "[LOG]", msg)
+        _log(BLUE + "[LOG] ", msg)
 
 
 def warning(msg):
     """Log a warning (yellow)"""
 
     if VERBOSE >= 2:
-        _log(YELLOW + "[WARNING]", msg, file=sys.stderr)
+        _log(YELLOW + "[WARNING] ", msg, file=sys.stderr)
 
 
 def debug(msg):
     """Log a debug (magenta)"""
 
     if VERBOSE >= 3:
-        _log(MAGENTA + "[DEBUG]", msg)
+        _log(MAGENTA + "[DEBUG] ", msg)

@@ -6,26 +6,32 @@ This whole shit is temporary, don't worry
 
 import babao.config as conf
 import babao.utils.fileutils as fu
-import babao.strategy.ledger as ledger
+import babao.utils.log as log
+import babao.data.ledger as ledger
 
 LAST_TRANSACTION_PRICE = None
+LAST_TRANSACTION_TIME = None
+LOOK_BACK = 42  # TODO
+REQUIRED_COLUMNS = ["close"]
 
 
 def initLastTransactionPrice():
     """Initialize last transaction price"""
 
     global LAST_TRANSACTION_PRICE
+    global LAST_TRANSACTION_TIME
 
     try:
-        LAST_TRANSACTION_PRICE = float(
-            fu.getLastLines(
-                conf.RAW_LEDGER_FILE,
-                1,
-                conf.RAW_LEDGER_COLUMNS
-            )["price"]
+        df = fu.getLastLines(
+            conf.RAW_LEDGER_FILE,
+            1,
+            conf.RAW_LEDGER_COLUMNS
         )
+        LAST_TRANSACTION_TIME = df.index[0]
+        LAST_TRANSACTION_PRICE = df.at[df.index[0], "price"]
     except FileNotFoundError:
         LAST_TRANSACTION_PRICE = 0
+        LAST_TRANSACTION_TIME = 0
 
 
 def minSellPrice():
@@ -35,12 +41,10 @@ def minSellPrice():
     Based on the last transaction price and transaction fee
     """
 
-    if not LAST_TRANSACTION_PRICE:
-        initLastTransactionPrice()
-
     if LAST_TRANSACTION_PRICE > 0:
         # +1% for transaction cost/delay
-        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.01
+        # +4% for moneyz
+        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.05
     return -1
 
 
@@ -51,39 +55,44 @@ def maxBuyPrice():
     Based on the last transaction price and transaction fee
     """
 
-    if not LAST_TRANSACTION_PRICE:
-        initLastTransactionPrice()
-
     if LAST_TRANSACTION_PRICE > 0:
         # -1% for transaction cost/delay
-        return LAST_TRANSACTION_PRICE - LAST_TRANSACTION_PRICE * 0.01
+        # -4% for moneyz
+        return LAST_TRANSACTION_PRICE - LAST_TRANSACTION_PRICE * 0.05
     return 1 << 16
 
 
-def analyse():
+def analyse(sample_data):
     """Just a dummy strategy"""
 
-    current_price = float(fu.getLastLines(
-        conf.RESAMPLED_TRADES_FILE,
-        1,
-        conf.RESAMPLED_TRADES_COLUMNS
-    ).tail(1)["close"])
+    # TODO: 0 is hardcoded "close" column location... (iat is realllly faster)
+    current_price = sample_data.iat[-1, 0]
+    i = sample_data.index[-1]
 
     global LAST_TRANSACTION_PRICE
+    global LAST_TRANSACTION_TIME
 
     if ledger.BALANCE["crypto"] > 0.001:
         if current_price > minSellPrice():
             ledger.logSell(
                 ledger.BALANCE["crypto"],
                 current_price,
-                crypto_fee=ledger.BALANCE["crypto"] / 100  # 1% fee
+                crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
+                timestamp=i
             )
             LAST_TRANSACTION_PRICE = current_price
+            LAST_TRANSACTION_TIME = i
     else:
+        if i - LAST_TRANSACTION_TIME > 604800000000:
+            log.warning("Transaction failed (1 week) :/")
+            LAST_TRANSACTION_PRICE = 0
+            LAST_TRANSACTION_TIME = 0
         if current_price < maxBuyPrice():
             ledger.logBuy(
                 ledger.BALANCE["quote"],
                 current_price,
-                quote_fee=ledger.BALANCE["quote"] / 100  # 1% fee
+                quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
+                timestamp=i
             )
             LAST_TRANSACTION_PRICE = current_price
+            LAST_TRANSACTION_TIME = i

@@ -67,8 +67,8 @@ def parseArgv(args):
         help="test strategy on the given raw trade data file",
         description="test strategy on the given raw trade data file",  # TODO
     )
-    parser_b.add_argument('FILE', help="raw trade data file")
-    parser_b.set_defaults(func=cmd.notImplemented)
+    # parser_b.add_argument('FILE', help="raw trade data file")
+    parser_b.set_defaults(func=cmd.backtest)
 
     parser_f = subparsers.add_parser(
         "fetch",

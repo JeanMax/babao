@@ -4,7 +4,8 @@ NAME = babao
 
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
-INSTALL_DIR= $(HOME)/.local/
+INSTALL_DIR= $(HOME)/.local
+INSTALL_NAME = $(INSTALL_DIR)/bin/$(NAME)
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
@@ -26,8 +27,8 @@ TESTER = pytest --pdb --fulltrace
 FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
 SETUP = python3 setup.py
-BUILD_FLAGS = build -j4
 INSTALL_FLAGS = install -O2 --user
+DEVELOP_FLAGS = develop -O2 --user
 RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
 
 ifdef QUIET
@@ -43,27 +44,32 @@ EXEC = $(PY) -m $(NAME)
 endif
 
 
-.PHONY: conf all install install_test install_graph clean fclean uninstall rebuild reinstall flake lint test check commit
+.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit
 
-$(NAME):
-	$(SETUP) $(BUILD_FLAGS)
+
+$(NAME): | $(ROOT_DIR)
+	$(SETUP) $(DEVELOP_FLAGS)
 	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)
 	chmod 755 $(NAME)
 
-conf:
+$(ROOT_DIR):
 	$(MKDIR) $(ROOT_DIR)/{data,log}
 	$(CP) $(CONFIG_FILE) $(KRAKEN_KEY_FILE) $(ROOT_DIR)
 
-all: $(NAME) conf
-
-install: all
+$(INSTALL_NAME):
 	$(SETUP) $(INSTALL_FLAGS)
 
-install_test: all
+
+conf: | $(ROOT_DIR)
+
+install: $(NAME) $(INSTALL_NAME) # TODO: won't install if develop already there
+
+install_test: install
 	pip install --user .[test] # TODO
 
-install_graph: all
+install_graph: install
 	pip install --user .[graph] # TODO
+
 
 clean:
 	$(RM) $(TMP_FILES)
@@ -80,9 +86,8 @@ uninstall: fclean
 	make fclean #ouch
 # $(RM) $(ROOT_DIR)
 
-rebuild: fclean all
-
 reinstall: uninstall install
+
 
 flake:
 	$(FLAKE)
@@ -93,9 +98,9 @@ lint:
 test:
 	$(TESTER)
 
-check: reinstall flake lint test
+check: flake lint test
 
-commit: check fclean
+commit: reinstall check fclean
 	git add -A .
 	git diff --cached --minimal
 	git commit

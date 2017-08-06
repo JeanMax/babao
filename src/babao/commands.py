@@ -7,11 +7,12 @@ import signal
 
 import babao.config as conf
 import babao.utils.log as log
+import babao.utils.fileutils as fu
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
 import babao.strategy.strategy as strat
-import babao.strategy.ledger as ledger
+import babao.data.ledger as ledger
 
 EXIT = 0
 TICK = None
@@ -35,6 +36,7 @@ def delay():
     if EXIT:
         sys.exit(EXIT)
 
+    # TODO: should we block if the file exists at startup?
     if os.path.isfile(conf.LOCK_FILE):
         os.remove(conf.LOCK_FILE)
 
@@ -53,6 +55,9 @@ def delay():
     open(conf.LOCK_FILE, "w")
     time.sleep(0.1)  # TODO: define LIL_DELAY_JUST_IN_CASE
 
+    if EXIT:
+        sys.exit(EXIT)
+
 
 def launchGraph():
     """Start the graph process"""
@@ -70,7 +75,7 @@ def launchGraph():
     p.start()
 
 
-def initCmd(graph=False, simulate=False):
+def initCmd(graph=False, simulate=False, with_api=True):
     """
     Generic command init function
 
@@ -83,7 +88,10 @@ def initCmd(graph=False, simulate=False):
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    api.initKey()
+    strat.initLastTransactionPrice()
+
+    if with_api:
+        api.initKey()
 
     ledger.initBalance()
     if simulate and not os.path.isfile(conf.RAW_LEDGER_FILE):
@@ -104,7 +112,19 @@ def dryRun(args):
                 api.dumpData()  # TODO: this could use a renaming
             )
         )
-        strat.analyse()
+        strat.analyse(
+            fu.getLastLines(
+                conf.RESAMPLED_TRADES_FILE,
+                strat.LOOK_BACK,
+                conf.RESAMPLED_TRADES_COLUMNS
+            ).join(
+                fu.getLastLines(
+                    conf.INDICATORS_FILE,
+                    strat.LOOK_BACK,
+                    conf.INDICATORS_COLUMNS
+                )
+            )
+        )
         if args.graph:
             resamp.resampleLedgerData()
         delay()
@@ -138,6 +158,67 @@ def fetch(args):
         indic.updateIndicators(
             resamp.resampleTradeData(raw_data)
         )
+
+
+def backtest(args):
+    """Just a naive backtester"""
+
+    # with float < 64, smaller size but longer to process
+    # (might be a cast issue somewhere else)
+    big_fat_data = fu.readFile(
+        conf.RESAMPLED_TRADES_FILE,
+        conf.RESAMPLED_TRADES_COLUMNS,
+        # dtype=dict([(x, "float32") for x in conf.RESAMPLED_TRADES_COLUMNS])
+    ).join(
+        fu.readFile(
+            conf.INDICATORS_FILE,
+            conf.INDICATORS_COLUMNS,
+            # dtype=dict([(x, "float32") for x in conf.INDICATORS_COLUMNS])
+        )
+    )
+
+    for col in big_fat_data.columns:
+        if col not in strat.REQUIRED_COLUMNS:
+            del big_fat_data[col]
+
+    initCmd(args.graph, simulate=True, with_api=False)
+
+    for i in range(len(big_fat_data) - strat.LOOK_BACK + 1):
+        strat.analyse(
+            big_fat_data.iloc[i: i + strat.LOOK_BACK]
+        )
+
+        if i % 50000 == 0:
+            delay()
+        #     if args.graph:
+        #         delay()
+        #         resamp.resampleLedgerData()
+        if EXIT:
+            sys.exit(EXIT)
+
+    log.log(
+        "Backtesting done! Score: "
+        + str(round(float(
+            ledger.BALANCE["quote"] + ledger.BALANCE["crypto"]
+            * fu.getLastLines(
+                conf.RESAMPLED_TRADES_FILE,
+                1,
+                conf.RESAMPLED_TRADES_COLUMNS
+            ).iloc[0]["close"]
+        )))
+        + "% vs HODL: "
+        + str(round(
+            big_fat_data.at[big_fat_data.index[-1], "close"]
+            / big_fat_data.at[big_fat_data.index[0], "close"]
+            * 100
+        ))
+        + "%"
+    )
+
+    # if args.graph:
+    #     resamp.resampleLedgerData()
+    #     while not EXIT:
+    #         delay()
 
 
 def notImplemented(args):

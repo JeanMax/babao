@@ -1,7 +1,7 @@
 """Here we'll handle the config file and the various file/dir paths"""
 
 import os
-# import time
+import time
 import configparser as cp
 
 # globad vars
@@ -90,37 +90,19 @@ def readConfigFile(cmd_name="unamed"):
     )
     # TODO: check if these vars are valid
 
-    LAST_DUMP_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-lastDump.timestamp"
-    )
-    RAW_TRADES_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-raw-trades.csv"
-    )
-    UNSAMPLED_TRADES_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-unsampled-trades-" + str(TIME_INTERVAL) + "Min.csv"
-    )
-    RESAMPLED_TRADES_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-resampled-trades-" + str(TIME_INTERVAL) + "Min.csv"
-    )
-    INDICATORS_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-indicators-" + str(TIME_INTERVAL) + "Min.csv"
-    )
-    RAW_LEDGER_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-raw-ledger-" + cmd_name + ".csv"
-    )
-    UNSAMPLED_LEDGER_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-unsampled-ledger-" + cmd_name
-        + "-" + str(TIME_INTERVAL) + "Min.csv"
-    )
-    RESAMPLED_LEDGER_FILE = os.path.join(
-        DATA_DIR,
-        ASSET_PAIR + "-resampled-ledger-" + cmd_name
-        + "-" + str(TIME_INTERVAL) + "Min.csv"
-    )
+    pre = os.path.join(DATA_DIR, ASSET_PAIR)
+    post = str(TIME_INTERVAL) + "Min.csv"
+
+    LAST_DUMP_FILE = pre + "-lastDump.timestamp"
+
+    INDICATORS_FILE = pre + "-indicators-" + post
+
+    RAW_TRADES_FILE = pre + "-raw-trades.csv"
+    UNSAMPLED_TRADES_FILE = pre + "-unsampled-trades-" + post
+    RESAMPLED_TRADES_FILE = pre + "-resampled-trades-" + post
+
+    if cmd_name == "backtest":
+        cmd_name += time.strftime("-%y-%m-%d_%H-%M-%S.csv")
+    RAW_LEDGER_FILE = pre + "-raw-ledger-" + cmd_name + ".csv"
+    UNSAMPLED_LEDGER_FILE = pre + "-unsampled-ledger-" + cmd_name + "-" + post
+    RESAMPLED_LEDGER_FILE = pre + "-resampled-ledger-" + cmd_name + "-" + post
