@@ -10,7 +10,7 @@ SMA_LOOK_BACK = [9, 26, 77]
 MAX_LOOK_BACK = SMA_LOOK_BACK[-1]
 
 
-def indicator_SMA(column, look_back_delay):
+def _indicator_SMA(column, look_back_delay):
     """Simple Moving Average"""
 
     return column.rolling(
@@ -20,7 +20,7 @@ def indicator_SMA(column, look_back_delay):
 
 
 # unused
-# def indicator_EWMA(column, look_back_delay):
+# def _indicator_EWMA(column, look_back_delay):
 #     """Exponentially-weighted Moving Average"""
 
 #     return column.ewm(
@@ -48,7 +48,7 @@ def updateIndicators(numberOfLinesToRead):
     # pylint: disable=consider-using-enumerate
     for i in range(len(SMA_LOOK_BACK)):
         for col in ["vwap", "volume"]:
-            indicators_data["SMA_" + col + "_" + str(i + 1)] = indicator_SMA(
+            indicators_data["SMA_" + col + "_" + str(i + 1)] = _indicator_SMA(
                 resampled_data[col],
                 SMA_LOOK_BACK[i]
             )

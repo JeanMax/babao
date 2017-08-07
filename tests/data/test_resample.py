@@ -1,11 +1,11 @@
 import babao.data.resample as resample
 import babao.api.kraken as kraken
 import babao.config as conf
-from babao.babao import init
+import babao.babao as babao
 
 
 def test_resampleDate():
-    init("d")  # TODO: hardcode api config?
+    babao._init("d")  # TODO: hardcode api config?
 
     raw_data = kraken.getRawTrades("1380563220")[0]
     time_interval = str(conf.TIME_INTERVAL) + "Min"
@@ -20,3 +20,5 @@ def test_resampleDate():
     assert not resampled_data["vwap"].empty
     assert not resampled_data["volume"].empty
     assert not resampled_data["count"].empty
+
+    babao._kthxbye()

@@ -5,9 +5,10 @@ import sys
 import os
 import signal
 
-import babao.config as conf
 import babao.utils.log as log
 import babao.utils.fileutils as fu
+import babao.utils.lock as lock
+import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
@@ -18,27 +19,25 @@ EXIT = 0
 TICK = None
 
 
-def signal_handler(signal_code, unused_frame):
+def _signalHandler(signal_code, unused_frame):
     """Catch signal INT/TERM, so we won't exit while playing with data files"""
 
     global EXIT
     EXIT = 128 + signal_code
 
 
-def delay():
+def _delay():
     """
     Sleep the min amount of time required to still be friend with the api
 
-    Also handle a lock file to avoid having the graph read data while we write;
-    exit before sleeping if a signal have been caught.
+    Also handle a lock file to avoid having the graph read data while we write
+    Return False if a signal have been caught (you need to exit).
     """
 
     if EXIT:
-        sys.exit(EXIT)
+        return False
 
-    # TODO: should we block if the file exists at startup?
-    if os.path.isfile(conf.LOCK_FILE):
-        os.remove(conf.LOCK_FILE)
+    lock.tryUnlock(conf.LOCAL_LOCK_FILE)
 
     global TICK
     if TICK is not None:
@@ -52,14 +51,13 @@ def delay():
         time.sleep(delta)
     TICK = time.time()
 
-    open(conf.LOCK_FILE, "w")
+    lock.tryLock(conf.LOCAL_LOCK_FILE)
     time.sleep(0.1)  # TODO: define LIL_DELAY_JUST_IN_CASE
 
-    if EXIT:
-        sys.exit(EXIT)
+    return not bool(EXIT)
 
 
-def launchGraph():
+def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
@@ -75,18 +73,17 @@ def launchGraph():
     p.start()
 
 
-def initCmd(graph=False, simulate=False, with_api=True):
+def _initCmd(graph=False, simulate=False, with_api=True):
     """
     Generic command init function
 
     Init: lock file, signal handlers, api key, graph
     """
 
-    # init lock file
-    open(conf.LOCK_FILE, "w")
+    lock.tryLock(conf.LOCAL_LOCK_FILE)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, _signalHandler)
+    signal.signal(signal.SIGTERM, _signalHandler)
 
     strat.initLastTransactionPrice()
 
@@ -98,13 +95,13 @@ def initCmd(graph=False, simulate=False, with_api=True):
         ledger.logQuoteDeposit(100)
 
     if graph:
-        launchGraph()
+        _launchGraph()
 
 
 def dryRun(args):
     """Real-time bot simulation"""
 
-    initCmd(args.graph, simulate=True)
+    _initCmd(args.graph, simulate=True)
 
     while True:
         indic.updateIndicators(
@@ -112,27 +109,32 @@ def dryRun(args):
                 api.dumpData()  # TODO: this could use a renaming
             )
         )
-        strat.analyse(
+
+        fresh_data = fu.getLastLines(
+            conf.RESAMPLED_TRADES_FILE,
+            strat.LOOK_BACK,
+            conf.RESAMPLED_TRADES_COLUMNS
+        ).join(
             fu.getLastLines(
-                conf.RESAMPLED_TRADES_FILE,
+                conf.INDICATORS_FILE,
                 strat.LOOK_BACK,
-                conf.RESAMPLED_TRADES_COLUMNS
-            ).join(
-                fu.getLastLines(
-                    conf.INDICATORS_FILE,
-                    strat.LOOK_BACK,
-                    conf.INDICATORS_COLUMNS
-                )
-            ),
-            timestamp=int(time.time() * 1e6)
+                conf.INDICATORS_COLUMNS
+            )
         )
-        delay()
+
+        strat.analyse(
+            fresh_data.values,
+            timestamp=fresh_data.index[-1]
+        )
+
+        if not _delay():
+            return
 
 
 def fetch(args):
     """fetch raw trade data since the beginning of times"""
 
-    initCmd(args.graph)
+    _initCmd(args.graph)
 
     for f in [conf.LAST_DUMP_FILE,
               conf.RAW_TRADES_FILE,
@@ -151,7 +153,8 @@ def fetch(args):
             "Fetched data from " + str(raw_data.index[0])
             + " to " + str(raw_data.index[-1])
         )
-        delay()
+        if not _delay():
+            return
 
         raw_data = api.dumpData()
         indic.updateIndicators(
@@ -182,7 +185,7 @@ def backtest(args):
     big_fat_data_index = big_fat_data.index
     big_fat_data_values = big_fat_data.values
 
-    initCmd(args.graph, simulate=True, with_api=False)
+    _initCmd(args.graph, simulate=True, with_api=False)
 
     start_time = time.time()
 
@@ -192,7 +195,7 @@ def backtest(args):
             timestamp=big_fat_data_index[i + strat.LOOK_BACK]
         )
         if EXIT:
-            sys.exit(EXIT)
+            return
 
     log.log(
         "Backtesting done! Score: "
@@ -218,8 +221,8 @@ def backtest(args):
     )
 
     if args.graph:
-        while not EXIT:
-            delay()
+        while _delay():
+            pass
         # TODO: exit if graph is closed
 
 

@@ -18,22 +18,34 @@ Why does this file exist, and why not put this in __main__?
 # from IPython import embed; embed()
 # from ipdb import set_trace; set_trace()
 
+import babao.utils.log as log
+import babao.utils.lock as lock
 import babao.config as conf
 import babao.parser as pars
-import babao.utils.log as log
 
 
-def init(args=None):
+def _kthxbye():
+    """KTHXBYE"""
+
+    lock.tryUnlock(conf.GLOBAL_LOCK_FILE)
+
+
+def _init(args=None):
     """Initialize config and parse argv"""
 
     args = pars.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
+
+    if not lock.tryLock(conf.GLOBAL_LOCK_FILE):
+        log.error("Lock file found (" + conf.GLOBAL_LOCK_FILE + "), abort.")
+
     return args
 
 
 def main(args=None):
     """Babao entry point"""
 
-    args = init(args)
+    args = _init(args)
     args.func(args)
+    _kthxbye()

@@ -51,7 +51,7 @@ def test_getLastLines():
     assert df[1][1] == 3
     assert df[2][2] == 6
 
-    df = fu.getLastLines(filename, 42)
+    df = fu.getLastLines(filename, 4)
     assert not df.empty
     assert len(df.index) == 3
     assert df[1][0] == 1
@@ -80,5 +80,37 @@ def test_removeLastLine():
     fu.removeLastLine(filename, 1123456789)
     with pytest.raises(pd.errors.EmptyDataError):
         df = pd.read_csv(filename, header=None, index_col=0)
+
+    os.remove(filename)
+
+
+def test_getLinesAfter():
+    filename = "/tmp/test_getLinesAfter.csv"
+    with open(filename, "w") as f:
+        f.write("0,1,2\n1,3,4\n2,5,6\n")
+
+    df = fu.getLinesAfter(filename, 2)
+    assert not df.empty
+    assert len(df.index) == 1
+    assert df[2][2] == 6
+
+    df = fu.getLinesAfter(filename, 1)
+    assert not df.empty
+    assert len(df.index) == 2
+    assert df[1][1] == 3
+    assert df[2][2] == 6
+
+    df = fu.getLinesAfter(filename, 0)
+    assert not df.empty
+    assert len(df.index) == 3
+    assert df[1][0] == 1
+    assert df[1][1] == 3
+    assert df[2][2] == 6
+
+    df = fu.getLinesAfter(filename, -1)
+    assert df is None
+
+    df = fu.getLinesAfter(filename, 3)
+    assert df is None
 
     os.remove(filename)

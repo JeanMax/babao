@@ -36,8 +36,9 @@ def getLastLines(filename, numberoflines, names=None):
         end = len(mm) - 1
         start = end
         for unused_counter in range(numberoflines):
-            # TODO: catch when you reach the begin
             start = mm.rfind(b'\n', 0, start)
+            if start == -1:  # we reached the begin of file
+                break
 
         return readFile(io.BytesIO(mm[start + 1:end]), names)
 
@@ -67,7 +68,7 @@ def removeLastLine(filename, timestamp):  # TODO: rename or something
 
 def getLinesAfter(filename, timestamp, names=None):
     """
-    Remove all entries in ´filename´ after ´timestamp(int)´ included
+    Return all entries in ´filename´ after ´timestamp(int)´ included
 
     Return None if the timestamp wasn't found
     """

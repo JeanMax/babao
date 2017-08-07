@@ -1,7 +1,6 @@
 """Data visualisation inside"""
 
 import os
-import sys
 import time
 import traceback
 import pandas as pd
@@ -9,15 +8,16 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
-import babao.config as conf
-import babao.utils.log as log
 import babao.utils.fileutils as fu
+import babao.utils.log as log
+import babao.utils.lock as lock
+import babao.config as conf
 import babao.data.indicators as indic
 
 DATA = None
 
 
-def resampleLedgerAndJoinTo(resampled_data):
+def _resampleLedgerAndJoinTo(resampled_data):
     """
     Resample ´conf.RAW_LEDGER_FILE´ and join it to ´resampled_data´
 
@@ -55,7 +55,7 @@ def resampleLedgerAndJoinTo(resampled_data):
     return resampled_data
 
 
-def updateData():
+def _updateData():
     """
     Update ´DATA´ global
 
@@ -69,8 +69,8 @@ def updateData():
         log.warning("Data files not found... Is it your first time around?")
         return False
 
-    if os.path.isfile(conf.LOCK_FILE):
-        # log.warning("graph.updateData(): won't update, lock file found")
+    if lock.isLocked(conf.LOCAL_LOCK_FILE):
+        # log.warning("graph._updateData(): won't update, lock file found")
         return False
 
     last_time = int(DATA.index.view("int64")[-1] // 1000)
@@ -87,14 +87,14 @@ def updateData():
         )
     )
     fresh_data.index = pd.to_datetime(fresh_data.index, unit="us")
-    fresh_data = resampleLedgerAndJoinTo(fresh_data)
+    fresh_data = _resampleLedgerAndJoinTo(fresh_data)
 
     DATA = DATA.iloc[:-1].append(fresh_data).iloc[-conf.MAX_GRAPH_POINTS:]
 
     return True
 
 
-def initData():
+def _initData():
     """
     Initialize ´DATA´ global
 
@@ -104,7 +104,7 @@ def initData():
     global DATA
 
     # init lock file
-    while os.path.isfile(conf.LOCK_FILE):
+    while lock.isLocked(conf.LOCAL_LOCK_FILE):
         time.sleep(0.1)
 
     if not os.path.isfile(conf.RESAMPLED_TRADES_FILE) \
@@ -131,13 +131,13 @@ def initData():
         )
     )
     DATA.index = pd.to_datetime(DATA.index, unit="us")
-    DATA = resampleLedgerAndJoinTo(DATA)
+    DATA = _resampleLedgerAndJoinTo(DATA)
 
 
-def updateGraph(unused_counter, lines):
+def _updateGraph(unused_counter, lines):
     """Function called (back) by FuncAnimation, will update graph"""
 
-    if not updateData():
+    if not _updateData():
         return lines.values()
 
     for key in lines:
@@ -148,7 +148,7 @@ def updateGraph(unused_counter, lines):
 def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
 
-    initData()
+    _initData()
 
     fig = plt.figure()
     axes = {}
@@ -236,7 +236,7 @@ def _initGraph():
     # the assignations are needed to avoid garbage collection...
     unused_animation = animation.FuncAnimation(  # NOQA: F841
         fig,
-        updateGraph,
+        _updateGraph,
         fargs=(lines,),
         # blit=True,  # bug?
         interval=2500
@@ -252,4 +252,4 @@ def initGraph():
     except:  # pylint: disable=bare-except
         # print("".join(traceback.format_exception(*(sys.exc_info))))
         traceback.print_exc()
-        sys.exit(1)
+        log.error("Something's bjorked in your graph :/")

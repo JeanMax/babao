@@ -34,7 +34,7 @@ def initLastTransactionPrice():
         LAST_TRANSACTION_TIME = 0
 
 
-def minSellPrice():
+def _minSellPrice():
     """
     Return the minimum price to sell coins and make profit
 
@@ -48,7 +48,7 @@ def minSellPrice():
     return -1
 
 
-def maxBuyPrice():
+def _maxBuyPrice():
     """
     Return the maximum price to buy coins and make profit
 
@@ -74,7 +74,7 @@ def analyse(sample_data, timestamp):
     global LAST_TRANSACTION_TIME
 
     if ledger.BALANCE["crypto"] > 0.001:
-        if current_price > minSellPrice():
+        if current_price > _minSellPrice():
             ledger.logSell(
                 ledger.BALANCE["crypto"],
                 current_price,
@@ -88,7 +88,7 @@ def analyse(sample_data, timestamp):
             log.warning("Transaction failed (1 week) :/")
             LAST_TRANSACTION_PRICE = 0
             LAST_TRANSACTION_TIME = 0
-        if current_price < maxBuyPrice():
+        if current_price < _maxBuyPrice():
             ledger.logBuy(
                 ledger.BALANCE["quote"],
                 current_price,

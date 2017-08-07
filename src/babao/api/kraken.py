@@ -19,7 +19,7 @@ def initKey():
     K.load_key(conf.API_KEY_FILE)
 
 
-def doRequest(method, req=None):
+def _doRequest(method, req=None):
     """General function for kraken api requests"""
 
     global C
@@ -63,7 +63,7 @@ def doRequest(method, req=None):
 def getBalance():
     """Return account balance (associatives arrays, keys = assets)"""
 
-    res = doRequest("Balance")
+    res = _doRequest("Balance")
     return res
 
 
@@ -77,7 +77,7 @@ def getRawTrades(since):
     columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
     """
 
-    res = doRequest("Trades", {
+    res = _doRequest("Trades", {
         "pair": conf.ASSET_PAIR,
         "since": since
     })
