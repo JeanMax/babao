@@ -17,6 +17,7 @@ UNSAMPLED_TRADES_FILE = None
 RESAMPLED_TRADES_FILE = None
 INDICATORS_FILE = None
 RAW_LEDGER_FILE = None
+ALPHA_EXTREMA_FILE = None
 
 RAW_TRADES_COLUMNS = [
     "price", "volume", "buy-sell", "market-limit", "vwap"
@@ -63,6 +64,7 @@ def readConfigFile(cmd_name="unamed"):
     global RESAMPLED_TRADES_FILE
     global INDICATORS_FILE
     global RAW_LEDGER_FILE
+    global ALPHA_EXTREMA_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -98,6 +100,7 @@ def readConfigFile(cmd_name="unamed"):
     post = str(TIME_INTERVAL) + "Min.csv"
 
     LAST_DUMP_FILE = pre + "-lastDump.timestamp"
+    ALPHA_EXTREMA_FILE = pre + "-extrema.pkl"
 
     INDICATORS_FILE = pre + "-indicators-" + post
 

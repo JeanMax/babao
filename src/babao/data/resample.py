@@ -40,6 +40,7 @@ def _fillMissing(resampled_data, prev_line=None):
 
     resampled_data["volume"] = resampled_data["volume"].fillna(0)
 
+    # TODO: inplace=True
     if prev_line is not None:
         i = resampled_data.index[0]
         resampled_data.loc[i, "vwap"] = prev_line["vwap"]

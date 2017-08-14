@@ -8,11 +8,13 @@ import babao.config as conf
 import babao.utils.fileutils as fu
 import babao.utils.log as log
 import babao.data.ledger as ledger
+import babao.strategy.trainer as trainer
 
 LAST_TRANSACTION_PRICE = None
 LAST_TRANSACTION_TIME = None
-LOOK_BACK = 42  # TODO
-REQUIRED_COLUMNS = ["close", "SMA_vwap_1", "SMA_vwap_2"]
+MIN_BAL = 50  # maximum drawdown
+
+# LABELS = {"buy": -1, "hold": 0, "sell": 1}
 
 
 def initLastTransactionPrice():
@@ -34,47 +36,30 @@ def initLastTransactionPrice():
         LAST_TRANSACTION_TIME = 0
 
 
-def _minSellPrice():
+def _buyOrSell(target, current_price, timestamp):
     """
-    Return the minimum price to sell coins and make profit
+    Decide wether to buy or sell based on the given ´target´current balance
 
-    Based on the last transaction price and transaction fee
+    It will consider the current ´ledger.BALANCE´, and evenutally update it.
     """
-
-    if LAST_TRANSACTION_PRICE > 0:
-        # +1% for transaction cost/delay
-        # +9% for moneyz
-        return LAST_TRANSACTION_PRICE + LAST_TRANSACTION_PRICE * 0.1
-    return -1
-
-
-def _maxBuyPrice():
-    """
-    Return the maximum price to buy coins and make profit
-
-    Based on the last transaction price and transaction fee
-    """
-
-    if LAST_TRANSACTION_PRICE > 0:
-        # -1% for transaction cost/delay
-        # -4% for moneyz
-        return LAST_TRANSACTION_PRICE - LAST_TRANSACTION_PRICE * 0.05
-    return 1 << 16
-
-
-def analyse(sample_data, timestamp):
-    """Just a dummy strategy"""
-
-    # TODO: 0 is hardcoded "close" column location...
-    current_price = sample_data[-1, 0]
-    # current_sma1 = sample_data[-1, 1]
-    # current_sma2 = sample_data[-1, 2]
 
     global LAST_TRANSACTION_PRICE
     global LAST_TRANSACTION_TIME
 
+    if ledger.BALANCE["crypto"] * current_price + ledger.BALANCE["quote"] \
+       < MIN_BAL:
+        return  # TODO
+
     if ledger.BALANCE["crypto"] > 0.001:
-        if current_price > _minSellPrice():
+        # if target[0] > proba:
+        if target == 1 \
+           or timestamp - LAST_TRANSACTION_TIME > 604800000000:  # TODO
+            log.info(
+                "Sold for "
+                + str(ledger.BALANCE["crypto"])
+                + " crypto @ "
+                + str(current_price)
+            )
             ledger.logSell(
                 ledger.BALANCE["crypto"],
                 current_price,
@@ -84,11 +69,14 @@ def analyse(sample_data, timestamp):
             LAST_TRANSACTION_PRICE = current_price
             LAST_TRANSACTION_TIME = timestamp
     else:
-        if timestamp - LAST_TRANSACTION_TIME > 604800000000:
-            log.warning("Transaction failed (1 week) :/")
-            LAST_TRANSACTION_PRICE = 0
-            LAST_TRANSACTION_TIME = 0
-        if current_price < _maxBuyPrice():
+        # if target[2] > proba:
+        if target == -1:
+            log.info(
+                "Bought for "
+                + str(ledger.BALANCE["quote"])
+                + " quote @ "
+                + str(current_price)
+            )
             ledger.logBuy(
                 ledger.BALANCE["quote"],
                 current_price,
@@ -97,3 +85,20 @@ def analyse(sample_data, timestamp):
             )
             LAST_TRANSACTION_PRICE = current_price
             LAST_TRANSACTION_TIME = timestamp
+
+
+def analyse(feature_index, current_price, timestamp):
+    """
+    Apply strategy on the specified feature
+
+    ´feature_index´ specify the row you want to use from the prepared features
+    This assume you've already done ´prepareFeaturesAlphas()´
+    """
+
+    # TODO: use slices for training
+    target_arr = trainer.predictAlphas(feature_index)
+
+    # TODO: 2d array if predict_proba
+    target = target_arr[0]  # TODO: merges alpha (decistion tree?)
+
+    _buyOrSell(target, current_price, timestamp)

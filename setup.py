@@ -48,6 +48,7 @@ setup(
     ],
     keywords='bitcoin bot',
     install_requires=[
+        'scikit-learn',
         'pandas',
         'configparser',
         'argparse',

@@ -1,7 +1,6 @@
 """Commands launched by parseArgv"""
 
 import time
-import sys
 import os
 import signal
 
@@ -12,8 +11,9 @@ import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.indicators as indic
-import babao.strategy.strategy as strat
 import babao.data.ledger as ledger
+import babao.strategy.strategy as strat
+import babao.strategy.trainer as trainer
 
 EXIT = 0
 TICK = None
@@ -86,6 +86,7 @@ def _initCmd(graph=False, simulate=False, with_api=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     strat.initLastTransactionPrice()
+    trainer.loadAlphas()
 
     if with_api:
         api.initKey()
@@ -96,6 +97,32 @@ def _initCmd(graph=False, simulate=False, with_api=True):
 
     if graph:
         _launchGraph()
+
+
+def _getData():
+    """Return the whole dataset splitted in two parts: (train, test)"""
+
+    full_data = fu.readFile(
+        conf.RESAMPLED_TRADES_FILE,
+        conf.RESAMPLED_TRADES_COLUMNS,
+    ).join(
+        fu.readFile(
+            conf.INDICATORS_FILE,
+            conf.INDICATORS_COLUMNS,
+        )
+    )
+    # TODO: we remove the head because there is not enough volume at first
+    full_data = full_data.tail(int(len(full_data) * 0.6))
+    split_index = int(len(full_data) * 0.7)
+
+    return full_data[:split_index], full_data[split_index:]
+
+
+def wetRun(args):
+    """Dummy"""
+
+    print(repr(args))
+    print("Sorry, this is not implemented yet :/")
 
 
 def dryRun(args):
@@ -112,19 +139,23 @@ def dryRun(args):
 
         fresh_data = fu.getLastLines(
             conf.RESAMPLED_TRADES_FILE,
-            strat.LOOK_BACK,
+            1,
             conf.RESAMPLED_TRADES_COLUMNS
         ).join(
             fu.getLastLines(
                 conf.INDICATORS_FILE,
-                strat.LOOK_BACK,
+                1,
                 conf.INDICATORS_COLUMNS
             )
         )
 
+        trainer.prepareFeaturesAlphas(fresh_data)
+        timestamp = fresh_data.index[-1]
+        current_price = fresh_data.at[timestamp, "close"]
         strat.analyse(
-            fresh_data.values,
-            timestamp=fresh_data.index[-1]
+            feature_index=-1,  # there should be only one feature
+            current_price=current_price,
+            timestamp=timestamp
         )
 
         if not _delay():
@@ -132,7 +163,7 @@ def dryRun(args):
 
 
 def fetch(args):
-    """fetch raw trade data since the beginning of times"""
+    """Fetch raw trade data since the beginning of times"""
 
     _initCmd(args.graph)
 
@@ -163,57 +194,38 @@ def fetch(args):
 
 
 def backtest(args):
-    """Just a naive backtester"""
+    """
+    Just a naive backtester
 
-    # with float < 64, smaller size but longer to process
-    # (might be a cast issue somewhere else)
-    big_fat_data = fu.readFile(
-        conf.RESAMPLED_TRADES_FILE,
-        conf.RESAMPLED_TRADES_COLUMNS,
-        # dtype=dict([(x, "float32") for x in conf.RESAMPLED_TRADES_COLUMNS])
-    ).join(
-        fu.readFile(
-            conf.INDICATORS_FILE,
-            conf.INDICATORS_COLUMNS,
-            # dtype=dict([(x, "float32") for x in conf.INDICATORS_COLUMNS])
-        )
-    )
-
-    for col in big_fat_data.columns:
-        if col not in strat.REQUIRED_COLUMNS:
-            del big_fat_data[col]
-    big_fat_data_index = big_fat_data.index
-    big_fat_data_values = big_fat_data.values
+    It will call the trained strategies on each test data point
+    """
 
     _initCmd(args.graph, simulate=True, with_api=False)
 
+    big_fat_data = _getData()[1]
+    trainer.prepareFeaturesAlphas(big_fat_data)
+    big_fat_data_index = big_fat_data.index.values
+    big_fat_data_prices = big_fat_data["close"].values
+    del big_fat_data
+
     start_time = time.time()
 
-    for i in range(len(big_fat_data_index) - strat.LOOK_BACK):
+    # pylint: disable=consider-using-enumerate
+    for i in range(len(big_fat_data_index)):
         strat.analyse(
-            big_fat_data_values[i: i + strat.LOOK_BACK],
-            timestamp=big_fat_data_index[i + strat.LOOK_BACK]
+            feature_index=i,
+            current_price=big_fat_data_prices[i],
+            timestamp=big_fat_data_index[i]
         )
         if EXIT:
             return
 
-    log.log(
-        "Backtesting done! Score: "
-        + str(round(float(
-            ledger.BALANCE["quote"] + ledger.BALANCE["crypto"]
-            * fu.getLastLines(
-                conf.RESAMPLED_TRADES_FILE,
-                1,
-                conf.RESAMPLED_TRADES_COLUMNS
-            ).iloc[0]["close"]
-        )))
-        + "% vs HODL: "
-        + str(round(
-            big_fat_data.at[big_fat_data.index[-1], "close"]
-            / big_fat_data.at[big_fat_data.index[0], "close"]
-            * 100
-        ))
-        + "%"
+    current_price = big_fat_data_prices[-1]
+    score = ledger.BALANCE["crypto"] * current_price + ledger.BALANCE["quote"]
+    hodl = current_price / big_fat_data_prices[0] * 100
+    log.info(
+        "Backtesting done! Score: " + str(round(float(score)))
+        + "% vs HODL: " + str(round(hodl)) + "%"
     )
     log.debug(
         "Backtesting took "
@@ -221,14 +233,24 @@ def backtest(args):
     )
 
     if args.graph:
+        # TODO: exit if graph is closed
         while _delay():
             pass
-        # TODO: exit if graph is closed
 
 
-def notImplemented(args):
-    """Dummy"""
+def train(args):
+    """Train the various (awesome) algorithms"""
 
-    print(repr(args))
-    print("Sorry, this is not implemented yet :/")
-    sys.exit(42)
+    # _initCmd(args.graph, simulate=True, with_api=False)
+
+    train_data, test_data = _getData()
+    trainer.prepareFeaturesAlphas(train_data)
+    trainer.prepareTargetAlphas(train_data)
+    trainer.trainAlphas()
+
+    if args.graph:
+        trainer.plotAlphas(train_data)
+        trainer.prepareFeaturesAlphas(test_data)
+        trainer.plotAlphas(test_data)
+        import matplotlib.pyplot as plt
+        plt.show()

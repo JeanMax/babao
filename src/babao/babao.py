@@ -37,7 +37,7 @@ def _init(args=None):
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
 
-    if not lock.tryLock(conf.GLOBAL_LOCK_FILE):
+    if not lock.tryLock(conf.GLOBAL_LOCK_FILE) and not args.fuckit:
         log.error("Lock file found (" + conf.GLOBAL_LOCK_FILE + "), abort.")
 
     return args

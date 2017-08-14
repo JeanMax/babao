@@ -17,6 +17,12 @@ def parseArgv(args):
         help="show a chart (matplotlib)",
         action="store_true"
     )
+    parser.add_argument(
+        "-f", "--fuck-it",
+        help="stop bitching about existing lockfile",
+        dest="fuckit",
+        action="store_true"
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -50,7 +56,7 @@ def parseArgv(args):
         help="real-time bot with real-money!",
         description="real-time bot with real-money!",  # TODO
     )
-    parser_w.set_defaults(func=cmd.notImplemented)
+    parser_w.set_defaults(func=cmd.wetRun)
 
     parser_t = subparsers.add_parser(
         "training",
@@ -58,8 +64,8 @@ def parseArgv(args):
         help="train bot on the given raw trade data file",
         description="train bot on the given raw trade data file",  # TODO
     )
-    parser_t.add_argument('FILE', help="raw trade data file")
-    parser_t.set_defaults(func=cmd.notImplemented)
+    # parser_t.add_argument('FILE', help="raw trade data file")
+    parser_t.set_defaults(func=cmd.train)
 
     parser_b = subparsers.add_parser(
         "backtest",
