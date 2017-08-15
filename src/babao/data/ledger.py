@@ -43,8 +43,8 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
     global BALANCE
     led_dic["crypto_bal"] = BALANCE["crypto"] + led_dic.get("crypto_vol", 0)
     led_dic["quote_bal"] = BALANCE["quote"] + led_dic.get("quote_vol", 0)
-    BALANCE["crypto"] = led_dic["crypto_bal"]
-    BALANCE["quote"] = led_dic["quote_bal"]
+    BALANCE["crypto"] = round(led_dic["crypto_bal"], 9)
+    BALANCE["quote"] = round(led_dic["quote_bal"], 9)
 
     led_df = pd.DataFrame(
         led_dic,
@@ -65,7 +65,8 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
     ´quote_vol´ quantity spent in quote (including fees)
     """
 
-    _logTransaction(
+    log.log("Bought for " + str(quote_vol) + " quote @ " + str(price))
+    return _logTransaction(
         {
             "type": "b",
             "price": price,
@@ -76,7 +77,6 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
         },
         timestamp=timestamp
     )
-    log.log("Bought for " + str(quote_vol) + " quote @ " + str(price))
 
 
 def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
@@ -86,7 +86,8 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
     ´crypto_vol´ quantity spent in crypto (including fees)
     """
 
-    _logTransaction(
+    log.log("Sold for " + str(crypto_vol) + " crypto @ " + str(price))
+    return _logTransaction(
         {
             "type": "s",
             "price": price,
@@ -97,13 +98,12 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
         },
         timestamp=timestamp
     )
-    log.log("Sold for " + str(crypto_vol) + " crypto @ " + str(price))
 
 
 def logCryptoDeposit(crypto_vol, crypto_fee=0, timestamp=None):
     """Log a crypto deposit transaction (wallet -> market)"""
 
-    _logTransaction(
+    return _logTransaction(
         {
             "type": "d",
             "crypto_vol": crypto_vol,
@@ -116,7 +116,7 @@ def logCryptoDeposit(crypto_vol, crypto_fee=0, timestamp=None):
 def logCryptoWithdraw(crypto_vol, crypto_fee=0, timestamp=None):
     """Log a crypto withdraw transaction (market -> wallet)"""
 
-    _logTransaction(
+    return _logTransaction(
         {
             "type": "w",
             "crypto_vol": -crypto_vol,
@@ -129,7 +129,7 @@ def logCryptoWithdraw(crypto_vol, crypto_fee=0, timestamp=None):
 def logQuoteDeposit(quote_vol, quote_fee=0, timestamp=None):
     """Log a quote deposit transaction (bank -> market)"""
 
-    _logTransaction(
+    return _logTransaction(
         {
             "type": "d",
             "quote_vol": quote_vol,
@@ -142,7 +142,7 @@ def logQuoteDeposit(quote_vol, quote_fee=0, timestamp=None):
 def logQuoteWithdraw(quote_vol, quote_fee=0, timestamp=None):
     """Log a quote withdraw transaction (market -> bank)"""
 
-    _logTransaction(
+    return _logTransaction(
         {
             "type": "w",
             "quote_vol": -quote_vol,

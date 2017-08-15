@@ -73,11 +73,11 @@ def _launchGraph():
     p.start()
 
 
-def _initCmd(graph=False, simulate=False, with_api=True):
+def _initCmd(graph=False, simulate=False):
     """
     Generic command init function
 
-    Init: lock file, signal handlers, api key, graph
+    Init: lock file, signal handlers, graph
     """
 
     lock.tryLock(conf.LOCAL_LOCK_FILE)
@@ -86,9 +86,6 @@ def _initCmd(graph=False, simulate=False, with_api=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     strat.initLastTransactionPrice()
-
-    if with_api:
-        api.initKey()
 
     ledger.initBalance()
     if simulate and not os.path.isfile(conf.RAW_LEDGER_FILE):
@@ -185,7 +182,7 @@ def backtest(args):
     big_fat_data_index = big_fat_data.index
     big_fat_data_values = big_fat_data.values
 
-    _initCmd(args.graph, simulate=True, with_api=False)
+    _initCmd(args.graph, simulate=True)
 
     start_time = time.time()
 

@@ -13,12 +13,6 @@ import babao.api.kraken as kraken
 LAST_DUMP = ""  # TODO: this is too much kraken specific
 
 
-def initKey():
-    """Call the (right) api init key"""
-
-    kraken.initKey()
-
-
 # TODO: move to /data module?
 def dumpData(since=None):
     """

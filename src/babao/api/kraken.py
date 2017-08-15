@@ -8,22 +8,31 @@ import pandas as pd
 
 import babao.config as conf
 import babao.utils.log as log
+import babao.data.ledger as ledger
 
-K = krakenex.API()
-C = krakenex.Connection()
+K = None
+C = None
 
 
-def initKey():
+def init():
     """Load the api key from config folder"""
 
+    global K
+    K = krakenex.API()
     K.load_key(conf.API_KEY_FILE)
+
+    global C
+    C = krakenex.Connection()
 
 
 def _doRequest(method, req=None):
     """General function for kraken api requests"""
 
     global C
-    if not req:
+    if C is None:
+        init()
+
+    if req is None:
         req = {}
 
     # we loop in case of request error (503...)
@@ -67,14 +76,100 @@ def getBalance():
     return res
 
 
+def getLedger(since):
+    """
+    Fetch last ledger entries from api since the given (stringified) timestamp
+
+    Transaction will be logged using functions from ledger module
+    Return a tuple (numberOfTransactionFetched, str(last_timestamp))
+    """
+
+    res = _doRequest("Ledgers", {"start": since})
+
+    if res["count"] == 0:
+        return 0
+
+    raw_ledger = pd.DataFrame(res["ledger"]).T
+    raw_ledger.index = (raw_ledger["time"] * 1e6).astype(int)
+    del raw_ledger["time"]
+    del raw_ledger["aclass"]
+    raw_ledger = raw_ledger.sort_index()
+
+    raw_ledger = raw_ledger.where(
+        (raw_ledger["asset"] == conf.ASSET_PAIR[:4])
+        | (raw_ledger["asset"] == conf.ASSET_PAIR[4:])
+    )
+
+    raw_ledger["amount"] = raw_ledger["amount"].astype(float)
+    raw_ledger["fee"] = raw_ledger["fee"].astype(float)
+    raw_ledger["balance"] = raw_ledger["balance"].astype(float)
+
+    for i in range(len(raw_ledger)):
+        ind = raw_ledger.index[i]
+
+        if raw_ledger.at[ind, "type"] == "deposit":
+            if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
+                ledger.logCryptoDeposit(
+                    raw_ledger.at[ind, "amount"],
+                    raw_ledger.at[ind, "fee"],
+                    ind
+                )
+            else:
+                ledger.logQuoteDeposit(
+                    raw_ledger.at[ind, "amount"],
+                    raw_ledger.at[ind, "fee"],
+                    ind
+                )
+
+        elif raw_ledger.at[ind, "type"] == "withdraw":  # TODO: check type str
+            # TODO: check if fees should be excluded
+            if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
+                ledger.logCryptoWithdraw(
+                    raw_ledger.at[ind, "amount"] * -1,  # TODO: check if < 0
+                    raw_ledger.at[ind, "fee"],
+                    ind
+                )
+            else:
+                ledger.logQuoteWithdraw(
+                    raw_ledger.at[ind, "amount"] * -1,  # TODO: check if < 0
+                    raw_ledger.at[ind, "fee"],
+                    ind
+                )
+
+        elif raw_ledger.at[ind, "type"] == "trade":
+            if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
+                next_ind = raw_ledger.index[i + 1]
+                crypto_vol = abs(raw_ledger.at[ind, "amount"])
+                crypto_fee = raw_ledger.at[ind, "fee"]
+                quote_vol = abs(raw_ledger.at[next_ind, "amount"])
+                quote_fee = raw_ledger.at[next_ind, "fee"]
+                price = quote_vol / crypto_vol
+                if raw_ledger.at[ind, "amount"] > 0:
+                    ledger.logBuy(
+                        quote_vol + quote_fee,
+                        price,
+                        crypto_fee,
+                        quote_fee,
+                        ind
+                    )
+                else:
+                    ledger.logSell(
+                        crypto_vol + crypto_fee,
+                        price,
+                        crypto_fee,
+                        quote_fee,
+                        ind
+                    )
+
+    return res["count"], str(raw_ledger.index[-1] / 1e6)
+
+
 def getRawTrades(since):
     """
     Fetch last trades from api since the given (stringified) timestamp
 
     Return a tuple (DataFrame(raw_data), str(last_timestamp))
-
-    index -> time,
-    columns=["price", "volume", "buy-sell", "market-limit", "vwap"]
+    raw_data is formated as specified by conf.RAW_TRADES_COLUMNS
     """
 
     res = _doRequest("Trades", {
