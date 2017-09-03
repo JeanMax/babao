@@ -120,7 +120,6 @@ def _getData():
 
 def wetRun(args):
     """Dummy"""
-
     print(repr(args))
     print("Sorry, this is not implemented yet :/")
 
@@ -149,7 +148,7 @@ def dryRun(args):
             )
         )
 
-        trainer.prepareFeaturesAlphas(fresh_data)
+        trainer.prepareAlphas(fresh_data)
         timestamp = fresh_data.index[-1]
         current_price = fresh_data.at[timestamp, "close"]
         strat.analyse(
@@ -203,7 +202,7 @@ def backtest(args):
     _initCmd(args.graph, simulate=True, with_api=False)
 
     big_fat_data = _getData()[1]
-    trainer.prepareFeaturesAlphas(big_fat_data)
+    trainer.prepareAlphas(big_fat_data)
     big_fat_data_index = big_fat_data.index.values
     big_fat_data_prices = big_fat_data["close"].values
     del big_fat_data
@@ -244,13 +243,12 @@ def train(args):
     # _initCmd(args.graph, simulate=True, with_api=False)
 
     train_data, test_data = _getData()
-    trainer.prepareFeaturesAlphas(train_data)
-    trainer.prepareTargetAlphas(train_data)
+    trainer.prepareAlphas(train_data, targets=True)
     trainer.trainAlphas()
 
     if args.graph:
         trainer.plotAlphas(train_data)
-        trainer.prepareFeaturesAlphas(test_data)
+        trainer.prepareAlphas(test_data, targets=False)
         trainer.plotAlphas(test_data)
         import matplotlib.pyplot as plt
         plt.show()

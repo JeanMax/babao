@@ -11,13 +11,16 @@ from sklearn import neighbors
 # from sklearn import svm
 # from sklearn import tree
 # from sklearn import neural_network
-from sklearn.externals import joblib
+
+# from sklearn.externals import joblib
+import joblib  # just use pickle instead?
 
 import babao.config as conf
+import babao.utils.log as log
 
 MODEL = None
 FEATURES = None
-TARGET = None
+TARGETS = None
 REQUIRED_COLUMNS = [
     "vwap", "volume",
     "SMA_vwap_3", "SMA_volume_3",
@@ -25,76 +28,11 @@ REQUIRED_COLUMNS = [
 ]
 
 
-# def _scoreExtrema(lookback, df):
-#     """TODO"""
-
-#     log.debug("lookback:", round(float(lookback), 2))
-
-#     score = scoreTarget(findExtrema(lookback, df).values, df["vwap"].values)
-
-#     if score == 42:
-#         log.debug("FAIL - lookback:", round(float(lookback), 2))
-#     else:
-#         log.debug(
-#             "score:", int(score),
-#             "lookback:", round(float(lookback), 2)
-#         )
-
-#     return score  # TODO: compare to hold
-
-
-# def _findBestExtremaLookback(df):
-#     """TODO"""
-
-#     # we just want the final balance
-#     ledger.setLog(False)
-
-#     res = optimize.brute(
-#         _scoreExtrema,
-#         (slice(100, 300, 5), ),
-#         args=(df.reset_index(), ),
-#         finish=None,
-#         full_output=True
-#     )
-
-#     log.debug(repr(res))
-
-#     return int(res[0])
-
-
-def _findExtrema(lookback, prices):
-    """Return a serie with values -1 (minimum), 0 (nop), or 1 (maximum)"""
-
-    lookback = int(lookback)
-    rev_prices = prices[::-1]
-
-    return (
-        (  # min forward & backward
-            (prices.rolling(lookback).min() == prices)
-            & ((rev_prices.rolling(lookback).min() == rev_prices)[::-1])
-        ).astype(int).replace(1, -1)  # minima set to -1
-    ) | (  # max forward & backward
-        (prices.rolling(lookback).max() == prices)
-        & ((rev_prices.rolling(lookback).max() == rev_prices)[::-1])
-    ).astype(int).values  # maxima set to +1
-
-
-def prepareTarget(full_data, lookback=1000):
-    """
-    Prepare targets for training (copy)
-
-    ´full_data´: cf. ´prepareFeaturesAlphas´
-    """
-
-    global TARGET
-    TARGET = _findExtrema(lookback, full_data["vwap"])
-
-
-def prepareFeatures(full_data):
+def _prepareFeatures(full_data):
     """
     Prepare features for training (copy)
 
-    ´full_data´: cf. ´prepareFeaturesAlphas´
+    ´full_data´: cf. ´prepareAlphas´
     """
 
     global FEATURES
@@ -104,47 +42,56 @@ def prepareFeatures(full_data):
         if col not in REQUIRED_COLUMNS:
             del FEATURES[col]
 
-    FEATURES = preprocessing.normalize(FEATURES.values)
+    FEATURES = preprocessing.normalize(FEATURES.values)  # TODO
+
+
+def _prepareTargets(full_data, lookback=1000):
+    """
+    Prepare targets for training (copy)
+
+    ´full_data´: cf. ´prepareAlphas´
+    """
+
+    def _findExtrema(lookback, prices):
+        """Return a serie with values -1 (minimum), 0 (nop), or 1 (maximum)"""
+
+        lookback = int(lookback)
+        rev_prices = prices[::-1]
+
+        return (
+            (  # min forward & backward
+                (prices.rolling(lookback).min() == prices)
+                & ((rev_prices.rolling(lookback).min() == rev_prices)[::-1])
+            ).astype(int).replace(1, -1)  # minima set to -1
+        ) | (  # max forward & backward
+            (prices.rolling(lookback).max() == prices)
+            & ((rev_prices.rolling(lookback).max() == rev_prices)[::-1])
+        ).astype(int).values  # maxima set to +1
+
+    global TARGETS
+    TARGETS = _findExtrema(lookback, full_data["vwap"])
+
+
+def prepare(full_data, targets=False):
+    """
+    Prepare features and targets for training (copy)
+
+    ´full_data´: cf. ´prepareAlphas´
+    """
+
+    _prepareFeatures(full_data)
+    if targets:
+        _prepareTargets(full_data)
 
 
 def train(k=3):
     """Fit the ´MODEL´"""
 
+    log.debug("Train extrema")
+
     global MODEL
     MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
-    # MODEL = svm.SVC(
-    #     random_state=1,
-    #     probability=True,
-    #     verbose=True
-    # )
-    # MODEL = tree.DecisionTreeClassifier()
-    # MODEL = neural_network.MLPClassifier(
-    #     random_state=1,
-    #     # activation="logistic",
-    #     verbose=True,
-    #     # hidden_layer_sizes=(10,10,10),
-    #     # shuffle=False,
-    #     # tol=1e-9,
-    #     # alpha=1e-6,
-    #     # early_stopping=True
-    # )
-
-    MODEL.fit(FEATURES, TARGET)
-
-    # print(repr(test_proba.where(test_proba["buy"] > 0.1).dropna()))
-    # print(repr(test_proba.where(test_proba["sell"] > 0.1).dropna()))
-    # print(
-    #     "total:",
-    #     len(test_proba.where(test_proba["buy"] > 0.1).dropna())
-    #     + len(test_proba.where(test_proba["sell"] > 0.1).dropna())
-    # )
-
-    # from sklearn import metrics
-    # # print(metrics.classification_report(y.values, test_target))
-    # # print(metrics.confusion_matrix(y.values, test_target))
-    # import matplotlib.pyplot as plt; plt.show(block=False)
-
-    # return MODEL.score(prepared_data, prediction)
+    MODEL.fit(FEATURES, TARGETS)
 
 
 def save():
@@ -160,63 +107,30 @@ def load():
     MODEL = joblib.load(conf.ALPHA_EXTREMA_FILE)
 
 
+def _mergeCategories(arr):
+    """TODO: we could use a generic function for all alphas"""
+
+    df = pd.DataFrame(arr, columns=["buy", "hold", "sell"])
+    return (df["sell"] - df["buy"]).values
+
+
 def predict(X=None):
-    """Call predict on the current ´MODEL´"""
+    """
+    Call predict on the current ´MODEL´
+
+    Format the result as values between -1 (buy) and 1 (sell))
+    """
 
     if X is None:
-        return MODEL.predict(FEATURES)
-    return MODEL.predict(X)
+        X = FEATURES
+
+    return _mergeCategories(MODEL.predict_proba(X))
 
 
-def predict_proba(X=None):
-    """Call predict_proba on the current ´MODEL´"""
+def getMergedTargets():
+    """Return ´TARGETS´ in the same format than predict()"""
 
-    if X is None:
-        return MODEL.predict_proba(FEATURES)
-    return MODEL.predict_proba(X)
+    if TARGETS is None or len(TARGETS) != len(FEATURES):
+        return None
 
-
-def plot(full_data):
-    """
-    Plot the result of predict
-
-    ´full_data´: cf. ´prepareFeaturesAlphas´
-    """
-
-    full_data = full_data.copy()
-    prediction = pd.Series(predict())
-    prediction.index = full_data.index
-    scale = full_data["vwap"].max()
-    full_data["sell"] = prediction.where(prediction == 1) * scale
-    full_data["buy"] = prediction.where(prediction == -1) * -scale
-    for col in full_data.columns:
-        if col not in ["vwap", "sell", "buy"]:
-            del full_data[col]
-    full_data = full_data.fillna(0)
-    full_data.index = pd.to_datetime(full_data.index, unit="us")
-    full_data.plot()
-    import matplotlib.pyplot as plt
-    plt.show(block=False)
-
-
-def plot_proba(full_data):
-    """
-    Plot the result of predict_proba
-
-    ´full_data´: cf. ´prepareFeaturesAlphas´
-    """
-
-    full_data = full_data.copy()
-    prediction = pd.DataFrame(predict_proba(), columns=["sell", "hold", "buy"])
-    prediction.index = full_data.index
-    scale = full_data["vwap"].max() * 3
-    full_data["sell"] = prediction["sell"] * scale
-    full_data["buy"] = prediction["buy"] * scale
-    for col in full_data.columns:
-        if col not in ["vwap", "sell", "buy"]:
-            del full_data[col]
-    full_data = full_data.fillna(0)
-    full_data.index = pd.to_datetime(full_data.index, unit="us")
-    full_data.plot()
-    import matplotlib.pyplot as plt
-    plt.show(block=False)
+    return TARGETS  # this is already merged

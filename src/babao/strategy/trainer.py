@@ -5,12 +5,18 @@ The idea here is to give a common interface to all the alphas
 so you can use these wrappers to call all of them at once.
 """
 
+import pandas as pd
 import numpy as np
 
+import babao.utils.log as log
 import babao.strategy.alphas.extrema as alpha_extrema
+import babao.strategy.alphas.tendency as alpha_tendency
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
-ALPHAS_LIST = [alpha_extrema]  # TODO: config var eventually
+ALPHAS_LIST = [
+    alpha_tendency,
+    alpha_extrema
+]  # TODO: config var eventually
 
 
 def plotAlphas(full_data):
@@ -20,37 +26,59 @@ def plotAlphas(full_data):
     ´full_data´ is the whole data(frame) used as feature before preparing it
     """
 
+    def _plot(alpha):
+        """TODO"""
+
+        plot_data = full_data.copy()
+        scale = plot_data["vwap"].max() * 2
+
+        targets = alpha.getMergedTargets()
+        if targets is not None:
+            plot_data["y"] = targets * scale * 0.8
+            plot_data["y-sell"] = plot_data["y"].where(plot_data["y"] > 0)
+            plot_data["y-buy"] = plot_data["y"].where(plot_data["y"] < 0) * -1
+
+            plot_data["y-sell"].replace(0, scale, inplace=True)
+            plot_data["y-buy"].replace(0, scale, inplace=True)
+
+        plot_data["p"] = alpha.predict() * scale
+        plot_data["p-sell"] = plot_data["p"].where(plot_data["p"] > 0)
+        plot_data["p-buy"] = plot_data["p"].where(plot_data["p"] < 0) * -1
+
+        for col in plot_data.columns:
+            if col not in ["vwap", "p-buy", "p-sell", "y-buy", "y-sell"]:
+                del plot_data[col]
+        plot_data.index = pd.to_datetime(plot_data.index, unit="us")
+        plot_data.fillna(0, inplace=True)
+
+        plot_data.plot()
+        plt.show(block=False)
+
+    import matplotlib.pyplot as plt
     for alpha in ALPHAS_LIST:
-        alpha.plot(full_data)
+        _plot(alpha)
 
 
-def prepareFeaturesAlphas(full_data):
+def prepareAlphas(full_data, targets=False):
     """
-    Prepare features for all alphas
+    Prepare features (and eventually targets) for all alphas
 
     ´full_data´ should be a dataframe of resampled values
     (conf.RESAMPLED_TRADES_COLUMNS + conf.INDICATORS_COLUMNS)
     """
 
     for alpha in ALPHAS_LIST:
-        alpha.prepareFeatures(full_data)
-
-
-def prepareTargetAlphas(full_data):
-    """
-    Prepare targets for all supervised alphas
-
-    ´full_data´: cf. ´prepareFeaturesAlphas´
-    """
-
-    for alpha in ALPHAS_LIST:
-        alpha.prepareTarget(full_data)
+        alpha.prepare(full_data, targets)
 
 
 def trainAlphas():
     """Train all alphas and save the awesome result"""
 
     for alpha in ALPHAS_LIST:
+        try:
+            alpha.load()
+        except OSError:
+            log.warning("Couldn't load", alpha.__name__)
         alpha.train()
         alpha.save()
 
@@ -80,9 +108,6 @@ def predictAlphas(feature_index):
 
     res = np.array([])
     for alpha in ALPHAS_LIST:
-        # prediction_proba = alpha.prediction_proba()
-        # init first for proba
-        # np.append(res, alpha.FEATURES[feature_index].reshape(1, -1), axis=0)
         res = np.append(
             res,
             alpha.predict(  # TODO: looping that is slow as fuck :/

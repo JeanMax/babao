@@ -13,6 +13,7 @@ import babao.strategy.trainer as trainer
 LAST_TRANSACTION_PRICE = None
 LAST_TRANSACTION_TIME = None
 MIN_BAL = 50  # maximum drawdown
+MIN_PROBA = 0.3
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 
@@ -51,8 +52,7 @@ def _buyOrSell(target, current_price, timestamp):
         return  # TODO
 
     if ledger.BALANCE["crypto"] > 0.001:
-        # if target[0] > proba:
-        if target == 1 \
+        if target > MIN_PROBA \
            or timestamp - LAST_TRANSACTION_TIME > 604800000000:  # TODO
             log.info(
                 "Sold for "
@@ -69,8 +69,7 @@ def _buyOrSell(target, current_price, timestamp):
             LAST_TRANSACTION_PRICE = current_price
             LAST_TRANSACTION_TIME = timestamp
     else:
-        # if target[2] > proba:
-        if target == -1:
+        if target < -MIN_PROBA:
             log.info(
                 "Bought for "
                 + str(ledger.BALANCE["quote"])

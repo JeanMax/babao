@@ -17,6 +17,7 @@ Why does this file exist, and why not put this in __main__?
 
 # from IPython import embed; embed()
 # from ipdb import set_trace; set_trace()
+# import babao; args = babao.babao._init(["-vvgf", "t"])
 
 import babao.utils.log as log
 import babao.utils.lock as lock
