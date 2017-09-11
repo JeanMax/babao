@@ -88,13 +88,10 @@ def getRawTrades(since):
         columns=["price", "volume", "time", "buy-sell", "market-limit", "misc"],
         dtype=float  # TODO: dtypes: object(2) (replace bsml letters with 0/1?)
     )
-    raw_data.index = (raw_data["time"] * 1e6).astype(int)
+    raw_data.index = (raw_data["time"] * 1e9).astype(int)
     del raw_data["misc"]
-    # del raw_data ["market-limit"]  # TODO: this could be useful
-    # del raw_data["buy-sell"]  # TODO: this could be useful
+    del raw_data["market-limit"]  # TODO: this could be useful
+    del raw_data["buy-sell"]  # TODO: this could be useful
     del raw_data["time"]
-
-    # we'll need this later for resampling
-    raw_data["vwap"] = raw_data["price"] * raw_data["volume"]
 
     return raw_data, res["last"]

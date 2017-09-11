@@ -11,7 +11,6 @@ def test_resampleDate():
     time_interval = str(conf.TIME_INTERVAL) + "Min"
     resampled_data = resample._doResample(raw_data, time_interval)
     resampled_data = resample._fillMissing(resampled_data)
-    resample._getUnsampled(raw_data, resampled_data)
 
     assert not resampled_data["open"].empty
     assert not resampled_data["high"].empty

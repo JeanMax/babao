@@ -8,16 +8,34 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
-import babao.utils.fileutils as fu
+import babao.utils.date as du
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.utils.lock as lock
 import babao.config as conf
+import babao.data.resample as resamp
 import babao.data.indicators as indic
 
 DATA = None
+INDICATORS_COLUMNS = [
+    "SMA_vwap_9", "SMA_vwap_26",
+    "SMA_volume_9", "SMA_volume_26",
+]
+MAX_LOOK_BACK = 26
 
 
-def _resampleLedgerAndJoinTo(resampled_data):
+def _addIndicators(resampled_data):
+    """TODO"""
+
+    for indic_col in INDICATORS_COLUMNS:
+        a = indic_col.split("_")
+        fun, args = a[0], (resampled_data[a[1]], *tuple(a[2:]))
+        resampled_data[indic_col] = getattr(indic, fun)(*args)
+
+    return resampled_data
+
+
+def _resampleLedgerAndJoinTo(resampled_data, since):
     """
     Resample ´conf.RAW_LEDGER_FILE´ and join it to ´resampled_data´
 
@@ -26,28 +44,33 @@ def _resampleLedgerAndJoinTo(resampled_data):
     """
 
     try:
-        raw_ledger = fu.readFile(
-            conf.RAW_LEDGER_FILE,
-            conf.RAW_LEDGER_COLUMNS
+        raw_ledger = fu.read(
+            conf.DB_FILE,
+            conf.LEDGER_FRAME,
+            where="index > " + since
         )
-        raw_ledger.index = pd.to_datetime(raw_ledger.index, unit="us")
+        du.to_datetime(raw_ledger)
         for col in raw_ledger.columns:
             if col not in conf.RESAMPLED_LEDGER_COLUMNS:
                 del raw_ledger[col]
+        first = resampled_data.index[0]
+        last = resampled_data.index[-1]
         resampled_ledger = raw_ledger.resample(
-            str(conf.TIME_INTERVAL) + "Min"
+            # TODO: these are pasted from resample.py...
+            str(conf.TIME_INTERVAL) + "Min",
+            closed="right",
+            label="right",
+            base=(last.minute + (last.second + 1) / 60) % 60
         ).last()
 
-        resampled_data_first = resampled_data.index[0]
-        resampled_data_last = resampled_data.index[-1]
         resampled_data = resampled_data.join(
             resampled_ledger,
             how="outer"
-        ).ffill().fillna(0).loc[resampled_data_first:resampled_data_last]
+        ).ffill().fillna(0).loc[first:last]
 
         resampled_data["bal"] = resampled_data["quote_bal"] \
             + resampled_data["crypto_bal"] * resampled_data["vwap"]
-    except FileNotFoundError:
+    except (FileNotFoundError, KeyError):
         resampled_data["crypto_bal"] = 0
         resampled_data["quote_bal"] = 0
         resampled_data["bal"] = 0
@@ -55,46 +78,7 @@ def _resampleLedgerAndJoinTo(resampled_data):
     return resampled_data
 
 
-def _updateData():
-    """
-    Update ´DATA´ global
-
-    Basically merge previous data with new data in files
-    """
-
-    global DATA
-
-    if not os.path.isfile(conf.RESAMPLED_TRADES_FILE) \
-       or not os.path.isfile(conf.INDICATORS_FILE):
-        log.warning("Data files not found... Is it your first time around?")
-        return False
-
-    if lock.isLocked(conf.LOCAL_LOCK_FILE):
-        # log.warning("graph._updateData(): won't update, lock file found")
-        return False
-
-    last_time = int(DATA.index.view("int64")[-1] // 1000)
-    fresh_data = fu.getLinesAfter(
-        conf.RESAMPLED_TRADES_FILE,
-        last_time,
-        conf.RESAMPLED_TRADES_COLUMNS
-    )
-    fresh_data = fresh_data.join(
-        fu.getLinesAfter(
-            conf.INDICATORS_FILE,
-            last_time,
-            conf.INDICATORS_COLUMNS
-        )
-    )
-    fresh_data.index = pd.to_datetime(fresh_data.index, unit="us")
-    fresh_data = _resampleLedgerAndJoinTo(fresh_data)
-
-    DATA = DATA.iloc[:-1].append(fresh_data).iloc[-conf.MAX_GRAPH_POINTS:]
-
-    return True
-
-
-def _initData():
+def _getData(block=False):
     """
     Initialize ´DATA´ global
 
@@ -105,39 +89,40 @@ def _initData():
 
     # init lock file
     while lock.isLocked(conf.LOCAL_LOCK_FILE):
-        time.sleep(0.1)
+        if block:
+            time.sleep(0.1)
+        else:
+            # log.warning("graph._getData(): won't update, lock file found")
+            return False
 
-    if not os.path.isfile(conf.RESAMPLED_TRADES_FILE) \
-       or not os.path.isfile(conf.INDICATORS_FILE):
+    if not os.path.isfile(conf.DB_FILE):
         log.warning("Data files not found... Is it your first time around?")
         DATA = pd.DataFrame(
             columns=conf.RESAMPLED_TRADES_COLUMNS
-            + conf.INDICATORS_COLUMNS
+            + INDICATORS_COLUMNS
             + conf.RESAMPLED_LEDGER_COLUMNS
             + ["bal"]  # hmmm... we'll calculate this on the fly:
         )
-        return
+        # TODO: catch missing frame errors
+        return False
 
-    DATA = fu.getLastLines(
-        conf.RESAMPLED_TRADES_FILE,
-        conf.MAX_GRAPH_POINTS,
-        conf.RESAMPLED_TRADES_COLUMNS
+    since = str(
+        fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
+        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
     )
-    DATA = DATA.join(
-        fu.getLastLines(
-            conf.INDICATORS_FILE,
-            conf.MAX_GRAPH_POINTS,
-            conf.INDICATORS_COLUMNS
-        )
-    )
-    DATA.index = pd.to_datetime(DATA.index, unit="us")
-    DATA = _resampleLedgerAndJoinTo(DATA)
+    DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
+    DATA = resamp.resampleTradeData(DATA)
+    DATA = _addIndicators(DATA).dropna()
+    du.to_datetime(DATA)
+    DATA = _resampleLedgerAndJoinTo(DATA, since)
+
+    return True
 
 
 def _updateGraph(unused_counter, lines):
     """Function called (back) by FuncAnimation, will update graph"""
 
-    if not _updateData():
+    if not _getData(block=False):
         return lines.values()
 
     for key in lines:
@@ -148,7 +133,7 @@ def _updateGraph(unused_counter, lines):
 def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
 
-    _initData()
+    _getData(block=True)
 
     fig = plt.figure()
     axes = {}
@@ -176,15 +161,15 @@ def _initGraph():
                 alpha=0.5
             )
         else:
-            for i in range(len(indic.SMA_LOOK_BACK)):
-                col = "SMA_" + key + "_" + str(i + 1)
-                lines[col], = axes[key].plot(
-                    DATA.index,
-                    DATA[col],
-                    label="SMA " + str(indic.SMA_LOOK_BACK[i]),
-                    color="r",
-                    alpha=0.7 - 0.2 * i
-                )
+            for i, col in enumerate(INDICATORS_COLUMNS):
+                if key in col:
+                    lines[col], = axes[key].plot(
+                        DATA.index,
+                        DATA[col],
+                        label=col.replace("_", " "),
+                        color="r",
+                        alpha=0.7 - 0.2 * (i % 2)
+                    )
 
     # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841

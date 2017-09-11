@@ -48,6 +48,7 @@ setup(
     ],
     keywords='bitcoin bot',
     install_requires=[
+        'tables',
         'pandas',
         'configparser',
         'argparse',
