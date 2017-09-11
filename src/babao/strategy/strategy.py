@@ -22,14 +22,10 @@ def initLastTransactionPrice():
     global LAST_TRANSACTION_TIME
 
     try:
-        ledger_data = fu.getLastLines(
-            conf.RAW_LEDGER_FILE,
-            1,
-            conf.RAW_LEDGER_COLUMNS
-        )
+        ledger_data = fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1)
         LAST_TRANSACTION_TIME = ledger_data.index[0]
         LAST_TRANSACTION_PRICE = ledger_data.at[ledger_data.index[0], "price"]
-    except FileNotFoundError:
+    except (FileNotFoundError, IndexError):
         LAST_TRANSACTION_PRICE = 0
         LAST_TRANSACTION_TIME = 0
 
@@ -84,7 +80,7 @@ def analyse(sample_data, timestamp):
             LAST_TRANSACTION_PRICE = current_price
             LAST_TRANSACTION_TIME = timestamp
     else:
-        if timestamp - LAST_TRANSACTION_TIME > 604800000000:
+        if timestamp - LAST_TRANSACTION_TIME > 6048 * 10**11:
             log.warning("Transaction failed (1 week) :/")
             LAST_TRANSACTION_PRICE = 0
             LAST_TRANSACTION_TIME = 0

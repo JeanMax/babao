@@ -1,88 +1,43 @@
-"""Some utils functions for csv handling"""
+"""Some utils functions for hdf handling"""
 
-import os
-import io
-import mmap
 import pandas as pd
 
 
-def readFile(filename, names=None, dtype=None, chunksize=None):
-    """Return the content of the given csv file as a DataFrame"""
+def read(filename, frame, where=None):
+    """Read a frame from the hdf database"""
 
-    return pd.read_csv(
+    return pd.read_hdf(filename, frame, where=where)
+
+
+def write(filename, frame, df):
+    """Write a frame from the hdf database"""
+
+    df.to_hdf(
         filename,
-        names=names,
-        dtype=dtype,
-        chunksize=chunksize,
-        engine='c',
-        memory_map=True,
-        header=None,
-        index_col=0
+        frame,
+        mode="a",
+        format='table',
+        append=True,
+        # data_column=True,
+        # complib='blosc',
+        # TODO: compression isn't really required, but it's not much slower
     )
+    # TODO: (once)
+    # store = pd.HDFStore(conf.DB_FILE)
+    # store.create_table_index(conf.TRADES_FRAME, optlevel=9, kind='full')
+    # store.close()
 
 
-def writeFile(filename, df, mode="w"):
-    """Write the given DataFrame ´df´ as csv file named ´filename´"""
+def getLastRows(filename, frame, nrows):
+    """Return ´nrows´ rows from ´filename´ as a DataFrame"""
 
-    df.to_csv(filename, header=False, mode=mode)
+    with pd.HDFStore(filename) as store:
+        try:
+            frame_len = store.get_storer(frame).nrows
+        except AttributeError:
+            return pd.DataFrame()
 
-
-def getLastLines(filename, numberoflines, names=None):
-    """Return ´numberoflines´ lines from ´filename´ as a DataFrame"""
-
-    with open(filename, 'r') as f, mmap.mmap(
-        f.fileno(), 0, access=mmap.ACCESS_READ
-    ) as mm:
-        end = len(mm) - 1
-        start = end
-        for unused_counter in range(numberoflines):
-            start = mm.rfind(b'\n', 0, start)
-            if start == -1:  # we reached the begin of file
-                break
-
-        return readFile(io.BytesIO(mm[start + 1:end]), names)
-
-
-def removeLastLine(filename, timestamp):  # TODO: rename or something
-    """
-    Remove last entry in ´filename´ if it match ´timestamp(int)´
-
-    Return True if an entry was actually removed
-    """
-
-    if os.path.isfile(filename):
-        with open(filename, 'r+b') as f, mmap.mmap(
-            f.fileno(), 0, access=mmap.ACCESS_WRITE
-        ) as mm:
-            end = len(mm) - 1
-            last_line_pos = mm.rfind(b'\n', 0, end) + 1
-            next_comma = mm.find(b',', last_line_pos, end)
-            if timestamp == int(mm[last_line_pos:next_comma]):
-                if last_line_pos > 0:
-                    mm.resize(last_line_pos)
-                else:
-                    f.truncate()
-                return True
-    return False
-
-
-def getLinesAfter(filename, timestamp, names=None):
-    """
-    Return all entries in ´filename´ after ´timestamp(int)´ included
-
-    Return None if the timestamp wasn't found
-    """
-
-    with open(filename, 'r') as f, mmap.mmap(
-        f.fileno(), 0, access=mmap.ACCESS_READ
-    ) as mm:
-        end = len(mm) - 1
-        start = end
-        while True:
-            start = mm.rfind(b'\n', 0, start)
-            next_comma = mm.find(b',', start + 1, end)
-            t = int(mm[start + 1:next_comma])
-            if timestamp == t:
-                return readFile(io.BytesIO(mm[start + 1:]), names)
-            if timestamp > t or start == -1:
-                return None
+        return store.select(
+            frame,
+            start=frame_len - nrows
+        )

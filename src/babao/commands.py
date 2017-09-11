@@ -91,7 +91,7 @@ def _initCmd(graph=False, simulate=False, with_api=True):
         api.initKey()
 
     ledger.initBalance()
-    if simulate and not os.path.isfile(conf.RAW_LEDGER_FILE):
+    if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
         ledger.logQuoteDeposit(100)
 
     if graph:
@@ -104,28 +104,21 @@ def dryRun(args):
     _initCmd(args.graph, simulate=True)
 
     while True:
-        indic.updateIndicators(
-            resamp.resampleTradeData(
-                api.dumpData()  # TODO: this could use a renaming
-            )
-        )
+        api.dumpData()  # TODO: this could use a renaming
 
-        fresh_data = fu.getLastLines(
-            conf.RESAMPLED_TRADES_FILE,
-            strat.LOOK_BACK,
-            conf.RESAMPLED_TRADES_COLUMNS
-        ).join(
-            fu.getLastLines(
-                conf.INDICATORS_FILE,
-                strat.LOOK_BACK,
-                conf.INDICATORS_COLUMNS
+        # TODO:  do not hardcode the lookback
+        t = str(int(time.time() * 1e9) - (7 * 24 * 60 * 60 * 10**9))
+        fresh_data = fu.read(
+            conf.DB_FILE,
+            conf.TRADES_FRAME,
+            where="index > " + t
+        )
+        if not fresh_data.empty:
+            fresh_data = resamp.resampleTradeData(fresh_data)
+            strat.analyse(
+                fresh_data.values,
+                timestamp=fresh_data.index[-1]
             )
-        )
-
-        strat.analyse(
-            fresh_data.values,
-            timestamp=fresh_data.index[-1]
-        )
 
         if not _delay():
             return
@@ -136,18 +129,11 @@ def fetch(args):
 
     _initCmd(args.graph)
 
-    for f in [conf.LAST_DUMP_FILE,
-              conf.RAW_TRADES_FILE,
-              conf.UNSAMPLED_TRADES_FILE,
-              conf.RESAMPLED_TRADES_FILE,
-              conf.INDICATORS_FILE]:
+    for f in [conf.DB_FILE]:
         if os.path.isfile(f):
             os.remove(f)  # TODO: warn user / create backup?
 
     raw_data = api.dumpData("0")
-    indic.updateIndicators(
-        resamp.resampleTradeData(raw_data)
-    )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         log.debug(
             "Fetched data from " + str(raw_data.index[0])
@@ -157,9 +143,6 @@ def fetch(args):
             return
 
         raw_data = api.dumpData()
-        indic.updateIndicators(
-            resamp.resampleTradeData(raw_data)
-        )
 
 
 def backtest(args):
@@ -167,17 +150,12 @@ def backtest(args):
 
     # with float < 64, smaller size but longer to process
     # (might be a cast issue somewhere else)
-    big_fat_data = fu.readFile(
-        conf.RESAMPLED_TRADES_FILE,
-        conf.RESAMPLED_TRADES_COLUMNS,
-        # dtype=dict([(x, "float32") for x in conf.RESAMPLED_TRADES_COLUMNS])
-    ).join(
-        fu.readFile(
-            conf.INDICATORS_FILE,
-            conf.INDICATORS_COLUMNS,
-            # dtype=dict([(x, "float32") for x in conf.INDICATORS_COLUMNS])
-        )
+    big_fat_data = resamp.resampleTradeData(
+        fu.read(conf.DB_FILE, conf.TRADES_FRAME)
     )
+
+    big_fat_data["SMA_vwap_1"] = indic.SMA(big_fat_data["vwap"], 9)
+    big_fat_data["SMA_vwap_2"] = indic.SMA(big_fat_data["vwap"], 26)
 
     for col in big_fat_data.columns:
         if col not in strat.REQUIRED_COLUMNS:
@@ -201,11 +179,7 @@ def backtest(args):
         "Backtesting done! Score: "
         + str(round(float(
             ledger.BALANCE["quote"] + ledger.BALANCE["crypto"]
-            * fu.getLastLines(
-                conf.RESAMPLED_TRADES_FILE,
-                1,
-                conf.RESAMPLED_TRADES_COLUMNS
-            ).iloc[0]["close"]
+            * big_fat_data.at[big_fat_data.index[-1], "close"]
         )))
         + "% vs HODL: "
         + str(round(
