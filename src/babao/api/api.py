@@ -8,7 +8,7 @@ import os
 import pandas as pd
 
 import babao.config as conf
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 import babao.api.kraken as kraken
 
 LAST_DUMP = ""  # TODO: this is too much kraken specific

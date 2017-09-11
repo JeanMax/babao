@@ -6,7 +6,7 @@ import os
 import signal
 
 import babao.utils.log as log
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 import babao.utils.lock as lock
 import babao.config as conf
 import babao.api.api as api

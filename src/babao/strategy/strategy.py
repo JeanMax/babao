@@ -5,7 +5,7 @@ This whole shit is temporary, don't worry
 """
 
 import babao.config as conf
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.data.ledger as ledger
 

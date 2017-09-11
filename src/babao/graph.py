@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
-import babao.utils.fileutils as fu
+import babao.utils.date as du
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.utils.lock as lock
 import babao.config as conf
@@ -48,7 +49,7 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
             conf.LEDGER_FRAME,
             where="index > " + since
         )
-        raw_ledger.index = pd.to_datetime(raw_ledger.index, unit="ns")
+        du.to_datetime(raw_ledger)
         for col in raw_ledger.columns:
             if col not in conf.RESAMPLED_LEDGER_COLUMNS:
                 del raw_ledger[col]
@@ -112,7 +113,7 @@ def _getData(block=False):
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
     DATA = resamp.resampleTradeData(DATA)
     DATA = _addIndicators(DATA).dropna()
-    DATA.index = pd.to_datetime(DATA.index, unit="ns")
+    du.to_datetime(DATA)
     DATA = _resampleLedgerAndJoinTo(DATA, since)
 
     return True

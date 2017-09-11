@@ -1,8 +1,7 @@
 """Here we take the raw trade data and resample it
 based on the time interval given in the config file"""
 
-import pandas as pd
-
+import babao.utils.date as du
 import babao.config as conf
 
 
@@ -15,7 +14,8 @@ def _doResample(raw_data, time_interval):
     """
 
     # datetime needed for .resample()
-    raw_data.index = pd.to_datetime(raw_data.index, unit="ns")
+
+    du.to_datetime(raw_data)
 
     base = raw_data.index[-1]
     base = (base.minute + (base.second + 1) / 60) % 60
@@ -41,8 +41,7 @@ def _doResample(raw_data, time_interval):
     resampled_data["volume"] = v
     resampled_data["count"] = p.count()
 
-    # back to unix timestamp
-    resampled_data.index = resampled_data.index.view("int64")
+    du.to_timestamp(resampled_data)
 
     return resampled_data
 

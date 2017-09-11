@@ -5,7 +5,7 @@ import pandas as pd
 
 import babao.config as conf
 import babao.utils.log as log
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 # import babao.api as api
 
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
