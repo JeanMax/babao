@@ -5,10 +5,10 @@ The idea here is to give a common interface to all the alphas
 so you can use these wrappers to call all of them at once.
 """
 
-import pandas as pd
 import numpy as np
 
 import babao.utils.log as log
+import babao.utils.date as du
 import babao.strategy.alphas.extrema as alpha_extrema
 import babao.strategy.alphas.tendency as alpha_tendency
 
@@ -48,7 +48,7 @@ def plotAlphas(full_data):
         for col in plot_data.columns:
             if col not in ["vwap", "p-buy", "p-sell", "y-buy", "y-sell"]:
                 del plot_data[col]
-        plot_data.index = pd.to_datetime(plot_data.index, unit="us")
+        du.to_datetime(plot_data)
         plot_data.fillna(0, inplace=True)
 
         plot_data.plot()

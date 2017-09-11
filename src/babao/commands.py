@@ -5,12 +5,12 @@ import os
 import signal
 
 import babao.utils.log as log
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 import babao.utils.lock as lock
 import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
-import babao.data.indicators as indic
+# import babao.data.indicators as indic
 import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
 import babao.strategy.trainer as trainer
@@ -92,7 +92,7 @@ def _initCmd(graph=False, simulate=False, with_api=True):
         api.initKey()
 
     ledger.initBalance()
-    if simulate and not os.path.isfile(conf.RAW_LEDGER_FILE):
+    if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
         ledger.logQuoteDeposit(100)
 
     if graph:
@@ -102,15 +102,13 @@ def _initCmd(graph=False, simulate=False, with_api=True):
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    full_data = fu.readFile(
-        conf.RESAMPLED_TRADES_FILE,
-        conf.RESAMPLED_TRADES_COLUMNS,
-    ).join(
-        fu.readFile(
-            conf.INDICATORS_FILE,
-            conf.INDICATORS_COLUMNS,
-        )
+    # with float < 64, smaller size but longer to process
+    # (might be a cast issue somewhere else)
+    full_data = resamp.resampleTradeData(
+        fu.read(conf.DB_FILE, conf.TRADES_FRAME)
     )
+    # TODO: add indicators
+
     # TODO: we remove the head because there is not enough volume at first
     full_data = full_data.tail(int(len(full_data) * 0.6))
     split_index = int(len(full_data) * 0.7)
@@ -130,32 +128,26 @@ def dryRun(args):
     _initCmd(args.graph, simulate=True)
 
     while True:
-        indic.updateIndicators(
-            resamp.resampleTradeData(
-                api.dumpData()  # TODO: this could use a renaming
-            )
-        )
+        api.dumpData()  # TODO: this could use a renaming
 
-        fresh_data = fu.getLastLines(
-            conf.RESAMPLED_TRADES_FILE,
-            1,
-            conf.RESAMPLED_TRADES_COLUMNS
-        ).join(
-            fu.getLastLines(
-                conf.INDICATORS_FILE,
-                1,
-                conf.INDICATORS_COLUMNS
-            )
+        # TODO:  do not hardcode the lookback
+        t = str(int(time.time() * 1e9) - (7 * 24 * 60 * 60 * 10**9))
+        fresh_data = fu.read(
+            conf.DB_FILE,
+            conf.TRADES_FRAME,
+            where="index > " + t
         )
+        if not fresh_data.empty:
+            fresh_data = resamp.resampleTradeData(fresh_data)
 
-        trainer.prepareAlphas(fresh_data)
-        timestamp = fresh_data.index[-1]
-        current_price = fresh_data.at[timestamp, "close"]
-        strat.analyse(
-            feature_index=-1,  # there should be only one feature
-            current_price=current_price,
-            timestamp=timestamp
-        )
+            trainer.prepareAlphas(fresh_data)
+            timestamp = fresh_data.index[-1]
+            current_price = fresh_data.at[timestamp, "close"]
+            strat.analyse(
+                feature_index=-1,  # there should be only one feature
+                current_price=current_price,
+                timestamp=timestamp
+            )
 
         if not _delay():
             return
@@ -166,18 +158,11 @@ def fetch(args):
 
     _initCmd(args.graph)
 
-    for f in [conf.LAST_DUMP_FILE,
-              conf.RAW_TRADES_FILE,
-              conf.UNSAMPLED_TRADES_FILE,
-              conf.RESAMPLED_TRADES_FILE,
-              conf.INDICATORS_FILE]:
+    for f in [conf.DB_FILE]:
         if os.path.isfile(f):
             os.remove(f)  # TODO: warn user / create backup?
 
     raw_data = api.dumpData("0")
-    indic.updateIndicators(
-        resamp.resampleTradeData(raw_data)
-    )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         log.debug(
             "Fetched data from " + str(raw_data.index[0])
@@ -187,9 +172,6 @@ def fetch(args):
             return
 
         raw_data = api.dumpData()
-        indic.updateIndicators(
-            resamp.resampleTradeData(raw_data)
-        )
 
 
 def backtest(args):

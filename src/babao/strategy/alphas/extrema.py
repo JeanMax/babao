@@ -23,8 +23,9 @@ FEATURES = None
 TARGETS = None
 REQUIRED_COLUMNS = [
     "vwap", "volume",
-    "SMA_vwap_3", "SMA_volume_3",
-    "SMA_vwap_2", "SMA_volume_2"
+    # TODO
+    # "SMA_vwap_3", "SMA_volume_3",
+    # "SMA_vwap_2", "SMA_volume_2"
 ]
 
 

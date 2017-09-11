@@ -5,7 +5,7 @@ This whole shit is temporary, don't worry
 """
 
 import babao.config as conf
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.data.ledger as ledger
 import babao.strategy.trainer as trainer
@@ -25,14 +25,10 @@ def initLastTransactionPrice():
     global LAST_TRANSACTION_TIME
 
     try:
-        ledger_data = fu.getLastLines(
-            conf.RAW_LEDGER_FILE,
-            1,
-            conf.RAW_LEDGER_COLUMNS
-        )
+        ledger_data = fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1)
         LAST_TRANSACTION_TIME = ledger_data.index[0]
         LAST_TRANSACTION_PRICE = ledger_data.at[ledger_data.index[0], "price"]
-    except FileNotFoundError:
+    except (FileNotFoundError, IndexError):
         LAST_TRANSACTION_PRICE = 0
         LAST_TRANSACTION_TIME = 0
 

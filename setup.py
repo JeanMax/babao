@@ -57,6 +57,7 @@ setup(
 
         # data handling
         'pandas',  # this includes numpy
+        'tables',
 
         # parsing
         'configparser',
