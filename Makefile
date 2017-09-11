@@ -20,7 +20,7 @@ RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
 ECHO = echo -e
-PY = python3
+PY = python3 -u
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --pdb --fulltrace
@@ -49,6 +49,7 @@ endif
 
 $(NAME): | $(ROOT_DIR)
 	$(SETUP) $(DEVELOP_FLAGS)
+	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(INSTALL_DIR)/bin/$(NAME)
 	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)
 	chmod 755 $(NAME)
 
