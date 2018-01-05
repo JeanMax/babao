@@ -10,12 +10,22 @@ import babao.utils.file as fu
 
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
 BALANCE = {"crypto": 0, "quote": 0}
+LOG_TO_FILE = True
 
 
-def initBalance():
-    """Init ´BALANCE´ global var"""
+def initBalance(force=None):
+    """
+    Init ´BALANCE´ global var
+
+    If the force parameter is given, update ´BALANCE´ with the subfields
+    "crypto" and "quote" of the force dict.
+    """
 
     global BALANCE
+
+    if force is not None:
+        BALANCE = force
+        return
 
     try:
         last_ledger = fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1)
@@ -23,6 +33,13 @@ def initBalance():
         BALANCE["quote"] = float(last_ledger["quote_bal"])
     except (FileNotFoundError, KeyError):
         log.warning("No ledger file found.")
+
+
+def setLog(enable_file_logging):
+    """Set the ´LOG_TO_FILE´ global var"""
+
+    global LOG_TO_FILE
+    LOG_TO_FILE = enable_file_logging
 
 
 def _logTransaction(led_dic, write_to_file=True, timestamp=None):
@@ -42,11 +59,12 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
     BALANCE["crypto"] = led_dic["crypto_bal"]
     BALANCE["quote"] = led_dic["quote_bal"]
 
-    led_df = pd.DataFrame(
-        led_dic,
-        columns=conf.RAW_LEDGER_COLUMNS,
-        index=[timestamp]
-    ).fillna(0)
+    if LOG_TO_FILE:
+        led_df = pd.DataFrame(
+            led_dic,
+            columns=conf.RAW_LEDGER_COLUMNS,
+            index=[timestamp]
+        ).fillna(0)
 
     for c in led_df.columns:
         if c != "type":
@@ -54,8 +72,6 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
 
     if write_to_file:  # TODO
         fu.write(conf.DB_FILE, conf.LEDGER_FRAME, led_df)
-
-    return led_df
 
 
 def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
@@ -76,7 +92,6 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
         },
         timestamp=timestamp
     )
-    log.log("Bought for " + str(quote_vol) + " quote @ " + str(price))
 
 
 def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
@@ -97,7 +112,6 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
         },
         timestamp=timestamp
     )
-    log.log("Sold for " + str(crypto_vol) + " crypto @ " + str(price))
 
 
 def logCryptoDeposit(crypto_vol, crypto_fee=0, timestamp=None):

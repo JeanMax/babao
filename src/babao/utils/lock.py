@@ -4,13 +4,17 @@ import os
 
 
 def isLocked(lockfile):
-    """TODO"""
+    """Check if the ´lockfile´ exists"""
 
     return os.path.isfile(lockfile)
 
 
 def tryLock(lockfile):
-    """TODO"""
+    """
+    Create the given ´lockfile´
+
+    Return false if it already exists
+    """
 
     if isLocked(lockfile):
         return False
@@ -20,7 +24,11 @@ def tryLock(lockfile):
 
 
 def tryUnlock(lockfile):
-    """TODO"""
+    """
+    Remove the given ´lockfile´
+
+    Return false if it doesn't exist
+    """
 
     if not isLocked(lockfile):
         return False

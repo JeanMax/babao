@@ -8,12 +8,13 @@ import configparser as cp
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
 API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
-LOCAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-local.lock")
-GLOBAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-global.lock")
+LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 
 DB_FILE = None
 TRADES_FRAME = "trades"
 LEDGER_FRAME = None
+ALPHA_EXTREMA_FILE = None
+ALPHA_TENDENCY_FILE = None
 
 RAW_TRADES_COLUMNS = [
     "price", "volume"
@@ -51,6 +52,8 @@ def readConfigFile(cmd_name="unamed"):
     global MAX_GRAPH_POINTS
     global DB_FILE
     global LEDGER_FRAME
+    global ALPHA_EXTREMA_FILE
+    global ALPHA_TENDENCY_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -82,7 +85,12 @@ def readConfigFile(cmd_name="unamed"):
     )
     # TODO: check if these vars are valid
 
+    pre = os.path.join(DATA_DIR, ASSET_PAIR)
+
     DB_FILE = os.path.join(DATA_DIR, ASSET_PAIR) + "-database.hdf"
     LEDGER_FRAME = "ledger_" + cmd_name
     if cmd_name == "backtest":
         LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
+
+    ALPHA_EXTREMA_FILE = pre + "-extrema.pkl"
+    ALPHA_TENDENCY_FILE = pre + "-tendency.h5"

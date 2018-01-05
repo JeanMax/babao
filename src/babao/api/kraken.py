@@ -59,6 +59,8 @@ def _doRequest(method, req=None):
         fail_counter += 1
         time.sleep(0.5)
 
+    return None  # warning-trap
+
 
 def getBalance():
     """Return account balance (associatives arrays, keys = assets)"""

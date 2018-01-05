@@ -1,22 +1,22 @@
 """Commands launched by parseArgv"""
 
 import time
-import sys
 import os
 import signal
 
 import babao.utils.log as log
 import babao.utils.file as fu
-import babao.utils.lock as lock
 import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
-import babao.data.indicators as indic
-import babao.strategy.strategy as strat
+# import babao.data.indicators as indic
 import babao.data.ledger as ledger
+import babao.strategy.strategy as strat
+import babao.strategy.trainer as trainer
 
 EXIT = 0
 TICK = None
+LOCK = None
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -26,18 +26,22 @@ def _signalHandler(signal_code, unused_frame):
     EXIT = 128 + signal_code
 
 
-def _delay():
+def _delay(block=True):
     """
     Sleep the min amount of time required to still be friend with the api
 
-    Also handle a lock file to avoid having the graph read data while we write
+    Also handle a lock to avoid having the graph read data while we write
     Return False if a signal have been caught (you need to exit).
     """
 
     if EXIT:
         return False
 
-    lock.tryUnlock(conf.LOCAL_LOCK_FILE)
+    if LOCK:
+        try:
+            LOCK.release()
+        except ValueError:
+            pass
 
     global TICK
     if TICK is not None:
@@ -51,8 +55,10 @@ def _delay():
         time.sleep(delta)
     TICK = time.time()
 
-    lock.tryLock(conf.LOCAL_LOCK_FILE)
-    time.sleep(0.1)  # TODO: define LIL_DELAY_JUST_IN_CASE
+    if LOCK:
+        if delta < 0:
+            time.sleep(1)  # TODO: workaround: graph need time
+        LOCK.acquire(block=block)
 
     return not bool(EXIT)
 
@@ -61,31 +67,34 @@ def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
-    from multiprocessing import Process
+    from multiprocessing import Process, Lock
     import babao.graph as graph
 
+    global LOCK
+    LOCK = Lock()
     p = Process(
         target=graph.initGraph,
-        # args=(full_data,),
-        # name="babao-graph",
+        args=(LOCK,),
+        name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
+    time.sleep(0.5)  # TODO: define LIL_DELAY_JUST_IN_CASE
+    LOCK.acquire()
 
 
 def _initCmd(graph=False, simulate=False, with_api=True):
     """
     Generic command init function
 
-    Init: lock file, signal handlers, api key, graph
+    Init: signal handlers, api key, graph
     """
-
-    lock.tryLock(conf.LOCAL_LOCK_FILE)
 
     signal.signal(signal.SIGINT, _signalHandler)
     signal.signal(signal.SIGTERM, _signalHandler)
 
     strat.initLastTransactionPrice()
+    trainer.loadAlphas()
 
     if with_api:
         api.initKey()
@@ -96,6 +105,29 @@ def _initCmd(graph=False, simulate=False, with_api=True):
 
     if graph:
         _launchGraph()
+
+
+def _getData():
+    """Return the whole dataset splitted in two parts: (train, test)"""
+
+    # with float < 64, smaller size but longer to process
+    # (might be a cast issue somewhere else)
+    full_data = resamp.resampleTradeData(
+        fu.read(conf.DB_FILE, conf.TRADES_FRAME)
+    )
+    # TODO: add indicators
+
+    # TODO: we remove the head because there is not enough volume at first
+    full_data = full_data.tail(int(len(full_data) * 0.7))
+    split_index = int(len(full_data) * 0.5)
+
+    return full_data[:split_index], full_data[split_index:]
+
+
+def wetRun(args):
+    """Dummy"""
+    print(repr(args))
+    print("Sorry, this is not implemented yet :/")
 
 
 def dryRun(args):
@@ -115,9 +147,14 @@ def dryRun(args):
         )
         if not fresh_data.empty:
             fresh_data = resamp.resampleTradeData(fresh_data)
+
+            trainer.prepareAlphas(fresh_data)
+            timestamp = fresh_data.index[-1]
+            current_price = fresh_data.at[timestamp, "close"]
             strat.analyse(
-                fresh_data.values,
-                timestamp=fresh_data.index[-1]
+                feature_index=-1,  # there should be only one feature
+                current_price=current_price,
+                timestamp=timestamp
             )
 
         if not _delay():
@@ -125,7 +162,7 @@ def dryRun(args):
 
 
 def fetch(args):
-    """fetch raw trade data since the beginning of times"""
+    """Fetch raw trade data since the beginning of times"""
 
     _initCmd(args.graph)
 
@@ -146,48 +183,38 @@ def fetch(args):
 
 
 def backtest(args):
-    """Just a naive backtester"""
+    """
+    Just a naive backtester
 
-    # with float < 64, smaller size but longer to process
-    # (might be a cast issue somewhere else)
-    big_fat_data = resamp.resampleTradeData(
-        fu.read(conf.DB_FILE, conf.TRADES_FRAME)
-    )
-
-    big_fat_data["SMA_vwap_1"] = indic.SMA(big_fat_data["vwap"], 9)
-    big_fat_data["SMA_vwap_2"] = indic.SMA(big_fat_data["vwap"], 26)
-
-    for col in big_fat_data.columns:
-        if col not in strat.REQUIRED_COLUMNS:
-            del big_fat_data[col]
-    big_fat_data_index = big_fat_data.index
-    big_fat_data_values = big_fat_data.values
+    It will call the trained strategies on each test data point
+    """
 
     _initCmd(args.graph, simulate=True, with_api=False)
 
+    big_fat_data = _getData()[1]
+    trainer.prepareAlphas(big_fat_data)
+    big_fat_data_index = big_fat_data.index.values
+    big_fat_data_prices = big_fat_data["close"].values
+    del big_fat_data
+
     start_time = time.time()
 
-    for i in range(len(big_fat_data_index) - strat.LOOK_BACK):
+    # pylint: disable=consider-using-enumerate
+    for i in range(len(big_fat_data_index)):
         strat.analyse(
-            big_fat_data_values[i: i + strat.LOOK_BACK],
-            timestamp=big_fat_data_index[i + strat.LOOK_BACK]
+            feature_index=i,
+            current_price=big_fat_data_prices[i],
+            timestamp=big_fat_data_index[i]
         )
         if EXIT:
             return
 
-    log.log(
-        "Backtesting done! Score: "
-        + str(round(float(
-            ledger.BALANCE["quote"] + ledger.BALANCE["crypto"]
-            * big_fat_data.at[big_fat_data.index[-1], "close"]
-        )))
-        + "% vs HODL: "
-        + str(round(
-            big_fat_data.at[big_fat_data.index[-1], "close"]
-            / big_fat_data.at[big_fat_data.index[0], "close"]
-            * 100
-        ))
-        + "%"
+    current_price = big_fat_data_prices[-1]
+    score = ledger.BALANCE["crypto"] * current_price + ledger.BALANCE["quote"]
+    hodl = current_price / big_fat_data_prices[0] * 100
+    log.info(
+        "Backtesting done! Score: " + str(round(float(score)))
+        + "% vs HODL: " + str(round(hodl)) + "%"
     )
     log.debug(
         "Backtesting took "
@@ -195,14 +222,25 @@ def backtest(args):
     )
 
     if args.graph:
-        while _delay():
-            pass
         # TODO: exit if graph is closed
+        while _delay(block=False):
+            pass
 
 
-def notImplemented(args):
-    """Dummy"""
+def train(args):
+    """Train the various (awesome) algorithms"""
 
-    print(repr(args))
-    print("Sorry, this is not implemented yet :/")
-    sys.exit(42)
+    # _initCmd(args.graph, simulate=True, with_api=False)
+
+    train_data, test_data = _getData()
+    trainer.prepareAlphas(train_data, targets=True)
+    trainer.trainAlphas()
+
+    if args.graph:
+        trainer.plotAlphas(train_data)
+
+        trainer.prepareAlphas(test_data, targets=False)
+        trainer.plotAlphas(test_data)
+
+        import matplotlib.pyplot as plt
+        plt.show()

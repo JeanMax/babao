@@ -48,10 +48,22 @@ setup(
     ],
     keywords='bitcoin bot',
     install_requires=[
+
+        # machine learning
+        'keras',
+        'tensorflow',
+        'scikit-learn',  # this includes scipy
+        'joblib',  # just for saving scikit models...
+
+        # data handling
+        'pandas',  # this includes numpy
         'tables',
-        'pandas',
+
+        # parsing
         'configparser',
         'argparse',
+
+        # api
         'krakenex'
     ],
     extras_require={

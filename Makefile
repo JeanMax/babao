@@ -14,7 +14,7 @@ export PATH := $(INSTALL_DIR)/bin:$(PATH)
 
 INSTALL_FILES_LOG = .install_files.list
 TMP_FILES = build dist temp __pycache__ $(NAME).egg-info\
-            $(SRC_DIR)/$(NAME)/__pycache__ $(SRC_DIR)/$(NAME).egg-info
+            $(SRC_DIR)/$(NAME)/**/*/__pycache__ $(SRC_DIR)/$(NAME).egg-info
 
 RM = rm -rfv
 MKDIR = mkdir -pv
