@@ -6,7 +6,6 @@ import signal
 
 import babao.utils.log as log
 import babao.utils.file as fu
-import babao.utils.lock as lock
 import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
@@ -27,7 +26,7 @@ def _signalHandler(signal_code, unused_frame):
     EXIT = 128 + signal_code
 
 
-def _delay():
+def _delay(block=True):
     """
     Sleep the min amount of time required to still be friend with the api
 
@@ -59,7 +58,7 @@ def _delay():
     if LOCK:
         if delta < 0:
             time.sleep(1)  # TODO: workaround: graph need time
-        LOCK.acquire()
+        LOCK.acquire(block=block)
 
     return not bool(EXIT)
 
@@ -76,7 +75,7 @@ def _launchGraph():
     p = Process(
         target=graph.initGraph,
         args=(LOCK,),
-        # name="babao-graph",
+        name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
@@ -224,7 +223,7 @@ def backtest(args):
 
     if args.graph:
         # TODO: exit if graph is closed
-        while _delay():
+        while _delay(block=False):
             pass
 
 

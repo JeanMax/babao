@@ -90,6 +90,11 @@ def analyse(feature_index, current_price, timestamp):
     This assume you've already done ´prepareFeaturesAlphas()´
     """
 
+    # TODO: ugly workaround
+    # avoid problems when the features are too short (lookback)
+    if feature_index >= trainer.FEATURES_LEN:
+        return
+
     # TODO: use slices for training
     target_arr = trainer.predictAlphas(feature_index)
 

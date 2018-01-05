@@ -51,7 +51,7 @@ def _prepareFeatures(full_data, lookback):
     FEATURES = full_data.copy()
 
     # TODO: same pattern in extrema.py
-    for c in FEATURES.cumns:
+    for c in FEATURES.columns:
         if c not in REQUIRED_COLUMNS:
             del FEATURES[c]
 

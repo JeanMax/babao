@@ -109,7 +109,10 @@ def _getData(lock, block=False):
     )
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
 
-    lock.release()
+    try:
+        lock.release()
+    except ValueError:
+        pass
 
     DATA = resamp.resampleTradeData(DATA)
     DATA = _addIndicators(DATA).dropna()

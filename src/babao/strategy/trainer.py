@@ -19,6 +19,8 @@ ALPHAS_LIST = [
     alpha_tendency,
 ]  # TODO: config var eventually
 
+FEATURES_LEN = 0
+
 
 def plotAlphas(full_data):
     """
@@ -77,8 +79,15 @@ def prepareAlphas(full_data, targets=False):
     (conf.RESAMPLED_TRADES_COLUMNS + conf.INDICATORS_COLUMNS)
     """
 
+    len_list = []
     for alpha in ALPHAS_LIST:
         alpha.prepare(full_data, targets)
+        len_list.append(len(alpha.FEATURES))
+
+    global FEATURES_LEN
+    FEATURES_LEN = min(len_list)
+    for alpha in ALPHAS_LIST:
+        alpha.FEATURES = alpha.FEATURES[-FEATURES_LEN:]
 
 
 def trainAlphas():

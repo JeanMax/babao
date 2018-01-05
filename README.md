@@ -78,4 +78,3 @@ Run 'babao <command> --help' for detailed help.
 ## TODO:
 
 * grep -ri todo
-* backtest bugged (probably linked to feature loopback in training)
