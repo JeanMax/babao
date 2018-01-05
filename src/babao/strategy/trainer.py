@@ -6,6 +6,7 @@ so you can use these wrappers to call all of them at once.
 """
 
 import numpy as np
+import pandas as pd
 
 import babao.utils.log as log
 import babao.utils.date as du
@@ -14,8 +15,8 @@ import babao.strategy.alphas.tendency as alpha_tendency
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 ALPHAS_LIST = [
+    alpha_extrema,
     alpha_tendency,
-    alpha_extrema
 ]  # TODO: config var eventually
 
 
@@ -27,9 +28,18 @@ def plotAlphas(full_data):
     """
 
     def _plot(alpha):
-        """TODO"""
+        """Plot the given alpha"""
 
-        plot_data = full_data.copy()
+        y = alpha.unscale(alpha.FEATURES)
+        # ndim should be 2/3, otherwise you deserve a crash
+        if y.ndim == 3:  # keras formated
+            y = y.reshape((y.shape[0], y.shape[2]))
+
+        plot_data = pd.DataFrame(y).iloc[:, :len(alpha.REQUIRED_COLUMNS)]
+        plot_data.columns = alpha.REQUIRED_COLUMNS
+        plot_data.index = full_data.index[:len(y)]
+        # TODO: these are not exactly the right indexes...
+
         scale = plot_data["vwap"].max() * 2
 
         targets = alpha.getMergedTargets()

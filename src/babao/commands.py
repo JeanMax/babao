@@ -110,8 +110,8 @@ def _getData():
     # TODO: add indicators
 
     # TODO: we remove the head because there is not enough volume at first
-    full_data = full_data.tail(int(len(full_data) * 0.6))
-    split_index = int(len(full_data) * 0.7)
+    full_data = full_data.tail(int(len(full_data) * 0.7))
+    split_index = int(len(full_data) * 0.5)
 
     return full_data[:split_index], full_data[split_index:]
 
@@ -230,7 +230,9 @@ def train(args):
 
     if args.graph:
         trainer.plotAlphas(train_data)
+
         trainer.prepareAlphas(test_data, targets=False)
         trainer.plotAlphas(test_data)
+
         import matplotlib.pyplot as plt
         plt.show()

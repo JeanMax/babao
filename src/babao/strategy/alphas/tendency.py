@@ -1,8 +1,9 @@
 """
-TODO
+The idea of that alpha is to find local extrema,
+then classify them as 0 (hold), 1 (sell), 2 (buy)
+using a lstm neural network (keras)
 """
 
-import sklearn.preprocessing as prepro
 import pandas as pd
 import numpy as np
 import keras.models as kmod
@@ -15,46 +16,50 @@ import babao.config as conf
 MODEL = None
 FEATURES = None
 TARGETS = None
-SCALER = None
+SCALE = 100000
+FEATURES_LOOKBACK = 13  # TODO
 REQUIRED_COLUMNS = [
-    "vwap", "volume"
+    "vwap", "volume",
+    "high", "low", "close",  # "open",
+    # "SMA_vwap_3", "SMA_volume_3",
+    # "SMA_vwap_2", "SMA_volume_2"
 ]
 
 
-# def addLookbacks(df, lookback=1):
-#     for i in range(1, lookback + 1):
-#         df["lookback_" + str(i)] = df["vwap"].shift(i)
-#     return df.dropna()
-
-
-def _prepareFeatures(full_data):
+def _prepareFeatures(full_data, lookback):
     """
     Prepare features for training (copy)
 
     ´full_data´: cf. ´prepareAlphas´
     """
 
+    def _addLookbacks(df, lookback):
+        """Add lookback(s) (shifted columns) to each df columns"""
+
+        for i in range(1, lookback + 1):
+            for c in df.columns:
+                if "lookback" not in c:
+                    df[c + "_lookback_" + str(i)] = df[c].shift(i)
+        return df.dropna()
+
     def _reshape(arr):
-        """TODO"""
+        """Reshape the features to be keras-proof"""
 
         return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
 
-    global SCALER
     global FEATURES
-    # TODO: I'm unsure about this scaler
-    SCALER = prepro.MinMaxScaler(feature_range=(0, 1))
     FEATURES = full_data.copy()
 
-    for col in FEATURES.columns:
-        if col not in REQUIRED_COLUMNS:
-            del FEATURES[col]
+    # TODO: same pattern in extrema.py
+    for c in FEATURES.cumns:
+        if c not in REQUIRED_COLUMNS:
+            del FEATURES[c]
 
-    # FEATURES = preprocessing.normalize(FEATURES.values)
-    FEATURES = SCALER.fit_transform(FEATURES.values)
-    FEATURES = _reshape(FEATURES)
+    FEATURES = _addLookbacks(scale(FEATURES), lookback)
+    FEATURES = _reshape(FEATURES.values)
 
 
-def _prepareTargets(full_data, lookback=100):
+def _prepareTargets(full_data, lookback):
     """
     Prepare targets for training (copy)
     0 (nop), 1 (sell), 2 (buy)
@@ -66,28 +71,29 @@ def _prepareTargets(full_data, lookback=100):
 
     rev = full_data["vwap"][::-1]
     TARGETS = kuti.to_categorical(
-        (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
-        | (rev.rolling(lookback).max() == rev).astype(int)
+        (
+            (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
+            | (rev.rolling(lookback).max() == rev).astype(int)
+        ).replace(3, 0)
     )[::-1]
 
 
-def prepare(full_data, targets=False, lookback=100):
+def prepare(full_data, targets=False):
     """
     Prepare features and targets for training (copy)
 
     ´full_data´: cf. ´prepareAlphas´
     """
 
-    _prepareFeatures(full_data)
+    _prepareFeatures(full_data, FEATURES_LOOKBACK)
     if targets:
-        _prepareTargets(full_data, lookback)
+        targets_lookback = 47  # _optimizeTargets(full_data)
+        _prepareTargets(full_data, targets_lookback)
 
-        # TODO: handle rolling nan (in extrema too I guess)
-
-        # global FEATURES
-        # global TARGETS
-        # FEATURES = FEATURES[:-lookback]
-        # TARGETS = TARGETS[:-lookback]
+        global FEATURES
+        global TARGETS
+        FEATURES = FEATURES[:-targets_lookback]
+        TARGETS = TARGETS[FEATURES_LOOKBACK:-targets_lookback]
 
 
 def train():
@@ -98,8 +104,18 @@ def train():
     global MODEL
     if MODEL is None:
         MODEL = kmod.Sequential()
-        MODEL.add(klay.LSTM(16, input_shape=(1, len(REQUIRED_COLUMNS))))
-        MODEL.add(klay.Dense(3, activation='softmax'))
+        MODEL.add(
+            klay.LSTM(
+                128,
+                input_shape=(1, len(REQUIRED_COLUMNS) * (FEATURES_LOOKBACK + 1))
+            )
+        )
+        MODEL.add(
+            klay.Dense(
+                3,
+                activation='softmax'
+            )
+        )
 
         MODEL.compile(
             loss='categorical_crossentropy',
@@ -110,11 +126,11 @@ def train():
     # this return the history... could be ploted or something
     MODEL.fit(
         FEATURES, TARGETS,
-        epochs=10,
+        epochs=1,  # TODO: config var?
         batch_size=1,
         shuffle=False,
-        verbose=2  # TODO: check verbose level for this
-    )
+        verbose=1  # TODO: check verbose level for this
+    )   # TODO: make this interuptible
 
     # TODO: check verbose level for this
     score = MODEL.evaluate(FEATURES, TARGETS, verbose=2)
@@ -165,3 +181,87 @@ def getMergedTargets():
         return None
 
     return _mergeCategories(TARGETS)
+
+
+# TODO: scale/unscale identicals in extrema.py
+def scale(arr):
+    """Scale features before train/predict"""
+
+    return arr / SCALE
+
+
+def unscale(arr):
+    """Unscale features after train/predict"""
+
+    return arr * SCALE
+
+
+# def _optimizeTargets(full_data):
+#     """TODO"""
+
+#     def _buyOrSell(target, current_price, timestamp):
+#         """TODO: this is very similar to strategy.strategy._buyOrSell"""
+
+#         if ledger.BALANCE["crypto"] > 0.001 and target == 1:
+#             # log.info(
+#             #     "Sold for "
+#             #     + str(ledger.BALANCE["crypto"])
+#             #     + " crypto @ "
+#             #     + str(current_price)
+#             # )
+#             ledger.logSell(
+#                 ledger.BALANCE["crypto"],
+#                 current_price,
+#                 crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
+#                 timestamp=timestamp
+#             )
+#         elif ledger.BALANCE["quote"] > 0.001 and target == -1:
+#             # log.info(
+#             #     "Bought for "
+#             #     + str(ledger.BALANCE["quote"])
+#             #     + " quote @ "
+#             #     + str(current_price)
+#             # )
+#             ledger.logBuy(
+#                 ledger.BALANCE["quote"],
+#                 current_price,
+#                 quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
+#                 timestamp=timestamp
+#             )
+
+#     def _scoreTargets(lookback, full_data):
+#         """TODO"""
+
+#         lookback = int(lookback)  # eheh
+
+#         _prepareTargets(full_data, lookback)
+#         targets = getMergedTargets()
+
+#         ledger.initBalance({"crypto": 0, "quote": 100})
+#         for i in range(len(targets)):
+#             price = unscale(FEATURES[i][0][0])  # TODO: hardcoded vwap
+#             _buyOrSell(targets[i], price, full_data.index[i])
+
+#         score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+
+#         log.debug(
+#             "score:", int(score),
+#             "lookback:", lookback
+#         )
+
+#         return -score  # TODO: compare to hold
+
+#     # we just want the final balance
+#     ledger.setLog(False)
+
+#     res = optimize.brute(
+#         _scoreTargets,
+#         (slice(5, 1000, 1), ),
+#         args=(full_data.reset_index(), ),
+#         finish=None,
+#         full_output=True
+#     )
+
+#     log.debug(repr(res))
+
+#     return int(res[0])

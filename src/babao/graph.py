@@ -18,8 +18,8 @@ import babao.data.indicators as indic
 
 DATA = None
 INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26",
-    "SMA_volume_9", "SMA_volume_26",
+    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
+    "SMA_volume_26", "SMA_volume_77",
 ]
 MAX_LOOK_BACK = 26
 
@@ -69,8 +69,10 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
         ).ffill().fillna(0).loc[first:last]
 
         resampled_data["bal"] = resampled_data["quote_bal"] \
-            + resampled_data["crypto_bal"] * resampled_data["vwap"]
-    except (FileNotFoundError, KeyError):
+            + resampled_data["crypto_bal"] * resampled_data["close"]
+    except (FileNotFoundError, KeyError, OSError) as e:
+        if e == OSError:
+            log.warning(repr(e))
         resampled_data["crypto_bal"] = 0
         resampled_data["quote_bal"] = 0
         resampled_data["bal"] = 0
@@ -146,7 +148,7 @@ def _initGraph():
         lines[key], = axes[key].plot(
             DATA.index,
             DATA[key],
-            # "-",
+            # "-+",
             label=key,
             color="b",
             alpha=0.5
@@ -166,10 +168,19 @@ def _initGraph():
                     lines[col], = axes[key].plot(
                         DATA.index,
                         DATA[col],
-                        label=col.replace("_", " "),
+                        label=col.replace("_" + key, "").replace("_", " "),
                         color="r",
-                        alpha=0.7 - 0.2 * (i % 2)
+                        alpha=0.7 - 0.2 * (i % 3)
                     )
+        if key == "vwap":
+            col = "close"
+            lines[col], = axes[key].plot(
+                DATA.index,
+                DATA[col],
+                label=col,
+                color="g",
+                alpha=0.5
+            )
 
     # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841

@@ -1,12 +1,13 @@
 """
 The idea of that alpha is to find local extrema,
 then classify them as minimum/nop/maximum (-1/0/1)
+using a knn classifier (sklearn)
 """
 
 import pandas as pd
 # import numpy as np
 # from scipy import optimize
-from sklearn import preprocessing
+# from sklearn import preprocessing
 from sklearn import neighbors
 # from sklearn import svm
 # from sklearn import tree
@@ -21,6 +22,7 @@ import babao.utils.log as log
 MODEL = None
 FEATURES = None
 TARGETS = None
+SCALE = 100000
 REQUIRED_COLUMNS = [
     "vwap", "volume",
     # TODO
@@ -39,14 +41,15 @@ def _prepareFeatures(full_data):
     global FEATURES
     FEATURES = full_data.copy()
 
+    # TODO: same pattern in tendency.py
     for col in FEATURES.columns:
         if col not in REQUIRED_COLUMNS:
             del FEATURES[col]
 
-    FEATURES = preprocessing.normalize(FEATURES.values)  # TODO
+    FEATURES = scale(FEATURES).values
 
 
-def _prepareTargets(full_data, lookback=1000):
+def _prepareTargets(full_data, lookback):
     """
     Prepare targets for training (copy)
 
@@ -82,7 +85,13 @@ def prepare(full_data, targets=False):
 
     _prepareFeatures(full_data)
     if targets:
-        _prepareTargets(full_data)
+        lookback = 47
+        _prepareTargets(full_data, lookback)
+
+        global FEATURES
+        global TARGETS
+        FEATURES = FEATURES[lookback:-lookback]
+        TARGETS = TARGETS[lookback:-lookback]
 
 
 def train(k=3):
@@ -135,3 +144,16 @@ def getMergedTargets():
         return None
 
     return TARGETS  # this is already merged
+
+
+# TODO: scale/unscale identicals in tendency.py
+def scale(arr):
+    """Scale features before train/predict"""
+
+    return arr / SCALE
+
+
+def unscale(arr):
+    """Unscale features after train/predict"""
+
+    return arr * SCALE

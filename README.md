@@ -5,28 +5,78 @@
 Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 
-## Modes:
+## Install:
 
-* bot (duh)
-* real-time simulation (dry-run bot)
-* simulation on a given data file
-* training on a given data file
-* real-time chart with matplotlib would be neat
+```
+git clone https://github.com/JeanMax/babao
+cd babao
+```
 
-
-### TODO:
-
-* dump transaction to ledger-cli
-* use compressed hdf instead of csv
-* resample data starting from the last time stamp? (that way the current candle is always "full")
-* find a way to break candles into smallers ones for simulation purpose
-* optimize data types read from files
+* Using make:
+```
+make
+```
 
 
-### Process:
+optional dependencies (matplotlib):
+```
+make install_graph
+```
 
-* fetch raw trade data from api
-* resample data (ohlc++)
-* update indicators
-* make decision (sell/buy)
-* apply decision (if any) and log transaction
+
+optional dependencies (pytest/pylint/flake8):
+```
+make install_test
+```
+
+
+if you're not planning to develop:
+```
+make install
+```
+
+
+* Or Using pip:
+```
+pip install .
+```
+
+
+optional dependencies:
+```
+pip install .[matplotlib]
+pip install .[test]
+```
+
+
+## Usage:
+
+```
+> babao --help
+usage: babao [-h] [-g] [-f] [-v | -q] <command> [<args>] ...
+
+A bitcoin trading machine.
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -g, --graph         show a chart (matplotlib)
+  -f, --fuck-it       stop bitching about existing lockfile
+  -v, --verbose       increase output verbosity
+  -q, --quiet         stfu damn bot
+
+commands:
+  <command> [<args>]
+    dry-run (d)       real-time bot simulation
+    wet-run (w)       real-time bot with real-money!
+    training (t)      train bot on the given raw trade data file
+    backtest (b)      test strategy on the given raw trade data file
+    fetch (f)         fetch raw trade data since the beginning of times
+
+Run 'babao <command> --help' for detailed help.
+```
+
+## TODO:
+
+* grep -ri todo
+* there is a concurrent access issue with the hdf database (core/graph)
+* backtest bugged (probably linked to feature loopback in training)

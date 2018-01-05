@@ -13,7 +13,7 @@ import babao.strategy.trainer as trainer
 LAST_TRANSACTION_PRICE = None
 LAST_TRANSACTION_TIME = None
 MIN_BAL = 50  # maximum drawdown
-MIN_PROBA = 0.3
+MIN_PROBA = 0.9
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 
