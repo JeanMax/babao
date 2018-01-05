@@ -78,5 +78,4 @@ Run 'babao <command> --help' for detailed help.
 ## TODO:
 
 * grep -ri todo
-* there is a concurrent access issue with the hdf database (core/graph)
 * backtest bugged (probably linked to feature loopback in training)

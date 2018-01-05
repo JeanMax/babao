@@ -1,7 +1,6 @@
 """Data visualisation inside"""
 
 import os
-import time
 import traceback
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +10,6 @@ from matplotlib.widgets import MultiCursor
 import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.log as log
-import babao.utils.lock as lock
 import babao.config as conf
 import babao.data.resample as resamp
 import babao.data.indicators as indic
@@ -80,7 +78,7 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
     return resampled_data
 
 
-def _getData(block=False):
+def _getData(lock, block=False):
     """
     Initialize ´DATA´ global
 
@@ -89,30 +87,30 @@ def _getData(block=False):
 
     global DATA
 
-    # init lock file
-    while lock.isLocked(conf.LOCAL_LOCK_FILE):
-        if block:
-            time.sleep(0.1)
-        else:
-            # log.warning("graph._getData(): won't update, lock file found")
-            return False
-
     if not os.path.isfile(conf.DB_FILE):
         log.warning("Data files not found... Is it your first time around?")
         DATA = pd.DataFrame(
             columns=conf.RESAMPLED_TRADES_COLUMNS
             + INDICATORS_COLUMNS
             + conf.RESAMPLED_LEDGER_COLUMNS
-            + ["bal"]  # hmmm... we'll calculate this on the fly:
+            + ["bal"]  # hmmm... we'll calculate this on the fly
         )
         # TODO: catch missing frame errors
         return False
+
+    if not lock.acquire(block=block):
+        # log.warning("graph._getData(): won't update, lock file found")
+        return False
+    # log.debug("graph._getData(): updating!")
 
     since = str(
         fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
         - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
     )
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
+
+    lock.release()
+
     DATA = resamp.resampleTradeData(DATA)
     DATA = _addIndicators(DATA).dropna()
     du.to_datetime(DATA)
@@ -121,10 +119,10 @@ def _getData(block=False):
     return True
 
 
-def _updateGraph(unused_counter, lines):
+def _updateGraph(unused_counter, lines, lock):
     """Function called (back) by FuncAnimation, will update graph"""
 
-    if not _getData(block=False):
+    if not _getData(lock, block=False):
         return lines.values()
 
     for key in lines:
@@ -132,10 +130,10 @@ def _updateGraph(unused_counter, lines):
     return lines.values()
 
 
-def _initGraph():
+def _initGraph(lock):
     """Wrapped to display errors (this is running in a separate process)"""
 
-    _getData(block=True)
+    _getData(lock, block=True)
 
     fig = plt.figure()
     axes = {}
@@ -233,18 +231,18 @@ def _initGraph():
     unused_animation = animation.FuncAnimation(  # NOQA: F841
         fig,
         _updateGraph,
-        fargs=(lines,),
+        fargs=(lines, lock),
         # blit=True,  # bug?
-        interval=2500
+        interval=1500
     )
     plt.show()  # this is blocking!
 
 
-def initGraph():
+def initGraph(lock):
     """Launch an awesome matplotlib graph!"""
 
     try:
-        _initGraph()
+        _initGraph(lock)
     except:  # pylint: disable=bare-except
         # print("".join(traceback.format_exception(*(sys.exc_info))))
         traceback.print_exc()

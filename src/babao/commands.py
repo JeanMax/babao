@@ -17,6 +17,7 @@ import babao.strategy.trainer as trainer
 
 EXIT = 0
 TICK = None
+LOCK = None
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -30,14 +31,18 @@ def _delay():
     """
     Sleep the min amount of time required to still be friend with the api
 
-    Also handle a lock file to avoid having the graph read data while we write
+    Also handle a lock to avoid having the graph read data while we write
     Return False if a signal have been caught (you need to exit).
     """
 
     if EXIT:
         return False
 
-    lock.tryUnlock(conf.LOCAL_LOCK_FILE)
+    if LOCK:
+        try:
+            LOCK.release()
+        except ValueError:
+            pass
 
     global TICK
     if TICK is not None:
@@ -51,8 +56,10 @@ def _delay():
         time.sleep(delta)
     TICK = time.time()
 
-    lock.tryLock(conf.LOCAL_LOCK_FILE)
-    time.sleep(0.1)  # TODO: define LIL_DELAY_JUST_IN_CASE
+    if LOCK:
+        if delta < 0:
+            time.sleep(1)  # TODO: workaround: graph need time
+        LOCK.acquire()
 
     return not bool(EXIT)
 
@@ -61,26 +68,28 @@ def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
-    from multiprocessing import Process
+    from multiprocessing import Process, Lock
     import babao.graph as graph
 
+    global LOCK
+    LOCK = Lock()
     p = Process(
         target=graph.initGraph,
-        # args=(full_data,),
+        args=(LOCK,),
         # name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
+    time.sleep(0.5)  # TODO: define LIL_DELAY_JUST_IN_CASE
+    LOCK.acquire()
 
 
 def _initCmd(graph=False, simulate=False, with_api=True):
     """
     Generic command init function
 
-    Init: lock file, signal handlers, api key, graph
+    Init: signal handlers, api key, graph
     """
-
-    lock.tryLock(conf.LOCAL_LOCK_FILE)
 
     signal.signal(signal.SIGINT, _signalHandler)
     signal.signal(signal.SIGTERM, _signalHandler)

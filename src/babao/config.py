@@ -8,8 +8,7 @@ import configparser as cp
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
 API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
-LOCAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-local.lock")
-GLOBAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-global.lock")
+LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 
 DB_FILE = None
 TRADES_FRAME = "trades"
