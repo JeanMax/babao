@@ -86,8 +86,8 @@ def prepareAlphas(full_data, targets=False):
 
     global FEATURES_LEN
     FEATURES_LEN = min(len_list)
-    for alpha in ALPHAS_LIST:
-        alpha.FEATURES = alpha.FEATURES[-FEATURES_LEN:]
+    # for alpha in ALPHAS_LIST:
+    #     alpha.FEATURES = alpha.FEATURES[-FEATURES_LEN:]
 
 
 def trainAlphas():
