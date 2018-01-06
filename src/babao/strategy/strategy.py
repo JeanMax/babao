@@ -92,7 +92,8 @@ def analyse(feature_index, current_price, timestamp):
 
     # TODO: ugly workaround
     # avoid problems when the features are too short (lookback)
-    if feature_index >= trainer.FEATURES_LEN:
+    if feature_index >= trainer.FEATURES_LEN or trainer.FEATURES_LEN <= 0:
+        log.warning("strategy: feature_index out of range")
         return
 
     # TODO: use slices for training

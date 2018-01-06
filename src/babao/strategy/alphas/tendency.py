@@ -12,17 +12,20 @@ import keras.utils.np_utils as kuti
 
 import babao.utils.log as log
 import babao.config as conf
+import babao.data.indicators as indic
 
 MODEL = None
 FEATURES = None
 TARGETS = None
 SCALE = 100000
-FEATURES_LOOKBACK = 13  # TODO
+FEATURES_LOOKBACK = 47  # TODO
 REQUIRED_COLUMNS = [
     "vwap", "volume",
     "high", "low", "close",  # "open",
-    # "SMA_vwap_3", "SMA_volume_3",
-    # "SMA_vwap_2", "SMA_volume_2"
+]
+INDICATORS_COLUMNS = [
+    "SMA_vwap_26", "SMA_vwap_77",
+    "SMA_volume_26", "SMA_volume_77",
 ]
 
 
@@ -55,6 +58,7 @@ def _prepareFeatures(full_data, lookback):
         if c not in REQUIRED_COLUMNS:
             del FEATURES[c]
 
+    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
     FEATURES = _addLookbacks(scale(FEATURES), lookback)
     FEATURES = _reshape(FEATURES.values)
 
@@ -94,6 +98,7 @@ def prepare(full_data, targets=False):
         global TARGETS
         FEATURES = FEATURES[:-targets_lookback]
         TARGETS = TARGETS[FEATURES_LOOKBACK:-targets_lookback]
+        TARGETS = TARGETS[-len(FEATURES):]
 
 
 def train():
@@ -107,7 +112,11 @@ def train():
         MODEL.add(
             klay.LSTM(
                 128,
-                input_shape=(1, len(REQUIRED_COLUMNS) * (FEATURES_LOOKBACK + 1))
+                input_shape=(
+                    1,
+                    (len(REQUIRED_COLUMNS) + len(INDICATORS_COLUMNS))
+                    * (FEATURES_LOOKBACK + 1)
+                )
             )
         )
         MODEL.add(
@@ -126,7 +135,7 @@ def train():
     # this return the history... could be ploted or something
     MODEL.fit(
         FEATURES, TARGETS,
-        epochs=1,  # TODO: config var?
+        epochs=10,  # TODO: config var?
         batch_size=1,
         shuffle=False,
         verbose=1  # TODO: check verbose level for this

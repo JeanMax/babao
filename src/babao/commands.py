@@ -9,7 +9,6 @@ import babao.utils.file as fu
 import babao.config as conf
 import babao.api.api as api
 import babao.data.resample as resamp
-# import babao.data.indicators as indic
 import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
 import babao.strategy.trainer as trainer
@@ -115,7 +114,6 @@ def _getData():
     full_data = resamp.resampleTradeData(
         fu.read(conf.DB_FILE, conf.TRADES_FRAME)
     )
-    # TODO: add indicators
 
     # TODO: we remove the head because there is not enough volume at first
     full_data = full_data.tail(int(len(full_data) * 0.7))

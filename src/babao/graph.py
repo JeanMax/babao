@@ -22,17 +22,6 @@ INDICATORS_COLUMNS = [
 MAX_LOOK_BACK = 26
 
 
-def _addIndicators(resampled_data):
-    """TODO"""
-
-    for indic_col in INDICATORS_COLUMNS:
-        a = indic_col.split("_")
-        fun, args = a[0], (resampled_data[a[1]], *tuple(a[2:]))
-        resampled_data[indic_col] = getattr(indic, fun)(*args)
-
-    return resampled_data
-
-
 def _resampleLedgerAndJoinTo(resampled_data, since):
     """
     Resample ´conf.RAW_LEDGER_FILE´ and join it to ´resampled_data´
@@ -115,7 +104,7 @@ def _getData(lock, block=False):
         pass
 
     DATA = resamp.resampleTradeData(DATA)
-    DATA = _addIndicators(DATA).dropna()
+    DATA = indic.get(DATA, INDICATORS_COLUMNS).dropna()
     du.to_datetime(DATA)
     DATA = _resampleLedgerAndJoinTo(DATA, since)
 

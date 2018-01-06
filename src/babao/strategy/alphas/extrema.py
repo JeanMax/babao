@@ -18,6 +18,7 @@ import joblib  # just use pickle instead?
 
 import babao.config as conf
 import babao.utils.log as log
+import babao.data.indicators as indic
 
 MODEL = None
 FEATURES = None
@@ -25,9 +26,10 @@ TARGETS = None
 SCALE = 100000
 REQUIRED_COLUMNS = [
     "vwap", "volume",
-    # TODO
-    # "SMA_vwap_3", "SMA_volume_3",
-    # "SMA_vwap_2", "SMA_volume_2"
+]
+INDICATORS_COLUMNS = [
+    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
+    "SMA_volume_26", "SMA_volume_77",
 ]
 
 
@@ -46,6 +48,7 @@ def _prepareFeatures(full_data):
         if col not in REQUIRED_COLUMNS:
             del FEATURES[col]
 
+    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
     FEATURES = scale(FEATURES).values
 
 
@@ -74,6 +77,7 @@ def _prepareTargets(full_data, lookback):
 
     global TARGETS
     TARGETS = _findExtrema(lookback, full_data["vwap"])
+    TARGETS = TARGETS[-len(FEATURES):]
 
 
 def prepare(full_data, targets=False):
@@ -85,7 +89,7 @@ def prepare(full_data, targets=False):
 
     _prepareFeatures(full_data)
     if targets:
-        lookback = 47
+        lookback = 47  # TODO: nice one
         _prepareTargets(full_data, lookback)
 
         global FEATURES
