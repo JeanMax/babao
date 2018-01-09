@@ -118,7 +118,8 @@ def load():
     """Load the ´MODEL´ saved in ´conf.ALPHA_EXTREMA_FILE´"""
 
     global MODEL
-    MODEL = joblib.load(conf.ALPHA_EXTREMA_FILE)
+    if MODEL is None:
+        MODEL = joblib.load(conf.ALPHA_EXTREMA_FILE)
 
 
 def _mergeCategories(arr):
@@ -150,7 +151,7 @@ def getMergedTargets():
     return TARGETS  # this is already merged
 
 
-# TODO: scale/unscale identicals in tendency.py
+# TODO: upgrade scale/unscale
 def scale(arr):
     """Scale features before train/predict"""
 

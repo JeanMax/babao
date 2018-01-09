@@ -3,6 +3,7 @@
 import time
 import os
 import signal
+import numpy as np
 
 import babao.utils.log as log
 import babao.utils.file as fu
@@ -16,6 +17,9 @@ import babao.strategy.trainer as trainer
 EXIT = 0
 TICK = None
 LOCK = None
+
+DATA_SET_LEN = 1000  # lenght of train/test data sets TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 1  # TODO: config-var?
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -116,10 +120,9 @@ def _getData():
     )
 
     # TODO: we remove the head because there is not enough volume at first
-    full_data = full_data.tail(int(len(full_data) * 0.7))
-    split_index = int(len(full_data) * 0.5)
+    # full_data = full_data.tail(int(len(full_data) * 0.7))
 
-    return full_data[:split_index], full_data[split_index:]
+    return full_data[:-DATA_SET_LEN], full_data[-DATA_SET_LEN:]
 
 
 def wetRun(args):
@@ -231,12 +234,23 @@ def train(args):
     # _initCmd(args.graph, simulate=True, with_api=False)
 
     train_data, test_data = _getData()
-    trainer.prepareAlphas(train_data, targets=True)
-    trainer.trainAlphas()
+
+    splits_size = int(len(train_data) / DATA_SET_LEN)
+    splits = np.array_split(train_data, splits_size)
+
+    start = splits_size - NUMBER_OF_TRAIN_SETS
+    if start < 0:
+        start = 0
+    for i in range(start, splits_size):
+        log.debug("Using train set", i + 1, "/", splits_size)
+
+        trainer.prepareAlphas(splits[i], targets=True)
+        trainer.trainAlphas()
+
+        if args.graph:
+            trainer.plotAlphas(splits[i])
 
     if args.graph:
-        trainer.plotAlphas(train_data)
-
         trainer.prepareAlphas(test_data, targets=False)
         trainer.plotAlphas(test_data)
 

@@ -17,16 +17,22 @@ import babao.data.indicators as indic
 MODEL = None
 FEATURES = None
 TARGETS = None
-SCALE = 100000
-FEATURES_LOOKBACK = 47  # TODO
+SCALE_MAX = 100000
+SCALE_MIN = 0
+FEATURES_LOOKBACK = 0  # TODO
 REQUIRED_COLUMNS = [
-    "vwap", "volume",
-    "high", "low", "close",  # "open",
+    "vwap",  # "volume",
+    # "high", "low",
+    # "close", "open",
 ]
 INDICATORS_COLUMNS = [
-    "SMA_vwap_26", "SMA_vwap_77",
-    "SMA_volume_26", "SMA_volume_77",
+    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
+    # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
 ]
+
+BATCH_SIZE = 1
+HIDDEN_SIZE = 32
+EPOCHS = 5  # TODO: config var?
 
 
 def _prepareFeatures(full_data, lookback):
@@ -59,7 +65,12 @@ def _prepareFeatures(full_data, lookback):
             del FEATURES[c]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = _addLookbacks(scale(FEATURES), lookback)
+    FEATURES = scale(FEATURES)
+    FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
+    FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
+    FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
+    FEATURES["MACD_26_77_10"] = indic.SMA(FEATURES["SMA_26-77"], 10)
+    FEATURES = _addLookbacks(FEATURES, lookback)
     FEATURES = _reshape(FEATURES.values)
 
 
@@ -96,6 +107,10 @@ def prepare(full_data, targets=False):
 
         global FEATURES
         global TARGETS
+        global SCALE_MAX
+        global SCALE_MIN
+        SCALE_MAX = max(full_data.max())
+        SCALE_MIN = min(full_data.min())
         FEATURES = FEATURES[:-targets_lookback]
         TARGETS = TARGETS[FEATURES_LOOKBACK:-targets_lookback]
         TARGETS = TARGETS[-len(FEATURES):]
@@ -111,14 +126,33 @@ def train():
         MODEL = kmod.Sequential()
         MODEL.add(
             klay.LSTM(
-                128,
+                HIDDEN_SIZE,
                 input_shape=(
-                    1,
-                    (len(REQUIRED_COLUMNS) + len(INDICATORS_COLUMNS))
-                    * (FEATURES_LOOKBACK + 1)
-                )
+                    BATCH_SIZE,
+                    FEATURES.shape[2]
+                ),
+                batch_input_shape=(
+                    BATCH_SIZE,
+                    FEATURES.shape[1],
+                    FEATURES.shape[2]
+                ),
+                return_sequences=True,
+                # stateful=True
             )
         )
+        # MODEL.add(
+        #     klay.LSTM(
+        #         HIDDEN_SIZE,
+        #         return_sequences=True,
+        #         # stateful=True
+        #     )
+        # )
+        # MODEL.add(
+        #     klay.LSTM(
+        #         HIDDEN_SIZE,
+        #         # stateful=True
+        #     )
+        # )
         MODEL.add(
             klay.Dense(
                 3,
@@ -135,15 +169,18 @@ def train():
     # this return the history... could be ploted or something
     MODEL.fit(
         FEATURES, TARGETS,
-        epochs=10,  # TODO: config var?
-        batch_size=1,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=False,
         verbose=1  # TODO: check verbose level for this
     )   # TODO: make this interuptible
 
-    # TODO: check verbose level for this
-    score = MODEL.evaluate(FEATURES, TARGETS, verbose=2)
-    log.debug("score:", score)
+    # score = MODEL.evaluate(
+    #     FEATURES, TARGETS,
+    #     batch_size=BATCH_SIZE,
+    #     verbose=2  # TODO: check verbose level for this
+    # )
+    # log.debug("score:", score)
 
 
 def save():
@@ -156,7 +193,8 @@ def load():
     """Load the ´MODEL´ saved in ´conf.ALPHA_TENDENCY_FILE´"""
 
     global MODEL
-    MODEL = kmod.load_model(conf.ALPHA_TENDENCY_FILE)
+    if MODEL is None:
+        MODEL = kmod.load_model(conf.ALPHA_TENDENCY_FILE)
 
 
 def _mergeCategories(arr):
@@ -179,8 +217,11 @@ def predict(X=None):
     if len(X) == 1:
         X = np.array([X])
 
-    # TODO: check verbose level for this
-    return _mergeCategories(MODEL.predict_proba(X, verbose=2))
+    return _mergeCategories(MODEL.predict_proba(
+        X,
+        batch_size=BATCH_SIZE,
+        verbose=2  # TODO: check verbose level for this
+    ))
 
 
 def getMergedTargets():
@@ -192,17 +233,17 @@ def getMergedTargets():
     return _mergeCategories(TARGETS)
 
 
-# TODO: scale/unscale identicals in extrema.py
+# TODO: move scale/unscale to an inherited obj
 def scale(arr):
     """Scale features before train/predict"""
 
-    return arr / SCALE
+    return (arr - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)
 
 
 def unscale(arr):
     """Unscale features after train/predict"""
 
-    return arr * SCALE
+    return arr * (SCALE_MAX - SCALE_MIN) + SCALE_MIN
 
 
 # def _optimizeTargets(full_data):
