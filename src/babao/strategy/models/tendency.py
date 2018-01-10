@@ -15,7 +15,9 @@ import babao.strategy.modelHelper as modelHelper
 MODEL = None
 FEATURES = None
 TARGETS = None
+
 FEATURES_LOOKBACK = 0  # TODO
+
 REQUIRED_COLUMNS = [
     "vwap",  # "volume",
     # "high", "low",
@@ -28,7 +30,7 @@ INDICATORS_COLUMNS = [
 
 BATCH_SIZE = 1
 HIDDEN_SIZE = 32
-EPOCHS = 5  # TODO: config var?
+EPOCHS = 5
 
 
 def _prepareFeatures(full_data, lookback):
@@ -90,7 +92,7 @@ def _prepareTargets(full_data, lookback):
     )[::-1]
 
 
-def prepare(full_data, targets=False):
+def prepare(full_data, train_mode=False):
     """
     Prepare features and targets for training (copy)
 
@@ -98,7 +100,7 @@ def prepare(full_data, targets=False):
     """
 
     _prepareFeatures(full_data, FEATURES_LOOKBACK)
-    if targets:
+    if train_mode:
         targets_lookback = 47  # _optimizeTargets(full_data)
         _prepareTargets(full_data, targets_lookback)
 
@@ -109,57 +111,64 @@ def prepare(full_data, targets=False):
         TARGETS = TARGETS[-len(FEATURES):]
 
 
+def _createModel():
+    """Seting up the model with keras"""
+
+    from keras.models import Sequential  # lazy load...
+    from keras.layers import LSTM, Dense  # lazy load...
+    global MODEL
+
+    MODEL = Sequential()
+    MODEL.add(
+        LSTM(
+            HIDDEN_SIZE,
+            input_shape=(
+                BATCH_SIZE,
+                FEATURES.shape[2]
+            ),
+            batch_input_shape=(
+                BATCH_SIZE,
+                FEATURES.shape[1],
+                FEATURES.shape[2]
+            ),
+            return_sequences=True,
+            # stateful=True
+        )
+    )
+    # MODEL.add(
+    #     LSTM(
+    #         HIDDEN_SIZE,
+    #         return_sequences=True,
+    #         # stateful=True
+    #     )
+    # )
+    # MODEL.add(
+    #     LSTM(
+    #         HIDDEN_SIZE,
+    #         # stateful=True
+    #     )
+    # )
+    MODEL.add(
+        Dense(
+            3,
+            activation='softmax'
+        )
+    )
+
+    MODEL.compile(
+        loss='categorical_crossentropy',
+        optimizer='adam',
+        metrics=['accuracy']
+    )
+
+
 def train():
     """Fit the ´MODEL´"""
 
     log.debug("Train tendency")
 
-    global MODEL
     if MODEL is None:
-        from keras.models import Sequential  # lazy load...
-        from keras.layers import LSTM, Dense  # lazy load...
-        MODEL = Sequential()
-        MODEL.add(
-            LSTM(
-                HIDDEN_SIZE,
-                input_shape=(
-                    BATCH_SIZE,
-                    FEATURES.shape[2]
-                ),
-                batch_input_shape=(
-                    BATCH_SIZE,
-                    FEATURES.shape[1],
-                    FEATURES.shape[2]
-                ),
-                return_sequences=True,
-                # stateful=True
-            )
-        )
-        # MODEL.add(
-        #     LSTM(
-        #         HIDDEN_SIZE,
-        #         return_sequences=True,
-        #         # stateful=True
-        #     )
-        # )
-        # MODEL.add(
-        #     LSTM(
-        #         HIDDEN_SIZE,
-        #         # stateful=True
-        #     )
-        # )
-        MODEL.add(
-            Dense(
-                3,
-                activation='softmax'
-            )
-        )
-
-        MODEL.compile(
-            loss='categorical_crossentropy',
-            optimizer='adam',
-            metrics=['accuracy']
-        )
+        _createModel()
 
     # this return the history... could be ploted or something
     MODEL.fit(
@@ -167,13 +176,13 @@ def train():
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        verbose=1  # TODO: check verbose level for this
+        verbose=modelHelper.getVerbose()
     )   # TODO: make this interuptible
 
     # score = MODEL.evaluate(
     #     FEATURES, TARGETS,
     #     batch_size=BATCH_SIZE,
-    #     verbose=2  # TODO: check verbose level for this
+    #     verbose=modelHelper.getVerbose()
     # )
     # log.debug("score:", score)
 
@@ -216,7 +225,7 @@ def predict(X=None):
     return _mergeCategories(MODEL.predict_proba(
         X,
         batch_size=BATCH_SIZE,
-        verbose=2  # TODO: check verbose level for this
+        # verbose=modelHelper.getVerbose()
     ))
 
 

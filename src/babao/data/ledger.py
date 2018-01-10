@@ -42,12 +42,11 @@ def setLog(enable_file_logging):
     LOG_TO_FILE = enable_file_logging
 
 
-def _logTransaction(led_dic, write_to_file=True, timestamp=None):
+def _logTransaction(led_dic, timestamp=None):
     """
     Log transaction in a csv ledger file
 
     ´led_dic´ is a dict with keys == conf.RAW_LEDGER_COLUMNS
-    if ´write_to_file´ is True, write entry to conf.LEDGER_FILE
     if ´timestamp´ is not given, the current time will be used
     """
 
@@ -66,11 +65,10 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
             index=[timestamp]
         ).fillna(0)
 
-    for c in led_df.columns:
-        if c != "type":
-            led_df[c] = led_df[c].astype(float)
+        for c in led_df.columns:
+            if c != "type":
+                led_df[c] = led_df[c].astype(float)
 
-    if write_to_file:  # TODO
         fu.write(conf.DB_FILE, conf.LEDGER_FRAME, led_df)
 
 

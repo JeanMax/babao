@@ -1,11 +1,12 @@
 """
 The functions shared between the between the differents models are here
 
-THey could be called from the models themselves, or from the modelManager
+They could be called from the models themselves, or from the modelManager
 """
 
 import pandas as pd
 
+import babao.utils.log as log
 import babao.utils.date as du
 
 SCALE_MAX = 100000
@@ -29,14 +30,15 @@ def plotModel(model, full_data):
 
     plot_scale = plot_data["vwap"].max() * 2
 
-    targets = model.getMergedTargets()
-    if targets is not None:
-        plot_data["y"] = targets * plot_scale * 0.8
-        plot_data["y-sell"] = plot_data["y"].where(plot_data["y"] > 0)
-        plot_data["y-buy"] = plot_data["y"].where(plot_data["y"] < 0) * -1
+    if hasattr(model, "TARGETS"):
+        targets = model.getMergedTargets()
+        if targets is not None:
+            plot_data["y"] = targets * plot_scale * 0.8
+            plot_data["y-sell"] = plot_data["y"].where(plot_data["y"] > 0)
+            plot_data["y-buy"] = plot_data["y"].where(plot_data["y"] < 0) * -1
 
-        plot_data["y-sell"].replace(0, plot_scale, inplace=True)
-        plot_data["y-buy"].replace(0, plot_scale, inplace=True)
+            plot_data["y-sell"].replace(0, plot_scale, inplace=True)
+            plot_data["y-buy"].replace(0, plot_scale, inplace=True)
 
     plot_data["p"] = model.predict() * plot_scale
     plot_data["p-sell"] = plot_data["p"].where(plot_data["p"] > 0)
@@ -74,3 +76,9 @@ def unscale(arr):
     """Unscale features after train/predict"""
 
     return arr * (SCALE_MAX - SCALE_MIN) + SCALE_MIN
+
+
+def getVerbose():
+    """Transform our verbose level to match keras one"""
+
+    return int(log.VERBOSE / 2) if log.VERBOSE != 1 else 1

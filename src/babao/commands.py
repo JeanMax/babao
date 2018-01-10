@@ -19,7 +19,7 @@ TICK = None
 LOCK = None
 
 DATA_SET_LEN = 1000  # lenght of train/test data sets TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 1  # TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 3  # TODO: config-var?
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -244,14 +244,14 @@ def train(args):
     for i in range(start, splits_size):
         log.debug("Using train set", i + 1, "/", splits_size)
 
-        modelManager.prepareModels(splits[i], targets=True)
+        modelManager.prepareModels(splits[i], train_mode=True)
         modelManager.trainModels()
 
         if args.graph:
             modelManager.plotModels(splits[i])
 
     if args.graph:
-        modelManager.prepareModels(test_data, targets=False)
+        modelManager.prepareModels(test_data, train_mode=False)
         modelManager.plotModels(test_data)
 
         import matplotlib.pyplot as plt

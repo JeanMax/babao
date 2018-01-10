@@ -9,14 +9,16 @@ import numpy as np
 
 import babao.utils.log as log
 import babao.strategy.modelHelper as modelHelper
-import babao.strategy.models.extrema as extrema
-import babao.strategy.models.tendency as tendency
+# import babao.strategy.models.extrema as extrema
+# import babao.strategy.models.tendency as tendency
+import babao.strategy.models.qlearn as qlearn
 
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 MODELS_LIST = [
-    extrema,
-    tendency,
+    # extrema,
+    # tendency,
+    qlearn,
 ]  # TODO: config var eventually
 
 FEATURES_LEN = 0
@@ -33,7 +35,7 @@ def plotModels(full_data):
         modelHelper.plotModel(model, full_data)
 
 
-def prepareModels(full_data, targets=False):
+def prepareModels(full_data, train_mode=False):
     """
     Prepare features (and eventually targets) for all models
 
@@ -43,7 +45,7 @@ def prepareModels(full_data, targets=False):
 
     len_list = []
     for model in MODELS_LIST:
-        model.prepare(full_data, targets)
+        model.prepare(full_data, train_mode)
         len_list.append(len(model.FEATURES))
 
     global FEATURES_LEN
