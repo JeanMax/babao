@@ -1,5 +1,5 @@
 """
-The idea of that alpha is to find local extrema,
+The idea of that model is to find local extrema,
 then classify them as minimum/nop/maximum (-1/0/1)
 using a knn classifier (sklearn)
 """
@@ -37,7 +37,7 @@ def _prepareFeatures(full_data):
     """
     Prepare features for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     global FEATURES
@@ -56,7 +56,7 @@ def _prepareTargets(full_data, lookback):
     """
     Prepare targets for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     def _findExtrema(lookback, prices):
@@ -84,7 +84,7 @@ def prepare(full_data, targets=False):
     """
     Prepare features and targets for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     _prepareFeatures(full_data)
@@ -109,21 +109,21 @@ def train(k=3):
 
 
 def save():
-    """Save the ´MODEL´ to ´conf.ALPHA_EXTREMA_FILE´"""
+    """Save the ´MODEL´ to ´conf.MODEL_EXTREMA_FILE´"""
 
-    joblib.dump(MODEL, conf.ALPHA_EXTREMA_FILE)
+    joblib.dump(MODEL, conf.MODEL_EXTREMA_FILE)
 
 
 def load():
-    """Load the ´MODEL´ saved in ´conf.ALPHA_EXTREMA_FILE´"""
+    """Load the ´MODEL´ saved in ´conf.MODEL_EXTREMA_FILE´"""
 
     global MODEL
     if MODEL is None:
-        MODEL = joblib.load(conf.ALPHA_EXTREMA_FILE)
+        MODEL = joblib.load(conf.MODEL_EXTREMA_FILE)
 
 
 def _mergeCategories(arr):
-    """TODO: we could use a generic function for all alphas"""
+    """TODO: we could use a generic function for all models"""
 
     df = pd.DataFrame(arr, columns=["buy", "hold", "sell"])
     return (df["sell"] - df["buy"]).values

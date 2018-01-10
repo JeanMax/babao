@@ -12,7 +12,7 @@ import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
-import babao.strategy.trainer as trainer
+import babao.strategy.modelManager as modelManager
 
 EXIT = 0
 TICK = None
@@ -97,7 +97,7 @@ def _initCmd(graph=False, simulate=False, with_api=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     strat.initLastTransactionPrice()
-    trainer.loadAlphas()
+    modelManager.loadModels()
 
     if with_api:
         api.initKey()
@@ -149,7 +149,7 @@ def dryRun(args):
         if not fresh_data.empty:
             fresh_data = resamp.resampleTradeData(fresh_data)
 
-            trainer.prepareAlphas(fresh_data)
+            modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
             current_price = fresh_data.at[timestamp, "close"]
             strat.analyse(
@@ -193,7 +193,7 @@ def backtest(args):
     _initCmd(args.graph, simulate=True, with_api=False)
 
     big_fat_data = _getData()[1]
-    trainer.prepareAlphas(big_fat_data)
+    modelManager.prepareModels(big_fat_data)
     big_fat_data_index = big_fat_data.index.values
     big_fat_data_prices = big_fat_data["close"].values
     del big_fat_data
@@ -244,15 +244,15 @@ def train(args):
     for i in range(start, splits_size):
         log.debug("Using train set", i + 1, "/", splits_size)
 
-        trainer.prepareAlphas(splits[i], targets=True)
-        trainer.trainAlphas()
+        modelManager.prepareModels(splits[i], targets=True)
+        modelManager.trainModels()
 
         if args.graph:
-            trainer.plotAlphas(splits[i])
+            modelManager.plotModels(splits[i])
 
     if args.graph:
-        trainer.prepareAlphas(test_data, targets=False)
-        trainer.plotAlphas(test_data)
+        modelManager.prepareModels(test_data, targets=False)
+        modelManager.plotModels(test_data)
 
         import matplotlib.pyplot as plt
         plt.show()
