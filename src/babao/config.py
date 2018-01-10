@@ -13,8 +13,8 @@ LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 DB_FILE = None
 TRADES_FRAME = "trades"
 LEDGER_FRAME = None
-ALPHA_EXTREMA_FILE = None
-ALPHA_TENDENCY_FILE = None
+MODEL_EXTREMA_FILE = None
+MODEL_TENDENCY_FILE = None
 
 RAW_TRADES_COLUMNS = [
     "price", "volume"
@@ -52,8 +52,8 @@ def readConfigFile(cmd_name="unamed"):
     global MAX_GRAPH_POINTS
     global DB_FILE
     global LEDGER_FRAME
-    global ALPHA_EXTREMA_FILE
-    global ALPHA_TENDENCY_FILE
+    global MODEL_EXTREMA_FILE
+    global MODEL_TENDENCY_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -92,5 +92,5 @@ def readConfigFile(cmd_name="unamed"):
     if cmd_name == "backtest":
         LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
 
-    ALPHA_EXTREMA_FILE = pre + "-extrema.pkl"
-    ALPHA_TENDENCY_FILE = pre + "-tendency.h5"
+    MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
+    MODEL_TENDENCY_FILE = pre + "-tendency.h5"

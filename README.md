@@ -80,5 +80,4 @@ Run 'babao <command> --help' for detailed help.
 * grep -ri todo
 * improve features scaling
 * there is a concurrent access issue with the hdf database (core/graph)
-* refactor alphas as objects (and renames these... "models"?)
 * switch to another market api

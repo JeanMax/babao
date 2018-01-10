@@ -1,24 +1,20 @@
 """
-The idea of that alpha is to find local extrema,
+The idea of that model is to find local extrema,
 then classify them as 0 (hold), 1 (sell), 2 (buy)
 using a lstm neural network (keras)
 """
 
 import pandas as pd
 import numpy as np
-import keras.models as kmod
-import keras.layers as klay
-import keras.utils.np_utils as kuti
 
 import babao.utils.log as log
 import babao.config as conf
 import babao.data.indicators as indic
+import babao.strategy.modelHelper as modelHelper
 
 MODEL = None
 FEATURES = None
 TARGETS = None
-SCALE_MAX = 100000
-SCALE_MIN = 0
 FEATURES_LOOKBACK = 0  # TODO
 REQUIRED_COLUMNS = [
     "vwap",  # "volume",
@@ -39,7 +35,7 @@ def _prepareFeatures(full_data, lookback):
     """
     Prepare features for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     def _addLookbacks(df, lookback):
@@ -65,7 +61,7 @@ def _prepareFeatures(full_data, lookback):
             del FEATURES[c]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = scale(FEATURES)
+    FEATURES = modelHelper.scale_fit(FEATURES)
     FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
     FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
     FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
@@ -79,13 +75,14 @@ def _prepareTargets(full_data, lookback):
     Prepare targets for training (copy)
     0 (nop), 1 (sell), 2 (buy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     global TARGETS
+    from keras.utils.np_utils import to_categorical  # lazy load...
 
     rev = full_data["vwap"][::-1]
-    TARGETS = kuti.to_categorical(
+    TARGETS = to_categorical(
         (
             (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
             | (rev.rolling(lookback).max() == rev).astype(int)
@@ -97,7 +94,7 @@ def prepare(full_data, targets=False):
     """
     Prepare features and targets for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     _prepareFeatures(full_data, FEATURES_LOOKBACK)
@@ -107,10 +104,6 @@ def prepare(full_data, targets=False):
 
         global FEATURES
         global TARGETS
-        global SCALE_MAX
-        global SCALE_MIN
-        SCALE_MAX = max(full_data.max())
-        SCALE_MIN = min(full_data.min())
         FEATURES = FEATURES[:-targets_lookback]
         TARGETS = TARGETS[FEATURES_LOOKBACK:-targets_lookback]
         TARGETS = TARGETS[-len(FEATURES):]
@@ -123,9 +116,11 @@ def train():
 
     global MODEL
     if MODEL is None:
-        MODEL = kmod.Sequential()
+        from keras.models import Sequential  # lazy load...
+        from keras.layers import LSTM, Dense  # lazy load...
+        MODEL = Sequential()
         MODEL.add(
-            klay.LSTM(
+            LSTM(
                 HIDDEN_SIZE,
                 input_shape=(
                     BATCH_SIZE,
@@ -141,20 +136,20 @@ def train():
             )
         )
         # MODEL.add(
-        #     klay.LSTM(
+        #     LSTM(
         #         HIDDEN_SIZE,
         #         return_sequences=True,
         #         # stateful=True
         #     )
         # )
         # MODEL.add(
-        #     klay.LSTM(
+        #     LSTM(
         #         HIDDEN_SIZE,
         #         # stateful=True
         #     )
         # )
         MODEL.add(
-            klay.Dense(
+            Dense(
                 3,
                 activation='softmax'
             )
@@ -184,21 +179,22 @@ def train():
 
 
 def save():
-    """Save the ´MODEL´ to ´conf.ALPHA_TENDENCY_FILE´"""
+    """Save the ´MODEL´ to ´conf.MODEL_TENDENCY_FILE´"""
 
-    MODEL.save(conf.ALPHA_TENDENCY_FILE)
+    MODEL.save(conf.MODEL_TENDENCY_FILE)
 
 
 def load():
-    """Load the ´MODEL´ saved in ´conf.ALPHA_TENDENCY_FILE´"""
+    """Load the ´MODEL´ saved in ´conf.MODEL_TENDENCY_FILE´"""
 
     global MODEL
     if MODEL is None:
-        MODEL = kmod.load_model(conf.ALPHA_TENDENCY_FILE)
+        from keras.models import load_model  # lazy load...
+        MODEL = load_model(conf.MODEL_TENDENCY_FILE)
 
 
 def _mergeCategories(arr):
-    """TODO: we could use a generic function for all alphas"""
+    """TODO: we could use a generic function for all models"""
 
     df = pd.DataFrame(arr, columns=["hold", "sell", "buy"])
     return (df["sell"] - df["buy"]).values
@@ -231,19 +227,6 @@ def getMergedTargets():
         return None
 
     return _mergeCategories(TARGETS)
-
-
-# TODO: move scale/unscale to an inherited obj
-def scale(arr):
-    """Scale features before train/predict"""
-
-    return (arr - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)
-
-
-def unscale(arr):
-    """Unscale features after train/predict"""
-
-    return arr * (SCALE_MAX - SCALE_MIN) + SCALE_MIN
 
 
 # def _optimizeTargets(full_data):

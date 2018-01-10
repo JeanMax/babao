@@ -1,5 +1,5 @@
 """
-The idea of that alpha is to find local extrema,
+The idea of that model is to find local extrema,
 then classify them as minimum/nop/maximum (-1/0/1)
 using a knn classifier (sklearn)
 """
@@ -16,6 +16,7 @@ from sklearn import neighbors
 # from sklearn.externals import joblib
 import joblib  # just use pickle instead?
 
+import babao.strategy.modelHelper as modelHelper
 import babao.config as conf
 import babao.utils.log as log
 import babao.data.indicators as indic
@@ -23,7 +24,6 @@ import babao.data.indicators as indic
 MODEL = None
 FEATURES = None
 TARGETS = None
-SCALE = 100000
 REQUIRED_COLUMNS = [
     "vwap", "volume",
 ]
@@ -37,7 +37,7 @@ def _prepareFeatures(full_data):
     """
     Prepare features for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     global FEATURES
@@ -49,14 +49,14 @@ def _prepareFeatures(full_data):
             del FEATURES[col]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = scale(FEATURES).values
+    FEATURES = modelHelper.scale_fit(FEATURES).values
 
 
 def _prepareTargets(full_data, lookback):
     """
     Prepare targets for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     def _findExtrema(lookback, prices):
@@ -84,7 +84,7 @@ def prepare(full_data, targets=False):
     """
     Prepare features and targets for training (copy)
 
-    ´full_data´: cf. ´prepareAlphas´
+    ´full_data´: cf. ´prepareModels´
     """
 
     _prepareFeatures(full_data)
@@ -104,26 +104,27 @@ def train(k=3):
     log.debug("Train extrema")
 
     global MODEL
-    MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
+    if MODEL is None:
+        MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
     MODEL.fit(FEATURES, TARGETS)
 
 
 def save():
-    """Save the ´MODEL´ to ´conf.ALPHA_EXTREMA_FILE´"""
+    """Save the ´MODEL´ to ´conf.MODEL_EXTREMA_FILE´"""
 
-    joblib.dump(MODEL, conf.ALPHA_EXTREMA_FILE)
+    joblib.dump(MODEL, conf.MODEL_EXTREMA_FILE)
 
 
 def load():
-    """Load the ´MODEL´ saved in ´conf.ALPHA_EXTREMA_FILE´"""
+    """Load the ´MODEL´ saved in ´conf.MODEL_EXTREMA_FILE´"""
 
     global MODEL
     if MODEL is None:
-        MODEL = joblib.load(conf.ALPHA_EXTREMA_FILE)
+        MODEL = joblib.load(conf.MODEL_EXTREMA_FILE)
 
 
 def _mergeCategories(arr):
-    """TODO: we could use a generic function for all alphas"""
+    """TODO: we could use a generic function for all models"""
 
     df = pd.DataFrame(arr, columns=["buy", "hold", "sell"])
     return (df["sell"] - df["buy"]).values
@@ -149,16 +150,3 @@ def getMergedTargets():
         return None
 
     return TARGETS  # this is already merged
-
-
-# TODO: upgrade scale/unscale
-def scale(arr):
-    """Scale features before train/predict"""
-
-    return arr / SCALE
-
-
-def unscale(arr):
-    """Unscale features after train/predict"""
-
-    return arr * SCALE
