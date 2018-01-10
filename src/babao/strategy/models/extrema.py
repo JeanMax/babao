@@ -16,6 +16,7 @@ from sklearn import neighbors
 # from sklearn.externals import joblib
 import joblib  # just use pickle instead?
 
+import babao.strategy.modelHelper as modelHelper
 import babao.config as conf
 import babao.utils.log as log
 import babao.data.indicators as indic
@@ -23,7 +24,6 @@ import babao.data.indicators as indic
 MODEL = None
 FEATURES = None
 TARGETS = None
-SCALE = 100000
 REQUIRED_COLUMNS = [
     "vwap", "volume",
 ]
@@ -49,7 +49,7 @@ def _prepareFeatures(full_data):
             del FEATURES[col]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = scale(FEATURES).values
+    FEATURES = modelHelper.scale_fit(FEATURES).values
 
 
 def _prepareTargets(full_data, lookback):
@@ -104,7 +104,8 @@ def train(k=3):
     log.debug("Train extrema")
 
     global MODEL
-    MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
+    if MODEL is None:
+        MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
     MODEL.fit(FEATURES, TARGETS)
 
 
@@ -149,16 +150,3 @@ def getMergedTargets():
         return None
 
     return TARGETS  # this is already merged
-
-
-# TODO: upgrade scale/unscale
-def scale(arr):
-    """Scale features before train/predict"""
-
-    return arr / SCALE
-
-
-def unscale(arr):
-    """Unscale features after train/predict"""
-
-    return arr * SCALE

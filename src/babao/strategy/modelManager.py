@@ -6,17 +6,17 @@ so you can use these wrappers to call all of them at once.
 """
 
 import numpy as np
-import pandas as pd
 
 import babao.utils.log as log
-import babao.utils.date as du
-import babao.strategy.models.extrema as model_extrema
-import babao.strategy.models.tendency as model_tendency
+import babao.strategy.modelHelper as modelHelper
+import babao.strategy.models.extrema as extrema
+import babao.strategy.models.tendency as tendency
+
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 MODELS_LIST = [
-    model_extrema,
-    model_tendency,
+    extrema,
+    tendency,
 ]  # TODO: config var eventually
 
 FEATURES_LEN = 0
@@ -29,46 +29,8 @@ def plotModels(full_data):
     ´full_data´ is the whole data(frame) used as feature before preparing it
     """
 
-    def _plot(model):
-        """Plot the given model"""
-
-        y = model.unscale(model.FEATURES)
-        # ndim should be 2/3, otherwise you deserve a crash
-        if y.ndim == 3:  # keras formated
-            y = y.reshape((y.shape[0], y.shape[2]))
-
-        plot_data = pd.DataFrame(y).iloc[:, :len(model.REQUIRED_COLUMNS)]
-        plot_data.columns = model.REQUIRED_COLUMNS
-        plot_data.index = full_data.index[:len(y)]
-        # TODO: these are not exactly the right indexes...
-
-        scale = plot_data["vwap"].max() * 2
-
-        targets = model.getMergedTargets()
-        if targets is not None:
-            plot_data["y"] = targets * scale * 0.8
-            plot_data["y-sell"] = plot_data["y"].where(plot_data["y"] > 0)
-            plot_data["y-buy"] = plot_data["y"].where(plot_data["y"] < 0) * -1
-
-            plot_data["y-sell"].replace(0, scale, inplace=True)
-            plot_data["y-buy"].replace(0, scale, inplace=True)
-
-        plot_data["p"] = model.predict() * scale
-        plot_data["p-sell"] = plot_data["p"].where(plot_data["p"] > 0)
-        plot_data["p-buy"] = plot_data["p"].where(plot_data["p"] < 0) * -1
-
-        for col in plot_data.columns:
-            if col not in ["vwap", "p-buy", "p-sell", "y-buy", "y-sell"]:
-                del plot_data[col]
-        du.to_datetime(plot_data)
-        plot_data.fillna(0, inplace=True)
-
-        plot_data.plot()
-        plt.show(block=False)
-
-    import matplotlib.pyplot as plt
     for model in MODELS_LIST:
-        _plot(model)
+        modelHelper.plotModel(model, full_data)
 
 
 def prepareModels(full_data, targets=False):
