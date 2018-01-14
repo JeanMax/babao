@@ -10,7 +10,6 @@ import babao.config as conf
 import babao.utils.log as log
 
 K = krakenex.API()
-C = krakenex.Connection()
 
 
 def initKey():
@@ -22,7 +21,6 @@ def initKey():
 def _doRequest(method, req=None):
     """General function for kraken api requests"""
 
-    global C
     if not req:
         req = {}
 
@@ -31,9 +29,9 @@ def _doRequest(method, req=None):
     while fail_counter > 0:  # really nice loop bro, respect... no goto tho
         try:
             if method == "Trades":
-                res = K.query_public(method, req, C)
+                res = K.query_public(method, req)
             else:
-                res = K.query_private(method, req, C)
+                res = K.query_private(method, req)
         except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
             log.warning("Network error while querying Kraken API!\n" + repr(e))
         except http.client.CannotSendRequest as e:
@@ -42,8 +40,7 @@ def _doRequest(method, req=None):
                 + "Restarting connection..."
                 + repr(e)
             )
-            C.close()
-            C = krakenex.Connection()
+            K.close()
         except ValueError as e:
             log.warning("ValueError while querying Kraken API!\n" + repr(e))
         # except Exception as e:
