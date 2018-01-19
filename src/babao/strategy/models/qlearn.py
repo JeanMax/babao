@@ -11,37 +11,39 @@ import babao.strategy.modelHelper as modelHelper
 
 MODEL = None
 FEATURES = None
-
-FEATURES_LOOKBACK = 24  # TODO
-
-REQUIRED_COLUMNS = [
-    "vwap",  # "volume",
-    # "high", "low",
-    "close",  # "open",
-]
-INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
-    # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
-]
+PREV_PRICE = None
 
 BUY = 0
-HOLD = 1
-SELL = 2
-NUM_ACTIONS = 3  # [buy, hold, sell]
+SELL = 1
+NUM_ACTIONS = 2  # [buy, sell]
 
-MIN_BAL = 50  # maximum drawdown
-
-ALPHA = 0.1  # learning rate
-EPSILON = 0.1  # exploration  # TODO: decrement?
-GAMMA = 0.9  # discount (1: long-term reward; 0: current-reward)
 XP = []
 MAX_XP = 10000
 
-BATCH_SIZE = 1
-HIDDEN_SIZE = 100
-EPOCHS = 100
+FEATURES_LOOKBACK = 48  # TODO
 
-PREV_PRICE = None
+REQUIRED_COLUMNS = [
+    "close",
+    "vwap",
+    "volume",
+    # "high", "low",
+    # "open",
+]
+INDICATORS_COLUMNS = [
+    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
+    "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
+]
+
+MIN_BAL = 50  # maximum drawdown
+MIN_TRANSACTION_PERCENT = 5
+
+ALPHA = 0.1  # learning rate
+EPSILON = 0.1  # exploration
+GAMMA = 0.9  # discount (1: long-term reward; 0: current-reward)
+
+BATCH_SIZE = 1
+HIDDEN_SIZE = 64
+EPOCHS = 200
 
 
 def prepare(full_data, train_mode=False):
@@ -98,7 +100,7 @@ def _gameOver(index, price):
     )
 
 
-def _buyOrSell(action, price):
+def _buyOrSell(action, price, index):
     """
     Apply the given action (if possible)
 
@@ -110,9 +112,16 @@ def _buyOrSell(action, price):
     reward = 0
 
     if action == SELL and ledger.BALANCE["crypto"] > 0.001:
-        reward = (price - (PREV_PRICE + PREV_PRICE / 100)) / PREV_PRICE * 100
+        # reward = (price - (PREV_PRICE + PREV_PRICE / 100)) / PREV_PRICE * 100
+        if price > PREV_PRICE + PREV_PRICE * MIN_TRANSACTION_PERCENT / 100:
+            reward = 1
+        elif price > PREV_PRICE + PREV_PRICE / 100:
+            reward = 0.1
+        else:
+            reward = -1
 
         if log.VERBOSE >= 4:
+            # TODO: add a verbose mode to ledger instead?
             log.info(
                 "Sold for", round(ledger.BALANCE["crypto"], 4),
                 "crypto @", int(price),
@@ -122,14 +131,21 @@ def _buyOrSell(action, price):
         ledger.logSell(
             ledger.BALANCE["crypto"],
             price,
-            crypto_fee=ledger.BALANCE["crypto"] / 100  # 1% fee
+            crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
+            timestamp=index
         )
 
         PREV_PRICE = price
 
     elif action == BUY and ledger.BALANCE["quote"] > 0.001:
         if PREV_PRICE is not None:
-            reward = (PREV_PRICE - (price + price / 100)) / PREV_PRICE * 100
+            # reward = (PREV_PRICE - (price + price / 100)) / PREV_PRICE * 100
+            if price < PREV_PRICE - PREV_PRICE * MIN_TRANSACTION_PERCENT / 100:
+                reward = 1
+            elif price < PREV_PRICE - PREV_PRICE / 100:
+                reward = 0.1
+            else:
+                reward = -1
 
         if log.VERBOSE >= 4:
             log.info(
@@ -141,7 +157,8 @@ def _buyOrSell(action, price):
         ledger.logBuy(
             ledger.BALANCE["quote"],
             price,
-            quote_fee=ledger.BALANCE["quote"] / 100  # 1% fee
+            quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
+            timestamp=index
         )
 
         PREV_PRICE = price
@@ -173,7 +190,6 @@ def _getBatch():
         np.random.randint(0, len(XP), BATCH_SIZE)[0]
     ]
 
-    # TODO: ALPHA
     target = MODEL.predict(
         feature,
         batch_size=BATCH_SIZE,
@@ -216,7 +232,7 @@ def _createModel():
     MODEL.add(
         Dense(
             NUM_ACTIONS,
-            activation="sigmoid"
+            # activation="sigmoid"
         )
     )
 
@@ -248,18 +264,19 @@ def train():
 
             price = modelHelper.unscale(feature[-1][0])
             game_over = _gameOver(i, price)
-            if np.random.rand() <= EPSILON:
+            if np.random.rand() <= EPSILON - (e + 1) / EPOCHS * EPSILON:
                 action = np.random.randint(0, NUM_ACTIONS, 1)[0]
             else:
-                action = np.argmax(
-                    MODEL.predict(
-                        feature,
-                        batch_size=BATCH_SIZE,
-                        # verbose=modelHelper.getVerbose()
-                    )[0]  # expected reward
-                )
+                expected_reward = MODEL.predict(
+                    feature,
+                    batch_size=BATCH_SIZE,
+                    # verbose=modelHelper.getVerbose()
+                )[0]
+                action = np.argmax(expected_reward)
+                if log.VERBOSE >= 4:
+                    log.info("expected_reward", expected_reward)
 
-            reward = _buyOrSell(action, price)
+            reward = _buyOrSell(action, price, i)
             rewardTotal += reward
 
             _saveExperience([feature, action, reward, next_feature, game_over])

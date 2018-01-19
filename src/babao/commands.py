@@ -19,7 +19,7 @@ TICK = None
 LOCK = None
 
 DATA_SET_LEN = 1000  # lenght of train/test data sets TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 3  # TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 5  # TODO: config-var?
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -117,10 +117,9 @@ def _getData():
     # (might be a cast issue somewhere else)
     full_data = resamp.resampleTradeData(
         fu.read(conf.DB_FILE, conf.TRADES_FRAME)
+        # TODO: we remove the head because there is not enough volume at first
+        .loc[int(time.time() * 1e9 - (2 * 365.25 * 24 * 60 * 60 * 10**9)):]
     )
-
-    # TODO: we remove the head because there is not enough volume at first
-    # full_data = full_data.tail(int(len(full_data) * 0.7))
 
     return full_data[:-DATA_SET_LEN], full_data[-DATA_SET_LEN:]
 

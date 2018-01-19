@@ -17,7 +17,7 @@ def plotModel(model, full_data):
     """Plot the given model"""
 
     import matplotlib.pyplot as plt  # lazy load...
-    # TODO: names figures, it's kinda annoying right now
+    # TODO: give names to figures, it's kinda annoying right now
 
     y = unscale(model.FEATURES)  # be sure it has been scale_fit'ed
     # ndim should be 2/3, otherwise you deserve a crash
