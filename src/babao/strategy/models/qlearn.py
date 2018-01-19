@@ -12,7 +12,7 @@ import babao.strategy.modelHelper as modelHelper
 MODEL = None
 FEATURES = None
 
-FEATURES_LOOKBACK = 0  # TODO
+FEATURES_LOOKBACK = 24  # TODO
 
 REQUIRED_COLUMNS = [
     "vwap",  # "volume",
@@ -20,7 +20,7 @@ REQUIRED_COLUMNS = [
     "close",  # "open",
 ]
 INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
+    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
     # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
 ]
 
@@ -41,6 +41,8 @@ BATCH_SIZE = 1
 HIDDEN_SIZE = 100
 EPOCHS = 100
 
+PREV_PRICE = None
+
 
 def prepare(full_data, train_mode=False):
     """
@@ -49,20 +51,21 @@ def prepare(full_data, train_mode=False):
     ´full_data´: cf. ´prepareModels´
     """
 
-    # TODO: use another dim for this, not more columns (3d)
-    def _addLookbacks(df, lookback):
+    def _addLookbacks(arr):
         """Add lookback(s) (shifted columns) to each df columns"""
-
-        for i in range(1, lookback + 1):
-            for c in df.columns:
-                if "lookback" not in c:
-                    df[c + "_lookback_" + str(i)] = df[c].shift(i)
-        return df.dropna()
-
-    def _reshape(arr):
         """Reshape the features to be keras-proof"""
 
-        return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
+        res = None
+        for i in range(len(arr) - FEATURES_LOOKBACK):
+            if res is None:
+                res = np.array([arr[i:i + FEATURES_LOOKBACK]])
+            else:
+                res = np.append(
+                    res,
+                    np.array([arr[i: i + FEATURES_LOOKBACK]]),
+                    axis=0
+                )
+        return res
 
     global FEATURES
     FEATURES = full_data.copy()
@@ -72,74 +75,82 @@ def prepare(full_data, train_mode=False):
         if c not in REQUIRED_COLUMNS:
             del FEATURES[c]
 
-    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
+    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS)
     FEATURES = modelHelper.scale_fit(FEATURES)
     FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
     FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
     FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
     FEATURES["MACD_26_77_10"] = indic.SMA(FEATURES["SMA_26-77"], 10)
-    FEATURES = _addLookbacks(FEATURES, FEATURES_LOOKBACK)
-    FEATURES = _reshape(FEATURES.values)
+    FEATURES = _addLookbacks(FEATURES.dropna().values)
 
     global MAX_XP
-    MAX_XP = len(FEATURES) * NUM_ACTIONS
+    MAX_XP = FEATURES.shape[0] * NUM_ACTIONS * FEATURES.shape[2]
 
     train_mode = train_mode  # unused...
 
 
-def _getReward(price, next_price):
-    """
-    Return a reward (between 1 and -1)
-    based on the performance of the previous action
-    """
+def _gameOver(index, price):
+    """Check if you're broke"""
 
-    bal = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
-    next_bal = ledger.BALANCE["crypto"] * next_price + ledger.BALANCE["quote"]
-    # reward = (next_price - price) / price - (next_bal - bal) / bal
-
-    reward = next_bal - bal
-
-    # log.debug("reward:", reward) # DEBUG
-
-    if reward > 1:
-        return 1
-    if reward < 1:
-        return -1
-    return reward
+    return bool(
+        ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+        < MIN_BAL
+    )
 
 
 def _buyOrSell(action, price):
     """
     Apply the given action (if possible)
 
-    TODO: this is very similar to strategy.strategy._buyOrSell
+    Return a reward (between 1 and -1)
+    based on the performance of the previous action
     """
 
+    global PREV_PRICE
+    reward = 0
+
     if action == SELL and ledger.BALANCE["crypto"] > 0.001:
-        # log.info(
-        #     "Sold for "
-        #     + str(ledger.BALANCE["crypto"])
-        #     + " crypto @ "
-        #     + str(price)
-        # )
+        reward = (price - (PREV_PRICE + PREV_PRICE / 100)) / PREV_PRICE * 100
+
+        if log.VERBOSE >= 4:
+            log.info(
+                "Sold for", round(ledger.BALANCE["crypto"], 4),
+                "crypto @", int(price),
+                "- reward:", round(reward, 4)
+            )
+
         ledger.logSell(
             ledger.BALANCE["crypto"],
             price,
             crypto_fee=ledger.BALANCE["crypto"] / 100  # 1% fee
         )
 
+        PREV_PRICE = price
+
     elif action == BUY and ledger.BALANCE["quote"] > 0.001:
-        # log.info(
-        #     "Bought for "
-        #     + str(ledger.BALANCE["quote"])
-        #     + " quote @ "
-        #     + str(price)
-        # )
+        if PREV_PRICE is not None:
+            reward = (PREV_PRICE - (price + price / 100)) / PREV_PRICE * 100
+
+        if log.VERBOSE >= 4:
+            log.info(
+                "Bought for", round(ledger.BALANCE["quote"], 2),
+                "quote @", int(price),
+                "- reward:", round(reward, 4)
+            )
+
         ledger.logBuy(
             ledger.BALANCE["quote"],
             price,
             quote_fee=ledger.BALANCE["quote"] / 100  # 1% fee
         )
+
+        PREV_PRICE = price
+
+    if reward > 1:
+        return 1
+    if reward < -1:
+        return -1
+    return reward
 
 
 def _saveExperience(xp):
@@ -204,25 +215,19 @@ def _createModel():
     )
     MODEL.add(
         Dense(
-            NUM_ACTIONS
+            NUM_ACTIONS,
+            activation="sigmoid"
         )
     )
-    MODEL.compile(sgd(lr=.1), "sigmoid")
+
+    MODEL.compile(
+        sgd(lr=.1),
+        loss="mse"
+    )
 
 
 def train():
     """Train"""
-
-    # X_len = len(FEATURES)  # TODO (needed in _gameOver)
-    def _gameOver(index, price):
-        """Check if an epoch is over"""
-
-        # if index == X_len:
-        #     return True
-        if ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"] \
-           < MIN_BAL:
-            return True
-        return False
 
     if MODEL is None:
         _createModel()
@@ -241,21 +246,20 @@ def train():
                 feature = next_feature
                 continue
 
-            price = modelHelper.unscale(feature[0][0])
+            price = modelHelper.unscale(feature[-1][0])
             game_over = _gameOver(i, price)
             if np.random.rand() <= EPSILON:
                 action = np.random.randint(0, NUM_ACTIONS, 1)[0]
             else:
                 action = np.argmax(
                     MODEL.predict(
-                        np.array(feature),
+                        feature,
                         batch_size=BATCH_SIZE,
                         # verbose=modelHelper.getVerbose()
                     )[0]  # expected reward
                 )
-            _buyOrSell(action, price)
 
-            reward = _getReward(price, modelHelper.unscale(next_feature[0][0]))
+            reward = _buyOrSell(action, price)
             rewardTotal += reward
 
             _saveExperience([feature, action, reward, next_feature, game_over])
@@ -264,11 +268,12 @@ def train():
 
             feature = next_feature
             if game_over:
-                # log.warning("game over:", i)
+                if log.VERBOSE >= 4:
+                    log.warning("game over:", i, "/", len(FEATURES))
                 break
 
         score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
-        hodl = price / modelHelper.unscale(FEATURES[0][0][0]) * 100
+        hodl = price / modelHelper.unscale(FEATURES[0][-1][0]) * 100
         log.debug(
             "Epoch", str(e + 1) + "/" + str(EPOCHS),
             # "-", str(round((tick - tack) / 1e9, 1)) + "s",
