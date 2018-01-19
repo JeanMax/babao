@@ -11,6 +11,7 @@ import babao.utils.file as fu
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
 BALANCE = {"crypto": 0, "quote": 0}
 LOG_TO_FILE = True
+VERBOSE = False
 
 
 def initBalance(force=None):
@@ -35,11 +36,18 @@ def initBalance(force=None):
         log.warning("No ledger file found.")
 
 
-def setLog(enable_file_logging):
+def setLog(enable_file_logging=True):
     """Set the ´LOG_TO_FILE´ global var"""
 
     global LOG_TO_FILE
     LOG_TO_FILE = enable_file_logging
+
+
+def setVerbose(enable_verbose=True):
+    """Set the ´VERBOSE´ global var"""
+
+    global VERBOSE
+    VERBOSE = enable_verbose
 
 
 def _logTransaction(led_dic, timestamp=None):
@@ -79,6 +87,12 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
     ´quote_vol´ quantity spent in quote (including fees)
     """
 
+    if VERBOSE:
+        log.info(
+            "Bought for", round(quote_vol, 4),
+            "crypto @", int(price)
+        )
+
     _logTransaction(
         {
             "type": "b",
@@ -98,6 +112,12 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
 
     ´crypto_vol´ quantity spent in crypto (including fees)
     """
+
+    if VERBOSE:
+        log.info(
+            "Sold for", round(crypto_vol, 4),
+            "crypto @", int(price)
+        )
 
     _logTransaction(
         {

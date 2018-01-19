@@ -54,8 +54,10 @@ def prepare(full_data, train_mode=False):
     """
 
     def _addLookbacks(arr):
-        """Add lookback(s) (shifted columns) to each df columns"""
-        """Reshape the features to be keras-proof"""
+        """
+        Add lookback(s) (shifted columns) to each df columns
+        Reshape the features to be keras-proof
+        """
 
         res = None
         for i in range(len(arr) - FEATURES_LOOKBACK):
@@ -91,7 +93,7 @@ def prepare(full_data, train_mode=False):
     train_mode = train_mode  # unused...
 
 
-def _gameOver(index, price):
+def _gameOver(price):
     """Check if you're broke"""
 
     return bool(
@@ -120,14 +122,6 @@ def _buyOrSell(action, price, index):
         else:
             reward = -1
 
-        if log.VERBOSE >= 4:
-            # TODO: add a verbose mode to ledger instead?
-            log.info(
-                "Sold for", round(ledger.BALANCE["crypto"], 4),
-                "crypto @", int(price),
-                "- reward:", round(reward, 4)
-            )
-
         ledger.logSell(
             ledger.BALANCE["crypto"],
             price,
@@ -147,13 +141,6 @@ def _buyOrSell(action, price, index):
             else:
                 reward = -1
 
-        if log.VERBOSE >= 4:
-            log.info(
-                "Bought for", round(ledger.BALANCE["quote"], 2),
-                "quote @", int(price),
-                "- reward:", round(reward, 4)
-            )
-
         ledger.logBuy(
             ledger.BALANCE["quote"],
             price,
@@ -163,10 +150,9 @@ def _buyOrSell(action, price, index):
 
         PREV_PRICE = price
 
-    if reward > 1:
-        return 1
-    if reward < -1:
-        return -1
+    if log.VERBOSE >= 4 and reward != 0:
+        log.info("reward:", round(reward, 4))
+
     return reward
 
 
@@ -247,7 +233,8 @@ def train():
 
     if MODEL is None:
         _createModel()
-    ledger.setLog(False)  # we just want the final balance
+    ledger.setLog(False)
+    ledger.setVerbose(log.VERBOSE >= 4)
 
     for e in range(EPOCHS):
         loss = 0.
@@ -263,7 +250,7 @@ def train():
                 continue
 
             price = modelHelper.unscale(feature[-1][0])
-            game_over = _gameOver(i, price)
+            game_over = _gameOver(price)
             if np.random.rand() <= EPSILON - (e + 1) / EPOCHS * EPSILON:
                 action = np.random.randint(0, NUM_ACTIONS, 1)[0]
             else:

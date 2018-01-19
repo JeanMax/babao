@@ -245,12 +245,6 @@ def getMergedTargets():
 #         """TODO: this is very similar to strategy.strategy._buyOrSell"""
 
 #         if ledger.BALANCE["crypto"] > 0.001 and target == 1:
-#             # log.info(
-#             #     "Sold for "
-#             #     + str(ledger.BALANCE["crypto"])
-#             #     + " crypto @ "
-#             #     + str(current_price)
-#             # )
 #             ledger.logSell(
 #                 ledger.BALANCE["crypto"],
 #                 current_price,
@@ -258,12 +252,6 @@ def getMergedTargets():
 #                 timestamp=timestamp
 #             )
 #         elif ledger.BALANCE["quote"] > 0.001 and target == -1:
-#             # log.info(
-#             #     "Bought for "
-#             #     + str(ledger.BALANCE["quote"])
-#             #     + " quote @ "
-#             #     + str(current_price)
-#             # )
 #             ledger.logBuy(
 #                 ledger.BALANCE["quote"],
 #                 current_price,
