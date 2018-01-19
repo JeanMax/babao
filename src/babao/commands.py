@@ -6,6 +6,7 @@ import signal
 import numpy as np
 
 import babao.utils.log as log
+import babao.utils.date as du
 import babao.utils.file as fu
 import babao.config as conf
 import babao.api.api as api
@@ -86,7 +87,7 @@ def _launchGraph():
     LOCK.acquire()
 
 
-def _initCmd(graph=False, simulate=False, with_api=True):
+def _initCmd(graph=False, simulate=True, with_api=True):
     """
     Generic command init function
 
@@ -95,9 +96,6 @@ def _initCmd(graph=False, simulate=False, with_api=True):
 
     signal.signal(signal.SIGINT, _signalHandler)
     signal.signal(signal.SIGTERM, _signalHandler)
-
-    strat.initLastTransactionPrice()
-    modelManager.loadModels()
 
     if with_api:
         api.initKey()
@@ -108,6 +106,9 @@ def _initCmd(graph=False, simulate=False, with_api=True):
 
     if graph:
         _launchGraph()
+
+    strat.initLastTransactionPrice()
+    modelManager.loadModels()
 
 
 def _getData():
@@ -133,7 +134,7 @@ def wetRun(args):
 def dryRun(args):
     """Real-time bot simulation"""
 
-    _initCmd(args.graph, simulate=True)
+    _initCmd(args.graph)
 
     while True:
         api.dumpData()  # TODO: this could use a renaming
@@ -164,14 +165,22 @@ def dryRun(args):
 def fetch(args):
     """Fetch raw trade data since the beginning of times"""
 
-    _initCmd(args.graph)
+    try:
+        _initCmd(args.graph)
+    except FileNotFoundError:
+        log.warning("No model found.")
 
     for f in [conf.DB_FILE]:
         if os.path.isfile(f):
-            os.remove(f)  # TODO: warn user / create backup?
+            # os.remove(f)  # TODO: warn user / create backup?
+            log.warning("Database file already exists (" + f + ").")
 
-    raw_data = api.dumpData("0")
+    raw_data = api.dumpData(str(
+        # int(time.time() - 2 * 365.25 * 24 * 60 * 60) * 10**9
+        0
+    ))
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
+        du.to_datetime(raw_data)
         log.debug(
             "Fetched data from " + str(raw_data.index[0])
             + " to " + str(raw_data.index[-1])
@@ -189,7 +198,7 @@ def backtest(args):
     It will call the trained strategies on each test data point
     """
 
-    _initCmd(args.graph, simulate=True, with_api=False)
+    _initCmd(args.graph, with_api=False)
 
     big_fat_data = _getData()[1]
     modelManager.prepareModels(big_fat_data)
@@ -230,7 +239,7 @@ def backtest(args):
 def train(args):
     """Train the various (awesome) algorithms"""
 
-    # _initCmd(args.graph, simulate=True, with_api=False)
+    # _initCmd(args.graph, with_api=False)
 
     train_data, test_data = _getData()
 
