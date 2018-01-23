@@ -15,7 +15,9 @@ import babao.strategy.modelHelper as modelHelper
 MODEL = None
 FEATURES = None
 TARGETS = None
+
 FEATURES_LOOKBACK = 0  # TODO
+
 REQUIRED_COLUMNS = [
     "vwap",  # "volume",
     # "high", "low",
@@ -24,11 +26,12 @@ REQUIRED_COLUMNS = [
 INDICATORS_COLUMNS = [
     "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
     # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
+    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
 ]
 
 BATCH_SIZE = 1
 HIDDEN_SIZE = 32
-EPOCHS = 5  # TODO: config var?
+EPOCHS = 5
 
 
 def _prepareFeatures(full_data, lookback):
@@ -62,10 +65,6 @@ def _prepareFeatures(full_data, lookback):
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
     FEATURES = modelHelper.scale_fit(FEATURES)
-    FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
-    FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
-    FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
-    FEATURES["MACD_26_77_10"] = indic.SMA(FEATURES["SMA_26-77"], 10)
     FEATURES = _addLookbacks(FEATURES, lookback)
     FEATURES = _reshape(FEATURES.values)
 
@@ -90,7 +89,7 @@ def _prepareTargets(full_data, lookback):
     )[::-1]
 
 
-def prepare(full_data, targets=False):
+def prepare(full_data, train_mode=False):
     """
     Prepare features and targets for training (copy)
 
@@ -98,7 +97,7 @@ def prepare(full_data, targets=False):
     """
 
     _prepareFeatures(full_data, FEATURES_LOOKBACK)
-    if targets:
+    if train_mode:
         targets_lookback = 47  # _optimizeTargets(full_data)
         _prepareTargets(full_data, targets_lookback)
 
@@ -109,57 +108,64 @@ def prepare(full_data, targets=False):
         TARGETS = TARGETS[-len(FEATURES):]
 
 
+def _createModel():
+    """Seting up the model with keras"""
+
+    from keras.models import Sequential  # lazy load...
+    from keras.layers import LSTM, Dense  # lazy load...
+    global MODEL
+
+    MODEL = Sequential()
+    MODEL.add(
+        LSTM(
+            HIDDEN_SIZE,
+            input_shape=(
+                BATCH_SIZE,
+                FEATURES.shape[2]
+            ),
+            batch_input_shape=(
+                BATCH_SIZE,
+                FEATURES.shape[1],
+                FEATURES.shape[2]
+            ),
+            return_sequences=True,
+            # stateful=True
+        )
+    )
+    # MODEL.add(
+    #     LSTM(
+    #         HIDDEN_SIZE,
+    #         return_sequences=True,
+    #         # stateful=True
+    #     )
+    # )
+    # MODEL.add(
+    #     LSTM(
+    #         HIDDEN_SIZE,
+    #         # stateful=True
+    #     )
+    # )
+    MODEL.add(
+        Dense(
+            3,
+            activation='softmax'
+        )
+    )
+
+    MODEL.compile(
+        loss='categorical_crossentropy',
+        optimizer='adam',
+        metrics=['accuracy']
+    )
+
+
 def train():
     """Fit the ´MODEL´"""
 
     log.debug("Train tendency")
 
-    global MODEL
     if MODEL is None:
-        from keras.models import Sequential  # lazy load...
-        from keras.layers import LSTM, Dense  # lazy load...
-        MODEL = Sequential()
-        MODEL.add(
-            LSTM(
-                HIDDEN_SIZE,
-                input_shape=(
-                    BATCH_SIZE,
-                    FEATURES.shape[2]
-                ),
-                batch_input_shape=(
-                    BATCH_SIZE,
-                    FEATURES.shape[1],
-                    FEATURES.shape[2]
-                ),
-                return_sequences=True,
-                # stateful=True
-            )
-        )
-        # MODEL.add(
-        #     LSTM(
-        #         HIDDEN_SIZE,
-        #         return_sequences=True,
-        #         # stateful=True
-        #     )
-        # )
-        # MODEL.add(
-        #     LSTM(
-        #         HIDDEN_SIZE,
-        #         # stateful=True
-        #     )
-        # )
-        MODEL.add(
-            Dense(
-                3,
-                activation='softmax'
-            )
-        )
-
-        MODEL.compile(
-            loss='categorical_crossentropy',
-            optimizer='adam',
-            metrics=['accuracy']
-        )
+        _createModel()
 
     # this return the history... could be ploted or something
     MODEL.fit(
@@ -167,13 +173,13 @@ def train():
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        verbose=1  # TODO: check verbose level for this
+        verbose=modelHelper.getVerbose()
     )   # TODO: make this interuptible
 
     # score = MODEL.evaluate(
     #     FEATURES, TARGETS,
     #     batch_size=BATCH_SIZE,
-    #     verbose=2  # TODO: check verbose level for this
+    #     verbose=modelHelper.getVerbose()
     # )
     # log.debug("score:", score)
 
@@ -216,7 +222,7 @@ def predict(X=None):
     return _mergeCategories(MODEL.predict_proba(
         X,
         batch_size=BATCH_SIZE,
-        verbose=2  # TODO: check verbose level for this
+        # verbose=modelHelper.getVerbose()
     ))
 
 
@@ -236,12 +242,6 @@ def getMergedTargets():
 #         """TODO: this is very similar to strategy.strategy._buyOrSell"""
 
 #         if ledger.BALANCE["crypto"] > 0.001 and target == 1:
-#             # log.info(
-#             #     "Sold for "
-#             #     + str(ledger.BALANCE["crypto"])
-#             #     + " crypto @ "
-#             #     + str(current_price)
-#             # )
 #             ledger.logSell(
 #                 ledger.BALANCE["crypto"],
 #                 current_price,
@@ -249,12 +249,6 @@ def getMergedTargets():
 #                 timestamp=timestamp
 #             )
 #         elif ledger.BALANCE["quote"] > 0.001 and target == -1:
-#             # log.info(
-#             #     "Bought for "
-#             #     + str(ledger.BALANCE["quote"])
-#             #     + " quote @ "
-#             #     + str(current_price)
-#             # )
 #             ledger.logBuy(
 #                 ledger.BALANCE["quote"],
 #                 current_price,

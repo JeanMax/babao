@@ -50,12 +50,6 @@ def _buyOrSell(target, current_price, timestamp):
     if ledger.BALANCE["crypto"] > 0.001:
         if target > MIN_PROBA \
            or timestamp - LAST_TRANSACTION_TIME > 604800000000:  # TODO
-            log.info(
-                "Sold for "
-                + str(ledger.BALANCE["crypto"])
-                + " crypto @ "
-                + str(current_price)
-            )
             ledger.logSell(
                 ledger.BALANCE["crypto"],
                 current_price,
@@ -66,12 +60,6 @@ def _buyOrSell(target, current_price, timestamp):
             LAST_TRANSACTION_TIME = timestamp
     else:
         if target < -MIN_PROBA:
-            log.info(
-                "Bought for "
-                + str(ledger.BALANCE["quote"])
-                + " quote @ "
-                + str(current_price)
-            )
             ledger.logBuy(
                 ledger.BALANCE["quote"],
                 current_price,

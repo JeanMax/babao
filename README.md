@@ -44,9 +44,49 @@ pip install .
 
 optional dependencies:
 ```
-pip install .[matplotlib]
+pip install .[graph]
 pip install .[test]
 ```
+
+
+## Requirements:
+
+* python3
+* pip
+* hdf5
+
+* optional:
+  * make
+
+
+## Dependencies:
+
+Pip will handle these during install.
+
+* machine learning:
+    * keras
+    * tensorflow
+    * scikit-learn (this includes scipy)
+    * joblib (just for saving scikit models...)
+
+* data handling:
+    * pandas (this includes numpy)
+    * tables
+
+* parsing:
+    * configparser
+    * argparse
+
+* api:
+    * krakenex
+
+* graph: (optional)
+    * matplotlib
+
+* test: (optional)
+    * pytest
+    * pylint
+    * flake8
 
 
 ## Usage:
@@ -78,6 +118,6 @@ Run 'babao <command> --help' for detailed help.
 ## TODO:
 
 * grep -ri todo
-* improve features scaling
 * there is a concurrent access issue with the hdf database (core/graph)
 * switch to another market api
+* refactor models as objects?

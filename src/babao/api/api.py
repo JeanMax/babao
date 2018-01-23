@@ -31,6 +31,8 @@ def dumpData(since=None):
     Otherwise, fetch data since the given (stringified) timestamp
     """
 
+    # TODO: WHY ´since´ should be stringified??
+
     global LAST_DUMP
     if since is not None:
         LAST_DUMP = since

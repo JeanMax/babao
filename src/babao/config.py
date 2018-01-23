@@ -15,6 +15,7 @@ TRADES_FRAME = "trades"
 LEDGER_FRAME = None
 MODEL_EXTREMA_FILE = None
 MODEL_TENDENCY_FILE = None
+MODEL_QLEARN_FILE = None
 
 RAW_TRADES_COLUMNS = [
     "price", "volume"
@@ -54,6 +55,7 @@ def readConfigFile(cmd_name="unamed"):
     global LEDGER_FRAME
     global MODEL_EXTREMA_FILE
     global MODEL_TENDENCY_FILE
+    global MODEL_QLEARN_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -94,3 +96,4 @@ def readConfigFile(cmd_name="unamed"):
 
     MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
     MODEL_TENDENCY_FILE = pre + "-tendency.h5"
+    MODEL_QLEARN_FILE = pre + "-qlearn.h5"

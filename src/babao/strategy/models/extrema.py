@@ -24,6 +24,7 @@ import babao.data.indicators as indic
 MODEL = None
 FEATURES = None
 TARGETS = None
+
 REQUIRED_COLUMNS = [
     "vwap", "volume",
 ]
@@ -80,7 +81,7 @@ def _prepareTargets(full_data, lookback):
     TARGETS = TARGETS[-len(FEATURES):]
 
 
-def prepare(full_data, targets=False):
+def prepare(full_data, train_mode=False):
     """
     Prepare features and targets for training (copy)
 
@@ -88,7 +89,7 @@ def prepare(full_data, targets=False):
     """
 
     _prepareFeatures(full_data)
-    if targets:
+    if train_mode:
         lookback = 47  # TODO: nice one
         _prepareTargets(full_data, lookback)
 

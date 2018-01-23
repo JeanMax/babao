@@ -20,7 +20,8 @@ TICK = None
 LOCK = None
 
 DATA_SET_LEN = 1000  # lenght of train/test data sets TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 1  # TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 5  # TODO: config-var?
+YEARS_OF_DATA = 2
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -114,14 +115,11 @@ def _initCmd(graph=False, simulate=True, with_api=True):
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    # with float < 64, smaller size but longer to process
-    # (might be a cast issue somewhere else)
+    # we remove the head because there is not enough volume at first
     full_data = resamp.resampleTradeData(
         fu.read(conf.DB_FILE, conf.TRADES_FRAME)
+        .loc[du.nowMinus(YEARS_OF_DATA):]  # TODO: check if faster with "where"
     )
-
-    # TODO: we remove the head because there is not enough volume at first
-    # full_data = full_data.tail(int(len(full_data) * 0.7))
 
     return full_data[:-DATA_SET_LEN], full_data[-DATA_SET_LEN:]
 
@@ -141,7 +139,7 @@ def dryRun(args):
         api.dumpData()  # TODO: this could use a renaming
 
         # TODO:  do not hardcode the lookback
-        t = str(int(time.time() * 1e9) - (7 * 24 * 60 * 60 * 10**9))
+        t = str(du.nowMinus(weeks=1))
         fresh_data = fu.read(
             conf.DB_FILE,
             conf.TRADES_FRAME,
@@ -176,10 +174,9 @@ def fetch(args):
             # os.remove(f)  # TODO: warn user / create backup?
             log.warning("Database file already exists (" + f + ").")
 
-    raw_data = api.dumpData(str(
-        # int(time.time() - 2 * 365.25 * 24 * 60 * 60) * 10**9
-        0
-    ))
+    raw_data = api.dumpData(
+        str(du.nowMinus(YEARS_OF_DATA))
+    )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         du.to_datetime(raw_data)
         log.debug(
@@ -253,14 +250,14 @@ def train(args):
     for i in range(start, splits_size):
         log.debug("Using train set", i + 1, "/", splits_size)
 
-        modelManager.prepareModels(splits[i], targets=True)
+        modelManager.prepareModels(splits[i], train_mode=True)
         modelManager.trainModels()
 
         if args.graph:
             modelManager.plotModels(splits[i])
 
     if args.graph:
-        modelManager.prepareModels(test_data, targets=False)
+        modelManager.prepareModels(test_data, train_mode=False)
         modelManager.plotModels(test_data)
 
         import matplotlib.pyplot as plt

@@ -1,6 +1,8 @@
 """Some utils functions for hdf handling"""
 
+
 import pandas as pd
+import time
 
 
 def read(filename, frame, where=None):
@@ -12,20 +14,30 @@ def read(filename, frame, where=None):
 def write(filename, frame, df):
     """Write a frame from the hdf database"""
 
-    df.to_hdf(
-        filename,
-        frame,
-        mode="a",
-        format='table',
-        append=True,
-        # data_column=True,
-        # complib='blosc',
-        # TODO: compression isn't really required, but it's not much slower
-    )
+    # ugly workaround in case the graph is reading the database...
+    for retry in range(30):
+        try:
+            df.to_hdf(
+                filename,
+                frame,
+                mode="a",
+                format='table',
+                append=True,
+                # data_column=True,
+                # complib='blosc',
+                # TODO: compression isn't really required,
+                #       but it's not much slower
+            )
+            return True
+        except RuntimeError:  # HDF5ExtError
+            time.sleep(0.1)
+
     # TODO: (once)
     # store = pd.HDFStore(conf.DB_FILE)
     # store.create_table_index(conf.TRADES_FRAME, optlevel=9, kind='full')
     # store.close()
+
+    return False
 
 
 def getLastRows(filename, frame, nrows):

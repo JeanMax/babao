@@ -11,6 +11,7 @@ import babao.utils.file as fu
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
 BALANCE = {"crypto": 0, "quote": 0}
 LOG_TO_FILE = True
+VERBOSE = False
 
 
 def initBalance(force=None):
@@ -35,19 +36,25 @@ def initBalance(force=None):
         log.warning("No ledger file found.")
 
 
-def setLog(enable_file_logging):
+def setLog(enable_file_logging=True):
     """Set the ´LOG_TO_FILE´ global var"""
 
     global LOG_TO_FILE
     LOG_TO_FILE = enable_file_logging
 
 
-def _logTransaction(led_dic, write_to_file=True, timestamp=None):
+def setVerbose(enable_verbose=True):
+    """Set the ´VERBOSE´ global var"""
+
+    global VERBOSE
+    VERBOSE = enable_verbose
+
+
+def _logTransaction(led_dic, timestamp=None):
     """
     Log transaction in a csv ledger file
 
     ´led_dic´ is a dict with keys == conf.RAW_LEDGER_COLUMNS
-    if ´write_to_file´ is True, write entry to conf.LEDGER_FILE
     if ´timestamp´ is not given, the current time will be used
     """
 
@@ -66,11 +73,10 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
             index=[timestamp]
         ).fillna(0)
 
-    for c in led_df.columns:
-        if c != "type":
-            led_df[c] = led_df[c].astype(float)
+        for c in led_df.columns:
+            if c != "type":
+                led_df[c] = led_df[c].astype(float)
 
-    if write_to_file:  # TODO
         fu.write(conf.DB_FILE, conf.LEDGER_FRAME, led_df)
 
 
@@ -80,6 +86,12 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
 
     ´quote_vol´ quantity spent in quote (including fees)
     """
+
+    if VERBOSE:
+        log.info(
+            "Bought for", round(quote_vol, 4),
+            "crypto @", int(price)
+        )
 
     _logTransaction(
         {
@@ -100,6 +112,12 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
 
     ´crypto_vol´ quantity spent in crypto (including fees)
     """
+
+    if VERBOSE:
+        log.info(
+            "Sold for", round(crypto_vol, 4),
+            "crypto @", int(price)
+        )
 
     _logTransaction(
         {
