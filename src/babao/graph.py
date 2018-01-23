@@ -94,7 +94,7 @@ def _getData(lock, block=False):
 
     since = str(
         fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
-        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
+        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 10**9)
     )
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
 
