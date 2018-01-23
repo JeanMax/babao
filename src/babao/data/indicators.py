@@ -27,6 +27,16 @@ def EWMA(serie, look_back_delay):
     ).mean()
 
 
+def MACD(serie, look_back_a_delay, look_back_b_delay, signal_delay):
+    """Moving Average Convergence/Divergence Oscillator"""
+
+    # should we return these aswell?
+    macd_line = EWMA(serie, look_back_a_delay) - EWMA(serie, look_back_b_delay)
+    signal_line = EWMA(macd_line, signal_delay)
+
+    return macd_line - signal_line
+
+
 def get(df, columns):
     """
     Add indicators specified by columns to the given df

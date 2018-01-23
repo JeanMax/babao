@@ -26,6 +26,7 @@ REQUIRED_COLUMNS = [
 INDICATORS_COLUMNS = [
     "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
     # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
+    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
 ]
 
 BATCH_SIZE = 1
@@ -64,10 +65,6 @@ def _prepareFeatures(full_data, lookback):
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
     FEATURES = modelHelper.scale_fit(FEATURES)
-    FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
-    FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
-    FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
-    FEATURES["MACD_26_77_10"] = indic.SMA(FEATURES["SMA_26-77"], 10)
     FEATURES = _addLookbacks(FEATURES, lookback)
     FEATURES = _reshape(FEATURES.values)
 

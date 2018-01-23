@@ -32,6 +32,7 @@ REQUIRED_COLUMNS = [
 INDICATORS_COLUMNS = [
     "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
     "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
+    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
 ]
 
 MIN_BAL = 50  # maximum drawdown
@@ -81,10 +82,6 @@ def prepare(full_data, train_mode=False):
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS)
     FEATURES = modelHelper.scale_fit(FEATURES)
-    FEATURES["SMA_9-26"] = FEATURES["SMA_vwap_9"] - FEATURES["SMA_vwap_26"]
-    FEATURES["MACD_9_26_10"] = indic.SMA(FEATURES["SMA_9-26"], 10)
-    FEATURES["SMA_26-77"] = FEATURES["SMA_vwap_26"] - FEATURES["SMA_vwap_77"]
-    FEATURES["MACD_26_77_10"] = indic.SMA(FEATURES["SMA_26-77"], 10)
     FEATURES = _addLookbacks(FEATURES.dropna().values)
 
     global MAX_XP
