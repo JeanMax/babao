@@ -9,16 +9,18 @@ import numpy as np
 
 import babao.utils.log as log
 import babao.strategy.modelHelper as modelHelper
+import babao.strategy.models.macd as macd
 # import babao.strategy.models.extrema as extrema
 # import babao.strategy.models.tendency as tendency
-import babao.strategy.models.qlearn as qlearn
+# import babao.strategy.models.qlearn as qlearn
 
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 MODELS_LIST = [
+    macd,
     # extrema,
     # tendency,
-    qlearn,
+    # qlearn,
 ]  # TODO: config var eventually
 
 FEATURES_LEN = 0
