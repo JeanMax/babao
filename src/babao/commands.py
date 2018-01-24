@@ -19,9 +19,9 @@ EXIT = 0
 TICK = None
 LOCK = None
 
-DATA_SET_LEN = 1000  # lenght of train/test data sets TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 5  # TODO: config-var?
-YEARS_OF_DATA = 2
+DATA_SET_LEN = 850  # lenght of train/test data sets TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 8  # TODO: config-var?
+YEARS_OF_DATA = 1
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -108,7 +108,6 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     if graph:
         _launchGraph()
 
-    strat.initLastTransactionPrice()
     modelManager.loadModels()
 
 
@@ -134,6 +133,7 @@ def dryRun(args):
     """Real-time bot simulation"""
 
     _initCmd(args.graph)
+    ledger.setVerbose(True)
 
     while True:
         api.dumpData()  # TODO: this could use a renaming
@@ -197,6 +197,7 @@ def backtest(args):
     """
 
     _initCmd(args.graph, with_api=False)
+    ledger.setVerbose(True)
 
     big_fat_data = _getData()[1]
     modelManager.prepareModels(big_fat_data)

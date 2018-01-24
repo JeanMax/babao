@@ -2,9 +2,8 @@
 TODO
 """
 
+import pickle
 import numpy as np
-import pandas as pd
-import scipy.optimize as optimize
 
 import babao.utils.log as log
 import babao.config as conf
@@ -13,7 +12,9 @@ import babao.data.ledger as ledger
 import babao.strategy.modelHelper as modelHelper
 from sklearn.grid_search import ParameterGrid
 
+MODEL = {"a": 46, "b": 75, "c": 22}
 FEATURES = None
+FEATURES_DF = None
 
 BUY = 0
 SELL = 1
@@ -35,16 +36,26 @@ def prepare(full_data, train_mode=False):
     ´full_data´: cf. ´prepareModels´
     """
 
-    global FEATURES
-    FEATURES = full_data.copy()
+    def _reshape(arr):
+        """Reshape the features to be keras-proof"""
+
+        return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
+
+    global FEATURES_DF
+    FEATURES_DF = full_data.copy()
 
     # TODO: same pattern in extrema.py
-    for c in FEATURES.columns:
+    for c in FEATURES_DF.columns:
         if c not in REQUIRED_COLUMNS:
-            del FEATURES[c]
+            del FEATURES_DF[c]
 
-    FEATURES = modelHelper.scale_fit(FEATURES)
-    # if not train_mode: add macd?
+    FEATURES_DF = modelHelper.scale_fit(FEATURES_DF)
+    FEATURES_DF["MACD"] = indic.MACD(
+        FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
+    )
+
+    global FEATURES
+    FEATURES = _reshape(FEATURES_DF.values)
 
 
 def _buy(price, index):
@@ -89,9 +100,9 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
             look_back_a_delay, look_back_b_delay, signal_delay
         )
 
-    global FEATURES
-    FEATURES["MACD"] = indic.MACD(
-        FEATURES["vwap"],
+    global FEATURES_DF
+    FEATURES_DF["MACD"] = indic.MACD(
+        FEATURES_DF["vwap"],
         look_back_a_delay,
         look_back_b_delay,
         signal_delay
@@ -100,7 +111,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
 
     first_price = None
     price = None
-    for index, feature in enumerate(FEATURES.values):
+    for index, feature in enumerate(FEATURES_DF.values):
         macd = feature[1]
         if np.isnan(macd):
             continue
@@ -115,7 +126,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
 
         if _gameOver(price):
             if log.VERBOSE >= 4:
-                log.warning("game over:", index, "/", len(FEATURES))
+                log.warning("game over:", index, "/", len(FEATURES_DF))
             return -42
 
     score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
@@ -142,7 +153,7 @@ def train():
         "a": range(40, 100, 1),
         "b": range(70, 200, 1),
         "c": range(15, 30, 1),
-        # 'a': [50], 'b': [75], 'c': [28],
+        # 'a': [46], 'b': [75], 'c': [22],
         "score": [-42]
     }))
 
@@ -163,33 +174,27 @@ def train():
     param_grid = sorted(param_grid, key=lambda k: k['score'])
     log.debug("Top Ten:")
     for i in range(len(param_grid[-10:]), 0, -1):
-        log.debug(param_grid[-i:])
+        log.debug(param_grid[-i])
 
-    # res = optimize.brute(
-    #     _play,
-    #     (slice(5, 100, 1), ),
-    #     args=(look_back_b_delay, look_back_a_delay),
-    #     finish=None,
-    #     full_output=True
-    # )
-
-    # log.debug("_bruteC:", repr(res))
-
-    # return res[0]
+    global MODEL
+    MODEL = param_grid[-1]
+    del MODEL["score"]
 
 
 def save():
     """Save the ´MODEL´ to ´conf.MODEL_MACD_FILE´"""
 
-    # MODEL.save(conf.MODEL_MACD_FILE)
-    pass  # TODO
+    with open(conf.MODEL_MACD_FILE, "wb") as f:
+        pickle.dump(MODEL, f)
 
 
 def load():
     """Load the ´MODEL´ saved in ´conf.MODEL_MACD_FILE´"""
 
-    # MODEL = load_model(conf.MODEL_MACD_FILE)
-    pass  # TODO
+    global MODEL
+    if MODEL is None:
+        with open(conf.MODEL_MACD_FILE, "rb") as f:
+            MODEL = pickle.load(f)
 
 
 def predict(X=None):
@@ -203,6 +208,8 @@ def predict(X=None):
         X = FEATURES
 
     if len(X) == 1:
-        X = np.array([X])
+        return X[0][1] * -30  # TODO
 
-    return 0  # TODO
+    # from IPython import embed; embed() # DEBUG
+
+    return np.delete(X, 0, 2).reshape(X.shape[0], ) * -30  # TODO

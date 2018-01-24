@@ -20,7 +20,7 @@ def EWMA(serie, look_back_delay):
     """Exponentially-weighted Moving Average"""
 
     return serie.ewm(
-        span=look_back_delay,
+        span=int(look_back_delay),
         min_periods=int(look_back_delay) - 1,
         adjust=True,
         ignore_na=False

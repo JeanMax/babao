@@ -13,6 +13,7 @@ LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 DB_FILE = None
 TRADES_FRAME = "trades"
 LEDGER_FRAME = None
+MODEL_MACD_FILE = None
 MODEL_EXTREMA_FILE = None
 MODEL_TENDENCY_FILE = None
 MODEL_QLEARN_FILE = None
@@ -53,6 +54,7 @@ def readConfigFile(cmd_name="unamed"):
     global MAX_GRAPH_POINTS
     global DB_FILE
     global LEDGER_FRAME
+    global MODEL_MACD_FILE
     global MODEL_EXTREMA_FILE
     global MODEL_TENDENCY_FILE
     global MODEL_QLEARN_FILE
@@ -94,6 +96,7 @@ def readConfigFile(cmd_name="unamed"):
     if cmd_name == "backtest":
         LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
 
+    MODEL_MACD_FILE = pre + "-macd.pkl"
     MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
     MODEL_TENDENCY_FILE = pre + "-tendency.h5"
     MODEL_QLEARN_FILE = pre + "-qlearn.h5"
