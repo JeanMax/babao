@@ -5,94 +5,12 @@
 Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 
-## Install:
-
-```
-git clone https://github.com/JeanMax/babao
-cd babao
-```
-
-* Using make:
-```
-make
-```
-
-
-optional dependencies (matplotlib):
-```
-make install_graph
-```
-
-
-optional dependencies (pytest/pylint/flake8):
-```
-make install_test
-```
-
-
-if you're not planning to develop:
-```
-make install
-```
-
-
-* Or Using pip:
-```
-pip install .
-```
-
-
-optional dependencies:
-```
-pip install .[graph]
-pip install .[test]
-```
-
-
-## Requirements:
-
-* python3
-* pip
-* hdf5
-
-* optional:
-  * make
-
-
-## Dependencies:
-
-Pip will handle these during install.
-
-* machine learning:
-    * keras
-    * tensorflow
-    * scikit-learn (this includes scipy)
-    * joblib (just for saving scikit models...)
-
-* data handling:
-    * pandas (this includes numpy)
-    * tables
-
-* parsing:
-    * configparser
-    * argparse
-
-* api:
-    * krakenex
-
-* graph: (optional)
-    * matplotlib
-
-* test: (optional)
-    * pytest
-    * pylint
-    * flake8
-
-
 ## Usage:
 
-```
+```shell
 > babao --help
+```
+```
 usage: babao [-h] [-g] [-f] [-v | -q] <command> [<args>] ...
 
 A bitcoin trading machine.
@@ -115,9 +33,12 @@ commands:
 Run 'babao <command> --help' for detailed help.
 ```
 
-## TODO:
 
-* grep -ri todo
-* there is a concurrent access issue with the hdf database (core/graph)
-* switch to another market api
-* refactor models as objects?
+## Install:
+
+See [INSTALL.md](INSTALL.md)
+
+
+## License:
+
+[BeerWare License](LICENSE)
