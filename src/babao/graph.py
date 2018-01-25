@@ -19,7 +19,7 @@ INDICATORS_COLUMNS = [
     "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
     "SMA_volume_26", "SMA_volume_77",
 ]
-MAX_LOOK_BACK = 26
+MAX_LOOK_BACK = 77
 
 
 def _resampleLedgerAndJoinTo(resampled_data, since):
@@ -47,7 +47,7 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
             str(conf.TIME_INTERVAL) + "Min",
             closed="right",
             label="right",
-            base=(last.minute + (last.second + 1) / 60) % 60
+            base=(last.minute + last.second / 60) % 60
         ).last()
 
         resampled_data = resampled_data.join(
@@ -94,7 +94,7 @@ def _getData(lock, block=False):
 
     since = str(
         fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
-        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 10**9)
+        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
     )
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
 
@@ -200,7 +200,7 @@ def _initGraph(lock):
     space = (y_max - y_min) * 0.05  # 5% space up and down
     axes["vwap"].set_ylim(bottom=y_min - space, top=y_max + space)
     axes["volume"].set_ylim(bottom=0)
-    axes["bal"].set_ylim(bottom=0)
+    axes["bal"].set_ylim(bottom=0, top=200)
 
     axes["vwap"].set_ylabel("EUR")
     axes["volume"].set_ylabel("BTC")
@@ -236,6 +236,5 @@ def initGraph(lock):
     try:
         _initGraph(lock)
     except:  # pylint: disable=bare-except
-        # print("".join(traceback.format_exception(*(sys.exc_info))))
         traceback.print_exc()
         log.error("Something's bjorked in your graph :/")

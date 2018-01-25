@@ -13,7 +13,7 @@ import babao.strategy.modelManager as modelManager
 LAST_TRANSACTION_PRICE = None
 LAST_TRANSACTION_TIME = None
 MIN_BAL = 50  # maximum drawdown
-MIN_PROBA = 0.9
+MIN_PROBA = 1e-6
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 
@@ -33,7 +33,7 @@ def initLastTransactionPrice():
         LAST_TRANSACTION_TIME = 0
 
 
-def _buyOrSell(target, current_price, timestamp):
+def _buyOrSell(target, price, timestamp):
     """
     Decide wether to buy or sell based on the given ´target´current balance
 
@@ -43,34 +43,41 @@ def _buyOrSell(target, current_price, timestamp):
     global LAST_TRANSACTION_PRICE
     global LAST_TRANSACTION_TIME
 
-    if ledger.BALANCE["crypto"] * current_price + ledger.BALANCE["quote"] \
-       < MIN_BAL:
+    if ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"] < MIN_BAL:
+        log.warning("You're broke :/")
         return  # TODO
 
-    if ledger.BALANCE["crypto"] > 0.001:
-        if target > MIN_PROBA \
-           or timestamp - LAST_TRANSACTION_TIME > 604800000000:  # TODO
-            ledger.logSell(
-                ledger.BALANCE["crypto"],
-                current_price,
-                crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
-                timestamp=timestamp
-            )
-            LAST_TRANSACTION_PRICE = current_price
-            LAST_TRANSACTION_TIME = timestamp
-    else:
-        if target < -MIN_PROBA:
-            ledger.logBuy(
-                ledger.BALANCE["quote"],
-                current_price,
-                quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
-                timestamp=timestamp
-            )
-            LAST_TRANSACTION_PRICE = current_price
-            LAST_TRANSACTION_TIME = timestamp
+    if timestamp - LAST_TRANSACTION_TIME < 3 * conf.TIME_INTERVAL * 60 * 1e9:
+        log.warning("Previous transaction was too soon, waiting")
+        return  # TODO
+
+    if target > MIN_PROBA:
+        if ledger.BALANCE["crypto"] * price < 0.1:
+            log.warning("Not enough crypto to sell")
+            return
+        ledger.logSell(
+            ledger.BALANCE["crypto"],
+            price,
+            crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
+            timestamp=timestamp
+        )
+
+    elif target < -MIN_PROBA:
+        if ledger.BALANCE["quote"] < 0.1:
+            log.warning("Not enough quote to buy")
+            return
+        ledger.logBuy(
+            ledger.BALANCE["quote"],
+            price,
+            quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
+            timestamp=timestamp
+        )
+
+    LAST_TRANSACTION_PRICE = price
+    LAST_TRANSACTION_TIME = timestamp
 
 
-def analyse(feature_index, current_price, timestamp):
+def analyse(feature_index, price, timestamp):
     """
     Apply strategy on the specified feature
 
@@ -90,5 +97,6 @@ def analyse(feature_index, current_price, timestamp):
 
     # TODO: 2d array if predict_proba
     target = target_arr[0]  # TODO: merges model (decistion tree?)
+    log.debug("target:", target) # DEBUG
 
-    _buyOrSell(target, current_price, timestamp)
+    _buyOrSell(target, price, timestamp)
