@@ -1,7 +1,7 @@
 """Some utils functions for date handling"""
 
-import pandas as pd
 import time
+import pandas as pd
 
 
 def to_datetime(df):

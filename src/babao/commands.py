@@ -99,7 +99,7 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     if with_api:
-        api.initKey()
+        api.initKey()  # TODO: only init key if private requests are needed (w?)
 
     ledger.initBalance()
     if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:

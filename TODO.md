@@ -5,6 +5,7 @@
 * refactor models as objects?
 * babao is now too slow for dry-run on an old raspberry :/ solve that!
     * (might be linked to the recent kraken '0 fee' policy...)
+* write more tests!
 
 
 ## Work-around'd:

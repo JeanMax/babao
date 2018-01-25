@@ -32,19 +32,14 @@ def _doRequest(method, req=None):
                 res = K.query_public(method, req)
             else:
                 res = K.query_private(method, req)
-        except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
+        except (
+                socket.timeout,
+                socket.error,
+                http.client.BadStatusLine,
+                http.client.CannotSendRequest,
+                ValueError
+        ) as e:
             log.warning("Network error while querying Kraken API!\n" + repr(e))
-        except http.client.CannotSendRequest as e:
-            log.warning(
-                "http.client error while querying Kraken API!"
-                + "Restarting connection..."
-                + repr(e)
-            )
-            K.close()
-        except ValueError as e:
-            log.warning("ValueError while querying Kraken API!\n" + repr(e))
-        # except Exception as e:
-            # log.warning("Exception while querying Kraken API!\n" + repr(e))
         else:
             err = res.get("error", [])
             if err:

@@ -4,13 +4,13 @@ TODO
 
 import pickle
 import numpy as np
+from sklearn.grid_search import ParameterGrid
 
 import babao.utils.log as log
 import babao.config as conf
 import babao.data.indicators as indic
 import babao.data.ledger as ledger
 import babao.strategy.modelHelper as modelHelper
-from sklearn.grid_search import ParameterGrid
 
 MODEL = {"a": 46, "b": 75, "c": 22}
 FEATURES = None
@@ -49,10 +49,12 @@ def prepare(full_data, train_mode=False):
         if c not in REQUIRED_COLUMNS:
             del FEATURES_DF[c]
 
+    # TODO: I'm not so sure about scaling
     FEATURES_DF = modelHelper.scale_fit(FEATURES_DF)
-    FEATURES_DF["MACD"] = indic.MACD(
-        FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
-    )
+    if not train_mode:
+        FEATURES_DF["MACD"] = indic.MACD(
+            FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
+        )
 
     global FEATURES
     FEATURES = _reshape(FEATURES_DF.values)
@@ -138,7 +140,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
             "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
         )
 
-    return score #- hodl
+    return score  # - hodl
 
 
 def train():
@@ -209,7 +211,5 @@ def predict(X=None):
 
     if len(X) == 1:
         return X[0][1] * -30  # TODO
-
-    # from IPython import embed; embed() # DEBUG
 
     return np.delete(X, 0, 2).reshape(X.shape[0], ) * -30  # TODO
