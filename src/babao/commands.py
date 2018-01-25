@@ -108,6 +108,7 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     if graph:
         _launchGraph()
 
+    strat.initLastTransactionPrice()
     modelManager.loadModels()
 
 
@@ -150,10 +151,10 @@ def dryRun(args):
 
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
-            current_price = fresh_data.at[timestamp, "close"]
+            price = fresh_data.at[timestamp, "close"]
             strat.analyse(
                 feature_index=-1,  # there should be only one feature
-                current_price=current_price,
+                price=price,
                 timestamp=timestamp
             )
 
@@ -211,15 +212,15 @@ def backtest(args):
     for i in range(len(big_fat_data_index)):
         strat.analyse(
             feature_index=i,
-            current_price=big_fat_data_prices[i],
+            price=big_fat_data_prices[i],
             timestamp=big_fat_data_index[i]
         )
         if EXIT:
             return
 
-    current_price = big_fat_data_prices[-1]
-    score = ledger.BALANCE["crypto"] * current_price + ledger.BALANCE["quote"]
-    hodl = current_price / big_fat_data_prices[0] * 100
+    price = big_fat_data_prices[-1]
+    score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+    hodl = price / big_fat_data_prices[0] * 100
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
         + "% vs HODL: " + str(round(hodl)) + "%"
