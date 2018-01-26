@@ -7,6 +7,15 @@ Just a little [insert crypto-currency] trade bot, using [insert strategy] over [
 
 ## Usage:
 
+* First, you want some data! Run fetch mode to start a database (this might take a while)
+* Then train your awesome model... and backtest till it's good!
+* Test in real time with dry-run mode. Open the graph and grab popcorn
+* Done playing?
+    1. Launch wet-run mode
+    2. Profit
+    3. ???
+
+
 ```shell
 > babao --help
 ```
@@ -38,6 +47,10 @@ Run 'babao <command> --help' for detailed help.
 
 See [INSTALL.md](INSTALL.md)
 
+
+## Config:
+
+After the install, you should have a directory ```~/.babao.d``` with a config file: [babao.conf](config/babao.conf)
 
 ## License:
 
