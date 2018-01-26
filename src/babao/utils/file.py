@@ -1,8 +1,7 @@
 """Some utils functions for hdf handling"""
 
-
-import pandas as pd
 import time
+import pandas as pd
 
 
 def read(filename, frame, where=None):
@@ -15,7 +14,7 @@ def write(filename, frame, df):
     """Write a frame from the hdf database"""
 
     # ugly workaround in case the graph is reading the database...
-    for retry in range(30):
+    while True:
         try:
             df.to_hdf(
                 filename,

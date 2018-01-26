@@ -5,94 +5,21 @@
 Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 
-## Install:
-
-```
-git clone https://github.com/JeanMax/babao
-cd babao
-```
-
-* Using make:
-```
-make
-```
-
-
-optional dependencies (matplotlib):
-```
-make install_graph
-```
-
-
-optional dependencies (pytest/pylint/flake8):
-```
-make install_test
-```
-
-
-if you're not planning to develop:
-```
-make install
-```
-
-
-* Or Using pip:
-```
-pip install .
-```
-
-
-optional dependencies:
-```
-pip install .[graph]
-pip install .[test]
-```
-
-
-## Requirements:
-
-* python3
-* pip
-* hdf5
-
-* optional:
-  * make
-
-
-## Dependencies:
-
-Pip will handle these during install.
-
-* machine learning:
-    * keras
-    * tensorflow
-    * scikit-learn (this includes scipy)
-    * joblib (just for saving scikit models...)
-
-* data handling:
-    * pandas (this includes numpy)
-    * tables
-
-* parsing:
-    * configparser
-    * argparse
-
-* api:
-    * krakenex
-
-* graph: (optional)
-    * matplotlib
-
-* test: (optional)
-    * pytest
-    * pylint
-    * flake8
-
-
 ## Usage:
 
-```
+* First, you want some data! Run fetch mode to start a database (this might take a while)
+* Then train your awesome model... and backtest till it's good!
+* Test in real time with dry-run mode. Open the graph and grab popcorn
+* Done playing?
+    1. Launch wet-run mode
+    2. Profit
+    3. ???
+
+
+```shell
 > babao --help
+```
+```
 usage: babao [-h] [-g] [-f] [-v | -q] <command> [<args>] ...
 
 A bitcoin trading machine.
@@ -115,9 +42,16 @@ commands:
 Run 'babao <command> --help' for detailed help.
 ```
 
-## TODO:
 
-* grep -ri todo
-* there is a concurrent access issue with the hdf database (core/graph)
-* switch to another market api
-* refactor models as objects?
+## Install:
+
+See [INSTALL.md](INSTALL.md)
+
+
+## Config:
+
+After the install, you should have a directory ```~/.babao.d``` with a config file: [babao.conf](config/babao.conf)
+
+## License:
+
+[BeerWare License](LICENSE)
