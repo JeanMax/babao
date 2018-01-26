@@ -16,10 +16,10 @@ def to_timestamp(df):
     df.index = df.index.view("int64")
 
 
-def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0, seconds=0):
+def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
     """Return the current timestamp (nanoseconds) minus the given parameters"""
 
-    seconds += (
+    seconds = (
         minutes * 60
         + hours * 60 * 60
         + days * 60 * 60 * 24
