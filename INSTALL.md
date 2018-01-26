@@ -55,28 +55,4 @@ pip install .[test]
 ## Dependencies:
 
 Pip will handle these during install.
-
-### machine learning:
-* keras
-* tensorflow
-* scikit-learn (this includes scipy)
-* joblib (just for saving scikit models...)
-
-### data handling:
-* pandas (this includes numpy)
-* tables
-
-### parsing:
-* configparser
-* argparse
-
-### api:
-* krakenex
-
-### graph: (optional)
-* matplotlib
-
-### test: (optional)
-* pytest
-* pylint
-* flake8
+For a full list, see [setup.py](setup.py#L50)
