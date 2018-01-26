@@ -19,7 +19,7 @@ with copen(join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='babao',
     version='0.1.0',
-    license='MIT',
+    license='BeerWare',
     description='A bitcoin trading machine - '
     '"I\'ve got 99 problems But A Bot Ain\'t One".',
     long_description=long_description,

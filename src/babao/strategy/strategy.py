@@ -53,7 +53,7 @@ def _buyOrSell(target, price, timestamp):
 
     if target > MIN_PROBA:
         if ledger.BALANCE["crypto"] * price < 0.1:
-            log.warning("Not enough crypto to sell")
+            # log.warning("Not enough crypto to sell")
             return
         ledger.logSell(
             ledger.BALANCE["crypto"],
@@ -64,7 +64,7 @@ def _buyOrSell(target, price, timestamp):
 
     elif target < -MIN_PROBA:
         if ledger.BALANCE["quote"] < 0.1:
-            log.warning("Not enough quote to buy")
+            # log.warning("Not enough quote to buy")
             return
         ledger.logBuy(
             ledger.BALANCE["quote"],
@@ -97,6 +97,8 @@ def analyse(feature_index, price, timestamp):
 
     # TODO: 2d array if predict_proba
     target = target_arr[0]  # TODO: merges model (decistion tree?)
-    log.debug("target:", target) # DEBUG
+
+    if log.VERBOSE >= 4:
+        log.debug("target:", target)
 
     _buyOrSell(target, price, timestamp)

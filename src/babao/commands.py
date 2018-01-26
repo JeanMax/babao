@@ -99,7 +99,7 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     if with_api:
-        api.initKey()
+        api.initKey()  # TODO: only init key if private requests are needed (w?)
 
     ledger.initBalance()
     if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
@@ -118,7 +118,8 @@ def _getData():
     # we remove the head because there is not enough volume at first
     full_data = resamp.resampleTradeData(
         fu.read(conf.DB_FILE, conf.TRADES_FRAME)
-        .loc[du.nowMinus(YEARS_OF_DATA):]  # TODO: check if faster with "where"
+        .loc[du.nowMinus(years=YEARS_OF_DATA):]
+        # TODO: check if faster with "where"
     )
 
     return full_data[:-DATA_SET_LEN], full_data[-DATA_SET_LEN:]
@@ -176,7 +177,7 @@ def fetch(args):
             log.warning("Database file already exists (" + f + ").")
 
     raw_data = api.dumpData(
-        str(du.nowMinus(YEARS_OF_DATA))
+        str(du.nowMinus(years=YEARS_OF_DATA))
     )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         du.to_datetime(raw_data)
