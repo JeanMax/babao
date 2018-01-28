@@ -27,14 +27,32 @@ def EWMA(serie, look_back_delay):
     ).mean()
 
 
-def MACD(serie, look_back_a_delay, look_back_b_delay, signal_delay):
+def MACD(serie, fast_delay, slow_delay, signal_delay, full=False):
     """Moving Average Convergence/Divergence Oscillator"""
 
-    # should we return these aswell?
-    macd_line = EWMA(serie, look_back_a_delay) - EWMA(serie, look_back_b_delay)
+    macd_line = EWMA(serie, fast_delay) - EWMA(serie, slow_delay)
     signal_line = EWMA(macd_line, signal_delay)
 
+    if full:
+        return (macd_line, signal_line, macd_line - signal_line)
     return macd_line - signal_line
+
+
+def PPO(serie, fast_delay, slow_delay, signal_delay, full=False):
+    """
+    Percentage Price Oscillator
+
+    Same as MACD, but we do (a-b)/b instead of a-b,
+    so the final value does not depend on input scale (it's a percentage!)
+    """
+
+    lag_line = EWMA(serie, slow_delay)
+    ppo_line = (EWMA(serie, fast_delay) - lag_line) / lag_line
+    signal_line = EWMA(ppo_line, signal_delay)
+
+    if full:
+        return (ppo_line, signal_line, ppo_line - signal_line)
+    return ppo_line - signal_line
 
 
 def get(df, columns):

@@ -8,6 +8,7 @@
     * (might be linked to the recent kraken '0 fee' policy...)
 * optimize real-time graph: since kraken is (more) laggy, it's really slow
 * handle log files
+* ideally the test/train data should look like the real-time data (new slice every few seconds)
 * write more tests!
 
 

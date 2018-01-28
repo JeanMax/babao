@@ -13,15 +13,16 @@ import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
+import babao.strategy.transaction as tx
 import babao.strategy.modelManager as modelManager
 
 EXIT = 0
 TICK = None
 LOCK = None
 
-DATA_SET_LEN = 850  # lenght of train/test data sets TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 8  # TODO: config-var?
-YEARS_OF_DATA = 1
+TRAIN_SET_LEN = 850  # TODO: config-var?
+TEST_SET_LEN = 850  # TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -108,21 +109,20 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     if graph:
         _launchGraph()
 
-    strat.initLastTransactionPrice()
+    tx.initLastTransaction()
     modelManager.loadModels()
 
 
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    # we remove the head because there is not enough volume at first
     full_data = resamp.resampleTradeData(
         fu.read(conf.DB_FILE, conf.TRADES_FRAME)
-        .loc[du.nowMinus(years=YEARS_OF_DATA):]
+        # .loc[du.nowMinus(years=YEARS_OF_DATA):]
         # TODO: check if faster with "where"
     )
 
-    return full_data[:-DATA_SET_LEN], full_data[-DATA_SET_LEN:]
+    return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
 def wetRun(args):
@@ -177,7 +177,8 @@ def fetch(args):
             log.warning("Database file already exists (" + f + ").")
 
     raw_data = api.dumpData(
-        str(du.nowMinus(years=YEARS_OF_DATA))
+        "0"
+        # str(du.nowMinus(years=YEARS_OF_DATA))
     )
     while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
         du.to_datetime(raw_data)
@@ -244,14 +245,17 @@ def train(args):
 
     train_data, test_data = _getData()
 
-    splits_size = int(len(train_data) / DATA_SET_LEN)
+    splits_size = int(len(train_data) / TRAIN_SET_LEN)
     splits = np.array_split(train_data, splits_size)
 
     start = splits_size - NUMBER_OF_TRAIN_SETS
     if start < 0:
         start = 0
     for i in range(start, splits_size):
-        log.debug("Using train set", i + 1, "/", splits_size)
+        log.debug(
+            "Using train set", i + 1, "/", splits_size,
+            "- set length:", len(splits[i])
+        )
 
         modelManager.prepareModels(splits[i], train_mode=True)
         modelManager.trainModels()

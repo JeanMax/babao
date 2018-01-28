@@ -1,5 +1,6 @@
 """
-TODO
+Simple MACD based model,
+with a very elegant algorithm (aka: brute-force)
 """
 
 import pickle
@@ -10,17 +11,12 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.data.indicators as indic
 import babao.data.ledger as ledger
-import babao.strategy.modelHelper as modelHelper
+import babao.strategy.transaction as tx
+# import babao.strategy.modelHelper as modelHelper
 
 MODEL = {"a": 46, "b": 75, "c": 22}
 FEATURES = None
 FEATURES_DF = None
-
-BUY = 0
-SELL = 1
-NUM_ACTIONS = 2  # [buy, sell]
-
-MIN_BAL = 66  # maximum drawdown
 
 REQUIRED_COLUMNS = [
     "vwap",  # "volume",
@@ -50,51 +46,19 @@ def prepare(full_data, train_mode=False):
             del FEATURES_DF[c]
 
     # TODO: I'm not so sure about scaling
-    FEATURES_DF = modelHelper.scale_fit(FEATURES_DF)
+    # FEATURES_DF = modelHelper.scale_fit(FEATURES_DF)
     if not train_mode:
         FEATURES_DF["MACD"] = indic.MACD(
             FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
         )
+        FEATURES_DF.dropna(inplace=True)
 
     global FEATURES
     FEATURES = _reshape(FEATURES_DF.values)
 
 
-def _buy(price, index):
-    """TODO: this is very similar to strategy.strategy._buyOrSell"""
-
-    if ledger.BALANCE["quote"] > 0.001:
-        ledger.logBuy(
-            ledger.BALANCE["quote"],
-            price,
-            quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
-            timestamp=index
-        )
-
-
-def _sell(price, index):
-    """TODO: this is very similar to strategy.strategy._buyOrSell"""
-
-    if ledger.BALANCE["crypto"] > 0.001:
-        ledger.logSell(
-            ledger.BALANCE["crypto"],
-            price,
-            crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
-            timestamp=index
-        )
-
-
-def _gameOver(price):
-    """Check if you're broke"""
-
-    return bool(
-        ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
-        < MIN_BAL
-    )
-
-
 def _play(look_back_a_delay, look_back_b_delay, signal_delay):
-    """TODO"""
+    """Play an epoch with the given MACD parameters"""
 
     if log.VERBOSE >= 4:
         log.debug(
@@ -110,6 +74,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         signal_delay
     )
     ledger.initBalance({"crypto": 0, "quote": 100})
+    tx.initLastTransaction(readFile=False)
 
     first_price = None
     price = None
@@ -117,16 +82,18 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         macd = feature[1]
         if np.isnan(macd):
             continue
-        price = modelHelper.unscale(feature[0])
+        # price = modelHelper.unscale(feature[0])
+        price = feature[0]
         if first_price is None:
             first_price = price
 
-        if macd > 0:
-            _buy(price, index)
-        else:
-            _sell(price, index)
+        tx.buyOrSell(
+            macd * -1,
+            price,
+            index * conf.TIME_INTERVAL * 60 * 10**9
+        )
 
-        if _gameOver(price):
+        if tx.gameOver(price):
             if log.VERBOSE >= 4:
                 log.warning("game over:", index, "/", len(FEATURES_DF))
             return -42
@@ -151,11 +118,12 @@ def train():
     ledger.setLog(False)
     ledger.setVerbose(log.VERBOSE >= 4)
 
+    global MODEL
     param_grid = list(ParameterGrid({
-        "a": range(40, 100, 1),
-        "b": range(70, 200, 1),
-        "c": range(15, 30, 1),
-        # 'a': [46], 'b': [75], 'c': [22],
+        "a": range(9, 100, 1),
+        "b": range(25, 200, 1),
+        "c": range(10, 30, 1),
+        # 'a': [MODEL['a']], 'b': [MODEL['b']], 'c': [MODEL['c']],
         "score": [-42]
     }))
 
@@ -178,7 +146,6 @@ def train():
     for i in range(len(param_grid[-10:]), 0, -1):
         log.debug(param_grid[-i])
 
-    global MODEL
     MODEL = param_grid[-1]
     del MODEL["score"]
 
@@ -210,6 +177,6 @@ def predict(X=None):
         X = FEATURES
 
     if len(X) == 1:
-        return X[0][1] * -30  # TODO
+        return X[0][1] * -1  # TODO
 
-    return np.delete(X, 0, 2).reshape(X.shape[0], ) * -30  # TODO
+    return np.delete(X, 0, 2).reshape(X.shape[0], ) * -1  # TODO

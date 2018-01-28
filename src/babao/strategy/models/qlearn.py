@@ -7,6 +7,7 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.data.indicators as indic
 import babao.data.ledger as ledger
+import babao.strategy.transaction as tx
 import babao.strategy.modelHelper as modelHelper
 
 MODEL = None
@@ -35,7 +36,6 @@ INDICATORS_COLUMNS = [
     "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
 ]
 
-MIN_BAL = 50  # maximum drawdown
 MIN_TRANSACTION_PERCENT = 5
 
 ALPHA = 0.1  # learning rate
@@ -90,15 +90,7 @@ def prepare(full_data, train_mode=False):
     train_mode = train_mode  # unused...
 
 
-def _gameOver(price):
-    """Check if you're broke"""
-
-    return bool(
-        ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
-        < MIN_BAL
-    )
-
-
+# TODO: use tx.buyOrSell instead
 def _buyOrSell(action, price, index):
     """
     Apply the given action (if possible)
@@ -247,7 +239,7 @@ def train():
                 continue
 
             price = modelHelper.unscale(feature[-1][0])
-            game_over = _gameOver(price)
+            game_over = tx.gameOver(price)
             if np.random.rand() <= EPSILON - (e + 1) / EPOCHS * EPSILON:
                 action = np.random.randint(0, NUM_ACTIONS, 1)[0]
             else:
