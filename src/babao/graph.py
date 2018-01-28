@@ -13,6 +13,7 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.data.resample as resamp
 import babao.data.indicators as indic
+import babao.strategy.models.macd as macd
 
 DATA = None
 INDICATORS_COLUMNS = [
@@ -83,6 +84,7 @@ def _getData(lock, block=False):
             + INDICATORS_COLUMNS
             + conf.RESAMPLED_LEDGER_COLUMNS
             + ["bal"]  # hmmm... we'll calculate this on the fly
+            + ["macd_line", "signal_line", "macd"]  # these too :O
         )
         # TODO: catch missing frame errors
         return False
@@ -105,6 +107,9 @@ def _getData(lock, block=False):
 
     DATA = resamp.resampleTradeData(DATA)
     DATA = indic.get(DATA, INDICATORS_COLUMNS).dropna()
+    DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.MACD(
+        DATA["vwap"], macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
+    )
     du.to_datetime(DATA)
     DATA = _resampleLedgerAndJoinTo(DATA, since)
 
@@ -129,9 +134,10 @@ def _initGraph(lock):
 
     fig = plt.figure()
     axes = {}
-    axes["vwap"] = plt.subplot2grid((6, 1), (0, 0), rowspan=4)
-    axes["volume"] = plt.subplot2grid((6, 1), (4, 0), sharex=axes["vwap"])
-    axes["bal"] = plt.subplot2grid((6, 1), (5, 0), sharex=axes["vwap"])
+    axes["vwap"] = plt.subplot2grid((8, 1), (0, 0), rowspan=5)
+    axes["volume"] = plt.subplot2grid((8, 1), (5, 0), sharex=axes["vwap"])
+    axes["macd"] = plt.subplot2grid((8, 1), (6, 0), sharex=axes["vwap"])
+    axes["bal"] = plt.subplot2grid((8, 1), (7, 0), sharex=axes["vwap"])
 
     lines = {}
     for key in axes:
@@ -152,6 +158,15 @@ def _initGraph(lock):
                 color="r",
                 alpha=0.5
             )
+        elif key == "macd":
+            for i, col in enumerate(["macd_line", "signal_line"]):
+                lines[col], = axes[key].plot(
+                    DATA.index,
+                    DATA[col],
+                    label=col,
+                    color="r",
+                    alpha=0.7 - 0.2 * (i % 3)
+                )
         else:
             for i, col in enumerate(INDICATORS_COLUMNS):
                 if key in col:
@@ -180,7 +195,7 @@ def _initGraph(lock):
         color="black",
         lw=0.5,
         horizOn=True
-    )
+    )  # TODO: redraw me!
 
     plt.setp(axes["vwap"].get_xticklabels(), visible=False)
     plt.setp(axes["volume"].get_xticklabels(), visible=False)
@@ -216,6 +231,19 @@ def _initGraph(lock):
         )
         axes[key].yaxis.set_label_position("right")
         axes[key].yaxis.tick_right()
+
+        # # not so good when zooming in :/
+        # last_x = DATA.index[-1]
+        # last_y = DATA[key].iloc[-1]
+        # axes[key].annotate(
+        #     str(int(last_y)),
+        #     (last_x, last_y),
+        #     xytext=(
+        #         last_x + (last_x - DATA.index[-21]),
+        #         last_y
+        #     ),
+        #     bbox={"boxstyle": "larrow"}
+        # )  # TODO: save this, then give it to the update fun
 
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
 

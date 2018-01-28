@@ -27,17 +27,18 @@ def EWMA(serie, look_back_delay):
     ).mean()
 
 
-def MACD(serie, fast_delay, slow_delay, signal_delay):
+def MACD(serie, fast_delay, slow_delay, signal_delay, full=False):
     """Moving Average Convergence/Divergence Oscillator"""
 
-    # should we return these aswell?
     macd_line = EWMA(serie, fast_delay) - EWMA(serie, slow_delay)
     signal_line = EWMA(macd_line, signal_delay)
 
+    if full:
+        return (macd_line, signal_line, macd_line - signal_line)
     return macd_line - signal_line
 
 
-def PPO(serie, fast_delay, slow_delay, signal_delay):
+def PPO(serie, fast_delay, slow_delay, signal_delay, full=False):
     """
     Percentage Price Oscillator
 
@@ -46,10 +47,11 @@ def PPO(serie, fast_delay, slow_delay, signal_delay):
     """
 
     lag_line = EWMA(serie, slow_delay)
-    # should we return these aswell?
     ppo_line = (EWMA(serie, fast_delay) - lag_line) / lag_line
     signal_line = EWMA(ppo_line, signal_delay)
 
+    if full:
+        return (ppo_line, signal_line, ppo_line - signal_line)
     return ppo_line - signal_line
 
 
