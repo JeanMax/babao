@@ -1,5 +1,6 @@
 """
-TODO
+Simple MACD based model,
+with a very elegant algorithm (aka: brute-force)
 """
 
 import pickle
@@ -57,7 +58,7 @@ def prepare(full_data, train_mode=False):
 
 
 def _play(look_back_a_delay, look_back_b_delay, signal_delay):
-    """TODO"""
+    """Play an epoch with the given MACD parameters"""
 
     if log.VERBOSE >= 4:
         log.debug(
@@ -117,11 +118,12 @@ def train():
     ledger.setLog(False)
     ledger.setVerbose(log.VERBOSE >= 4)
 
+    global MODEL
     param_grid = list(ParameterGrid({
-        "a": range(10, 100, 1),
+        "a": range(9, 100, 1),
         "b": range(25, 200, 1),
         "c": range(10, 30, 1),
-        # 'a': [46], 'b': [75], 'c': [22],
+        # 'a': [MODEL['a']], 'b': [MODEL['b']], 'c': [MODEL['c']],
         "score": [-42]
     }))
 
@@ -144,7 +146,6 @@ def train():
     for i in range(len(param_grid[-10:]), 0, -1):
         log.debug(param_grid[-i])
 
-    global MODEL
     MODEL = param_grid[-1]
     del MODEL["score"]
 

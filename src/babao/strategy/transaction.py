@@ -42,7 +42,11 @@ def gameOver(price):
 
 
 def _tooSoon(timestamp):
-    """TODO"""
+    """
+    Check if the previous transaction was too soon to start another one
+
+    The delay is based on conf.TIME_INTERVAL.
+    """
 
     if LAST_TX["time"] \
             and timestamp - LAST_TX["time"] \
@@ -54,7 +58,11 @@ def _tooSoon(timestamp):
 
 
 def _canBuy():
-    """TODO"""
+    """
+    Check if you can buy crypto
+
+    This is based on your balance and your current position.
+    """
 
     if LAST_TX["type"] == "b":
         return False
@@ -65,7 +73,11 @@ def _canBuy():
 
 
 def _canSell():
-    """TODO"""
+    """
+    Check if you can sell crypto
+
+    This is based on your balance and your current position.
+    """
 
     if LAST_TX["type"] == "s":
         return False

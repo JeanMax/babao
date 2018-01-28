@@ -20,9 +20,9 @@ EXIT = 0
 TICK = None
 LOCK = None
 
-TRAIN_SET_LEN = 12000  # TODO: config-var?
+TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 1  # TODO: config-var?
+NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
 
 
 def _signalHandler(signal_code, unused_frame):
