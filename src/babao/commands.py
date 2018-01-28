@@ -13,14 +13,15 @@ import babao.api.api as api
 import babao.data.resample as resamp
 import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
+import babao.strategy.transaction as tx
 import babao.strategy.modelManager as modelManager
 
 EXIT = 0
 TICK = None
 LOCK = None
 
-TRAIN_SET_LEN = 8500  # TODO: config-var?
-TEST_SET_LEN = 3500  # TODO: config-var?
+TRAIN_SET_LEN = 12000  # TODO: config-var?
+TEST_SET_LEN = 850  # TODO: config-var?
 NUMBER_OF_TRAIN_SETS = 1  # TODO: config-var?
 
 
@@ -108,7 +109,7 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     if graph:
         _launchGraph()
 
-    strat.initLastTransaction()
+    tx.initLastTransaction()
     modelManager.loadModels()
 
 
