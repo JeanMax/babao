@@ -33,5 +33,5 @@ def test_debug():
     log.debug("debug")
 
 
-def test_log():
-    log.log("log")
+def test_info():
+    log.info("info")

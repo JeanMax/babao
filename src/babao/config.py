@@ -8,27 +8,22 @@ import configparser as cp
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
 API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
-LOCAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-local.lock")
-GLOBAL_LOCK_FILE = os.path.join(CONFIG_DIR, "babao-global.lock")
+LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 
-LAST_DUMP_FILE = None
-RAW_TRADES_FILE = None
-UNSAMPLED_TRADES_FILE = None
-RESAMPLED_TRADES_FILE = None
-INDICATORS_FILE = None
-RAW_LEDGER_FILE = None
+DB_FILE = None
+TRADES_FRAME = "trades"
+LEDGER_FRAME = None
+MODEL_MACD_FILE = None
+MODEL_EXTREMA_FILE = None
+MODEL_TENDENCY_FILE = None
+MODEL_QLEARN_FILE = None
 
 RAW_TRADES_COLUMNS = [
-    "price", "volume", "buy-sell", "market-limit", "vwap"
+    "price", "volume"
 ]
 RESAMPLED_TRADES_COLUMNS = [
     "open", "high", "low", "close",
     "vwap", "volume", "count"
-]
-INDICATORS_COLUMNS = [
-    "SMA_vwap_1", "SMA_volume_1",
-    "SMA_vwap_2", "SMA_volume_2",
-    "SMA_vwap_3", "SMA_volume_3"
 ]
 RAW_LEDGER_COLUMNS = [
     "type", "price",
@@ -57,12 +52,12 @@ def readConfigFile(cmd_name="unamed"):
     global ASSET_PAIR
     global TIME_INTERVAL
     global MAX_GRAPH_POINTS
-    global LAST_DUMP_FILE
-    global RAW_TRADES_FILE
-    global UNSAMPLED_TRADES_FILE
-    global RESAMPLED_TRADES_FILE
-    global INDICATORS_FILE
-    global RAW_LEDGER_FILE
+    global DB_FILE
+    global LEDGER_FRAME
+    global MODEL_MACD_FILE
+    global MODEL_EXTREMA_FILE
+    global MODEL_TENDENCY_FILE
+    global MODEL_QLEARN_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
@@ -95,16 +90,13 @@ def readConfigFile(cmd_name="unamed"):
     # TODO: check if these vars are valid
 
     pre = os.path.join(DATA_DIR, ASSET_PAIR)
-    post = str(TIME_INTERVAL) + "Min.csv"
 
-    LAST_DUMP_FILE = pre + "-lastDump.timestamp"
-
-    INDICATORS_FILE = pre + "-indicators-" + post
-
-    RAW_TRADES_FILE = pre + "-raw-trades.csv"
-    UNSAMPLED_TRADES_FILE = pre + "-unsampled-trades-" + post
-    RESAMPLED_TRADES_FILE = pre + "-resampled-trades-" + post
-
+    DB_FILE = os.path.join(DATA_DIR, ASSET_PAIR) + "-database.hdf"
+    LEDGER_FRAME = "ledger_" + cmd_name
     if cmd_name == "backtest":
-        cmd_name += time.strftime("-%y-%m-%d_%H-%M-%S.csv")
-    RAW_LEDGER_FILE = pre + "-raw-ledger-" + cmd_name + ".csv"
+        LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
+
+    MODEL_MACD_FILE = pre + "-macd.pkl"
+    MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
+    MODEL_TENDENCY_FILE = pre + "-tendency.h5"
+    MODEL_QLEARN_FILE = pre + "-qlearn.h5"

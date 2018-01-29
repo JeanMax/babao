@@ -26,42 +26,39 @@ def initLogLevel(verbose, quiet):
         VERBOSE = verbose
 
 
-def _log(header, msg, file=sys.stdout):
+def _log(header, *args, **kwargs):
     """Genreral logging function, shouldn't be used directly"""
 
     print(
-        WHITE
-        + time.strftime("[%Y/%m/%d %H:%M:%S] ")
-        + header
-        + RESET
-        + msg,
-        file=file
+        *((WHITE + time.strftime("[%Y/%m/%d %H:%M:%S] ") + header + RESET, )
+          + args),
+        **kwargs
     )
 
 
-def error(msg):
+def error(*args):
     """Log an error (red)"""
 
-    _log(RED + "[ERROR] ", msg, file=sys.stderr)
+    _log(RED + "[ERROR]", *args, file=sys.stderr)
     sys.exit(42)
 
 
-def log(msg):
+def info(*args):
     """Log a simple message (blue)"""
 
     if VERBOSE >= 1:
-        _log(BLUE + "[LOG] ", msg)
+        _log(BLUE + "[INFO]", *args)
 
 
-def warning(msg):
+def warning(*args):
     """Log a warning (yellow)"""
 
     if VERBOSE >= 2:
-        _log(YELLOW + "[WARNING] ", msg, file=sys.stderr)
+        _log(YELLOW + "[WARNING]", *args, file=sys.stderr)
 
 
-def debug(msg):
+def debug(*args):
     """Log a debug (magenta)"""
 
     if VERBOSE >= 3:
-        _log(MAGENTA + "[DEBUG] ", msg)
+        _log(MAGENTA + "[DEBUG]", *args)

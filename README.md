@@ -5,28 +5,53 @@
 Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 
-## Modes:
+## Usage:
 
-* bot (duh)
-* real-time simulation (dry-run bot)
-* simulation on a given data file
-* training on a given data file
-* real-time chart with matplotlib would be neat
-
-
-### TODO:
-
-* dump transaction to ledger-cli
-* use compressed hdf instead of csv
-* resample data starting from the last time stamp? (that way the current candle is always "full")
-* find a way to break candles into smallers ones for simulation purpose
-* optimize data types read from files
+* First, you want some data! Run fetch mode to start a database (this might take a while)
+* Then train your awesome model... and backtest till it's good!
+* Test in real time with dry-run mode. Open the graph and grab popcorn
+* Done playing?
+    1. Launch wet-run mode
+    2. Profit
+    3. ???
 
 
-### Process:
+```shell
+> babao --help
+```
+```
+usage: babao [-h] [-g] [-f] [-v | -q] <command> [<args>] ...
 
-* fetch raw trade data from api
-* resample data (ohlc++)
-* update indicators
-* make decision (sell/buy)
-* apply decision (if any) and log transaction
+A bitcoin trading machine.
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -g, --graph         show a chart (matplotlib)
+  -f, --fuck-it       stop bitching about existing lockfile
+  -v, --verbose       increase output verbosity
+  -q, --quiet         stfu damn bot
+
+commands:
+  <command> [<args>]
+    dry-run (d)       real-time bot simulation
+    wet-run (w)       real-time bot with real-money!
+    training (t)      train bot on the given raw trade data file
+    backtest (b)      test strategy on the given raw trade data file
+    fetch (f)         fetch raw trade data since the beginning of times
+
+Run 'babao <command> --help' for detailed help.
+```
+
+
+## Install:
+
+See [INSTALL.md](INSTALL.md)
+
+
+## Config:
+
+After the install, you should have a directory ```~/.babao.d``` with a config file: [babao.conf](config/babao.conf)
+
+## License:
+
+[BeerWare License](LICENSE)

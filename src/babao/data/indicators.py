@@ -1,67 +1,70 @@
-"""Add various indicators to the resampled trade data"""
+"""
+Various indicators which can be added to any serie
 
-import pandas as pd
+//www.quantinsti.com/blog/build-technical-indicators-in-python
+"""
 
-import babao.config as conf
-import babao.utils.fileutils as fu
-
-# these should be trained
-SMA_LOOK_BACK = [9, 26, 77]
-MAX_LOOK_BACK = SMA_LOOK_BACK[-1]
+import sys
 
 
-def _indicator_SMA(column, look_back_delay):
+def SMA(serie, look_back_delay):
     """Simple Moving Average"""
 
-    return column.rolling(
-        window=look_back_delay,
+    return serie.rolling(
+        window=int(look_back_delay),
         center=False
     ).mean()
 
 
-# unused
-# def _indicator_EWMA(column, look_back_delay):
-#     """Exponentially-weighted Moving Average"""
+def EWMA(serie, look_back_delay):
+    """Exponentially-weighted Moving Average"""
 
-#     return column.ewm(
-#         span=look_back_delay,
-#         min_periods=look_back_delay - 1,
-#         adjust=True,
-#         ignore_na=False
-#     ).mean()
+    return serie.ewm(
+        span=int(look_back_delay),
+        min_periods=int(look_back_delay) - 1,
+        adjust=True,
+        ignore_na=False
+    ).mean()
 
 
-# https://www.quantinsti.com/blog/build-technical-indicators-in-python
-def updateIndicators(numberOfLinesToRead):
+def MACD(serie, fast_delay, slow_delay, signal_delay, full=False):
+    """Moving Average Convergence/Divergence Oscillator"""
+
+    macd_line = EWMA(serie, fast_delay) - EWMA(serie, slow_delay)
+    signal_line = EWMA(macd_line, signal_delay)
+
+    if full:
+        return (macd_line, signal_line, macd_line - signal_line)
+    return macd_line - signal_line
+
+
+def PPO(serie, fast_delay, slow_delay, signal_delay, full=False):
     """
-    Update indicators for the freshly fetched (and resampled) data
-    ´numberOfLinesToRead´ is the number of entries resampled without indicators
+    Percentage Price Oscillator
+
+    Same as MACD, but we do (a-b)/b instead of a-b,
+    so the final value does not depend on input scale (it's a percentage!)
     """
 
-    resampled_data = fu.getLastLines(
-        conf.RESAMPLED_TRADES_FILE,
-        numberOfLinesToRead + MAX_LOOK_BACK,
-        names=conf.RESAMPLED_TRADES_COLUMNS
-    )
+    lag_line = EWMA(serie, slow_delay)
+    ppo_line = (EWMA(serie, fast_delay) - lag_line) / lag_line
+    signal_line = EWMA(ppo_line, signal_delay)
 
-    indicators_data = pd.DataFrame()
-    # pylint: disable=consider-using-enumerate
-    for i in range(len(SMA_LOOK_BACK)):
-        for col in ["vwap", "volume"]:
-            indicators_data["SMA_" + col + "_" + str(i + 1)] = _indicator_SMA(
-                resampled_data[col],
-                SMA_LOOK_BACK[i]
-            )
+    if full:
+        return (ppo_line, signal_line, ppo_line - signal_line)
+    return ppo_line - signal_line
 
-    indicators_data.index = resampled_data.index
 
-    # removing extra data used for calculations
-    # TODO: find a way to optimize that:
-    # you need the resampled data for the indicators,
-    # but you don't want to recalculate the indicators already computed)
-    indicators_data = indicators_data.tail(numberOfLinesToRead)
+def get(df, columns):
+    """
+    Add indicators specified by columns to the given df
 
-    fu.removeLastLine(conf.INDICATORS_FILE, int(indicators_data.index[0]))
-    fu.writeFile(conf.INDICATORS_FILE, indicators_data, mode="a")
+    Expected ´columns´ format: ["SMA_vwap_42", "EWMA_volume_12"]
+    """
 
-    return indicators_data
+    for indic_col in columns:
+        a = indic_col.split("_")
+        fun, args = a[0], (df[a[1]], *tuple(a[2:]))
+        df[indic_col] = getattr(sys.modules[__name__], fun)(*args)
+
+    return df

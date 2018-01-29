@@ -17,6 +17,7 @@ Why does this file exist, and why not put this in __main__?
 
 # from IPython import embed; embed()
 # from ipdb import set_trace; set_trace()
+# import babao; args = babao.babao._init(["-vvgf", "t"]); args.func(args)
 
 import babao.utils.log as log
 import babao.utils.lock as lock
@@ -27,7 +28,8 @@ import babao.parser as pars
 def _kthxbye():
     """KTHXBYE"""
 
-    lock.tryUnlock(conf.GLOBAL_LOCK_FILE)
+    lock.tryUnlock(conf.LOCK_FILE)
+    # TODO: the graph process probably unlock that first...
 
 
 def _init(args=None):
@@ -37,8 +39,8 @@ def _init(args=None):
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
 
-    if not lock.tryLock(conf.GLOBAL_LOCK_FILE):
-        log.error("Lock file found (" + conf.GLOBAL_LOCK_FILE + "), abort.")
+    if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
+        log.error("Lock file found (" + conf.LOCK_FILE + "), abort.")
 
     return args
 

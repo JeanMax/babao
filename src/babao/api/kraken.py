@@ -10,29 +10,19 @@ import babao.config as conf
 import babao.utils.log as log
 import babao.data.ledger as ledger
 
-K = None
-C = None
+K = krakenex.API()
 
 
-def init():
+def initKey():
     """Load the api key from config folder"""
 
-    global K
-    K = krakenex.API()
     K.load_key(conf.API_KEY_FILE)
-
-    global C
-    C = krakenex.Connection()
 
 
 def _doRequest(method, req=None):
     """General function for kraken api requests"""
 
-    global C
-    if C is None:
-        init()
-
-    if req is None:
+    if not req:
         req = {}
 
     # we loop in case of request error (503...)
@@ -40,23 +30,17 @@ def _doRequest(method, req=None):
     while fail_counter > 0:  # really nice loop bro, respect... no goto tho
         try:
             if method == "Trades":
-                res = K.query_public(method, req, C)
+                res = K.query_public(method, req)
             else:
-                res = K.query_private(method, req, C)
-        except (socket.timeout, socket.error, http.client.BadStatusLine) as e:
+                res = K.query_private(method, req)
+        except (
+                socket.timeout,
+                socket.error,
+                http.client.BadStatusLine,
+                http.client.CannotSendRequest,
+                ValueError
+        ) as e:
             log.warning("Network error while querying Kraken API!\n" + repr(e))
-        except http.client.CannotSendRequest as e:
-            log.warning(
-                "http.client error while querying Kraken API!"
-                + "Restarting connection..."
-                + repr(e)
-            )
-            C.close()
-            C = krakenex.Connection()
-        except ValueError as e:
-            log.warning("ValueError while querying Kraken API!\n" + repr(e))
-        # except Exception as e:
-            # log.warning("Exception while querying Kraken API!\n" + repr(e))
         else:
             err = res.get("error", [])
             if err:
@@ -67,6 +51,8 @@ def _doRequest(method, req=None):
         log.debug("Connection fail #" + str(fail_counter))
         fail_counter += 1
         time.sleep(0.5)
+
+    return None  # warning-trap
 
 
 def getBalance():
@@ -183,13 +169,10 @@ def getRawTrades(since):
         columns=["price", "volume", "time", "buy-sell", "market-limit", "misc"],
         dtype=float  # TODO: dtypes: object(2) (replace bsml letters with 0/1?)
     )
-    raw_data.index = (raw_data["time"] * 1e6).astype(int)
+    raw_data.index = (raw_data["time"] * 1e9).astype(int)
     del raw_data["misc"]
-    # del raw_data ["market-limit"]  # TODO: this could be useful
-    # del raw_data["buy-sell"]  # TODO: this could be useful
+    del raw_data["market-limit"]  # TODO: this could be useful
+    del raw_data["buy-sell"]  # TODO: this could be useful
     del raw_data["time"]
-
-    # we'll need this later for resampling
-    raw_data["vwap"] = raw_data["price"] * raw_data["volume"]
 
     return raw_data, res["last"]

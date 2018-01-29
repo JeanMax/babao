@@ -5,36 +5,56 @@ import pandas as pd
 
 import babao.config as conf
 import babao.utils.log as log
-import babao.utils.fileutils as fu
+import babao.utils.file as fu
 # import babao.api as api
 
 # BALANCE = api.getBalance()  # TODO: only fetch info if in bot-mode
 BALANCE = {"crypto": 0, "quote": 0}
+LOG_TO_FILE = True
+VERBOSE = False
 
 
-def initBalance():
-    """Init ´BALANCE´ global var"""
+def initBalance(force=None):
+    """
+    Init ´BALANCE´ global var
+
+    If the force parameter is given, update ´BALANCE´ with the subfields
+    "crypto" and "quote" of the force dict.
+    """
 
     global BALANCE
 
+    if force is not None:
+        BALANCE = force
+        return
+
     try:
-        last_ledger = fu.getLastLines(
-            conf.RAW_LEDGER_FILE,
-            1,
-            conf.RAW_LEDGER_COLUMNS
-        )
+        last_ledger = fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1)
         BALANCE["crypto"] = float(last_ledger["crypto_bal"])
         BALANCE["quote"] = float(last_ledger["quote_bal"])
-    except FileNotFoundError:
+    except (FileNotFoundError, KeyError):
         log.warning("No ledger file found.")
 
 
-def _logTransaction(led_dic, write_to_file=True, timestamp=None):
+def setLog(enable_file_logging=True):
+    """Set the ´LOG_TO_FILE´ global var"""
+
+    global LOG_TO_FILE
+    LOG_TO_FILE = enable_file_logging
+
+
+def setVerbose(enable_verbose=True):
+    """Set the ´VERBOSE´ global var"""
+
+    global VERBOSE
+    VERBOSE = enable_verbose
+
+
+def _logTransaction(led_dic, timestamp=None):
     """
     Log transaction in a csv ledger file
 
     ´led_dic´ is a dict with keys == conf.RAW_LEDGER_COLUMNS
-    if ´write_to_file´ is True, write entry to conf.LEDGER_FILE
     if ´timestamp´ is not given, the current time will be used
     """
 
@@ -46,16 +66,18 @@ def _logTransaction(led_dic, write_to_file=True, timestamp=None):
     BALANCE["crypto"] = round(led_dic["crypto_bal"], 9)
     BALANCE["quote"] = round(led_dic["quote_bal"], 9)
 
-    led_df = pd.DataFrame(
-        led_dic,
-        columns=conf.RAW_LEDGER_COLUMNS,
-        index=[timestamp]
-    ).fillna(0)
+    if LOG_TO_FILE:
+        led_df = pd.DataFrame(
+            led_dic,
+            columns=conf.RAW_LEDGER_COLUMNS,
+            index=[timestamp]
+        ).fillna(0)
 
-    if write_to_file:  # TODO
-        fu.writeFile(conf.RAW_LEDGER_FILE, led_df, mode="a")
+        for c in led_df.columns:
+            if c != "type":
+                led_df[c] = led_df[c].astype(float)
 
-    return led_df
+        fu.write(conf.DB_FILE, conf.LEDGER_FRAME, led_df)
 
 
 def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
@@ -65,8 +87,13 @@ def logBuy(quote_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
     ´quote_vol´ quantity spent in quote (including fees)
     """
 
-    log.log("Bought for " + str(quote_vol) + " quote @ " + str(price))
-    return _logTransaction(
+    if VERBOSE:
+        log.info(
+            "Bought for", round(quote_vol, 4),
+            "crypto @", int(price)
+        )
+
+    _logTransaction(
         {
             "type": "b",
             "price": price,
@@ -86,8 +113,13 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
     ´crypto_vol´ quantity spent in crypto (including fees)
     """
 
-    log.log("Sold for " + str(crypto_vol) + " crypto @ " + str(price))
-    return _logTransaction(
+    if VERBOSE:
+        log.info(
+            "Sold for", round(crypto_vol, 4),
+            "crypto @", int(price)
+        )
+
+    _logTransaction(
         {
             "type": "s",
             "price": price,
@@ -103,7 +135,7 @@ def logSell(crypto_vol, price, crypto_fee=0, quote_fee=0, timestamp=None):
 def logCryptoDeposit(crypto_vol, crypto_fee=0, timestamp=None):
     """Log a crypto deposit transaction (wallet -> market)"""
 
-    return _logTransaction(
+    _logTransaction(
         {
             "type": "d",
             "crypto_vol": crypto_vol,
@@ -116,7 +148,7 @@ def logCryptoDeposit(crypto_vol, crypto_fee=0, timestamp=None):
 def logCryptoWithdraw(crypto_vol, crypto_fee=0, timestamp=None):
     """Log a crypto withdraw transaction (market -> wallet)"""
 
-    return _logTransaction(
+    _logTransaction(
         {
             "type": "w",
             "crypto_vol": -crypto_vol,
@@ -129,7 +161,7 @@ def logCryptoWithdraw(crypto_vol, crypto_fee=0, timestamp=None):
 def logQuoteDeposit(quote_vol, quote_fee=0, timestamp=None):
     """Log a quote deposit transaction (bank -> market)"""
 
-    return _logTransaction(
+    _logTransaction(
         {
             "type": "d",
             "quote_vol": quote_vol,
@@ -142,7 +174,7 @@ def logQuoteDeposit(quote_vol, quote_fee=0, timestamp=None):
 def logQuoteWithdraw(quote_vol, quote_fee=0, timestamp=None):
     """Log a quote withdraw transaction (market -> bank)"""
 
-    return _logTransaction(
+    _logTransaction(
         {
             "type": "w",
             "quote_vol": -quote_vol,
@@ -192,9 +224,9 @@ def printCliFormat():
         _handleFee(crypto_fee, quote_fee)
         _printRecipient("Assets:Bank\t", amount, asset)
 
-    raw_ledger = fu.readFile(
-        conf.RAW_LEDGER_FILE,
-        conf.RAW_LEDGER_COLUMNS
+    raw_ledger = fu.read(
+        conf.DB_FILE,
+        conf.LEDGER_FRAME
     )
 
     for i in range(len(raw_ledger)):
