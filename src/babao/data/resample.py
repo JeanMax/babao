@@ -1,5 +1,7 @@
-"""Here we take the raw trade data and resample it
-based on the time interval given in the config file"""
+"""
+Here we take the raw trade data and resample it
+based on the time interval given in the config file
+"""
 
 import babao.utils.date as du
 import babao.config as conf

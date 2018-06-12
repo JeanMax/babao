@@ -49,6 +49,8 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
             closed="right",
             label="right",
             base=(last.minute + last.second / 60) % 60
+            # TODO: base doesn't always exactly match the trade dataframe
+            # when this happen the next join will drop the ledger...
         ).last()
 
         resampled_data = resampled_data.join(
@@ -140,7 +142,7 @@ def _initGraph(lock):
     axes["bal"] = plt.subplot2grid((8, 1), (7, 0), sharex=axes["vwap"])
 
     lines = {}
-    for key in axes:
+    for key in axes:  # TODO: this is *really* ugly
         lines[key], = axes[key].plot(
             DATA.index,
             DATA[key],
@@ -149,12 +151,13 @@ def _initGraph(lock):
             color="b",
             alpha=0.5
         )
+        plt.setp(axes[key].get_xticklabels(), visible=False)
         if key == "bal":
             col = "quote_bal"
             lines[col], = axes[key].plot(
                 DATA.index,
                 DATA[col],
-                label=col,
+                label=col.replace("_", " "),
                 color="r",
                 alpha=0.5
             )
@@ -163,11 +166,11 @@ def _initGraph(lock):
                 lines[col], = axes[key].plot(
                     DATA.index,
                     DATA[col],
-                    label=col,
+                    label=col.replace("_", " "),
                     color="r",
                     alpha=0.7 - 0.2 * (i % 3)
                 )
-        else:
+        else:  # add indicators to vol/vwap
             for i, col in enumerate(INDICATORS_COLUMNS):
                 if key in col:
                     lines[col], = axes[key].plot(
@@ -197,11 +200,9 @@ def _initGraph(lock):
         horizOn=True
     )  # TODO: redraw me!
 
-    plt.setp(axes["vwap"].get_xticklabels(), visible=False)
-    plt.setp(axes["volume"].get_xticklabels(), visible=False)
+    plt.setp(axes["bal"].get_xticklabels(), visible=True)
     for label in axes["bal"].xaxis.get_ticklabels():
         label.set_rotation(45)
-
     adf = axes["bal"].xaxis.get_major_formatter()
     adf.scaled[1. / 86400] = "%d/%m/%y %H:%M"
     adf.scaled[1. / 1440] = "%d/%m/%y %H:%M"
@@ -215,11 +216,14 @@ def _initGraph(lock):
     space = (y_max - y_min) * 0.05  # 5% space up and down
     axes["vwap"].set_ylim(bottom=y_min - space, top=y_max + space)
     axes["volume"].set_ylim(bottom=0)
+    y_max = max(DATA["macd"].max(), DATA["macd"].min() * -1)
+    axes["macd"].set_ylim(bottom=-y_max, top=y_max)
     axes["bal"].set_ylim(bottom=0, top=200)
 
-    axes["vwap"].set_ylabel("EUR")
-    axes["volume"].set_ylabel("BTC")
-    axes["bal"].set_ylabel("EUR")
+    axes["vwap"].set_ylabel(conf.ASSET_PAIR[4:])
+    axes["volume"].set_ylabel(conf.ASSET_PAIR[:4])
+    axes["macd"].set_ylabel("%")
+    axes["bal"].set_ylabel(conf.ASSET_PAIR[4:])
 
     for key in axes:
         axes[key].grid(True)
