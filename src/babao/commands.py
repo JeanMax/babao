@@ -89,7 +89,7 @@ def _launchGraph():
     LOCK.acquire()
 
 
-def _initCmd(graph=False, simulate=True, with_api=True):
+def _initCmd(graph=False, simulate=True, with_private_api=False):
     """
     Generic command init function
 
@@ -99,8 +99,8 @@ def _initCmd(graph=False, simulate=True, with_api=True):
     signal.signal(signal.SIGINT, _signalHandler)
     signal.signal(signal.SIGTERM, _signalHandler)
 
-    if with_api:
-        api.initKey()  # TODO: only init key if private requests are needed (w?)
+    if with_private_api:
+        api.initKey()
 
     ledger.initBalance()
     if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
@@ -199,7 +199,7 @@ def backtest(args):
     It will call the trained strategies on each test data point
     """
 
-    _initCmd(args.graph, with_api=False)
+    _initCmd(args.graph)
     ledger.setVerbose(True)
 
     big_fat_data = _getData()[1]
@@ -241,7 +241,7 @@ def backtest(args):
 def train(args):
     """Train the various (awesome) algorithms"""
 
-    # _initCmd(args.graph, with_api=False)
+    # _initCmd(args.graph)
 
     train_data, test_data = _getData()
 

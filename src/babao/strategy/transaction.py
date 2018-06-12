@@ -29,7 +29,7 @@ def initLastTransaction(readFile=True):
             "price": ledger_data.at[ledger_data.index[0], "price"]
         }
     except (FileNotFoundError, IndexError):
-        LAST_TX = {"time": None, "type": "s", "price": None}
+        LAST_TX = {"time": 0, "type": "s", "price": 0}
 
 
 def gameOver(price):

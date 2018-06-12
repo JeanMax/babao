@@ -44,6 +44,7 @@ def dumpData(since=None):
 
     raw_data, LAST_DUMP = kraken.getRawTrades(LAST_DUMP)
     if not raw_data.empty:
+        # index are immutables, so we replace the last raw with an updated one
         last_row = pd.DataFrame(
             [raw_data.iloc[-1].values],
             index=[int(LAST_DUMP)],

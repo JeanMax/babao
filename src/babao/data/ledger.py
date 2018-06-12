@@ -63,8 +63,8 @@ def _logTransaction(led_dic, timestamp=None):
     global BALANCE
     led_dic["crypto_bal"] = BALANCE["crypto"] + led_dic.get("crypto_vol", 0)
     led_dic["quote_bal"] = BALANCE["quote"] + led_dic.get("quote_vol", 0)
-    BALANCE["crypto"] = led_dic["crypto_bal"]
-    BALANCE["quote"] = led_dic["quote_bal"]
+    BALANCE["crypto"] = round(led_dic["crypto_bal"], 9)
+    BALANCE["quote"] = round(led_dic["quote_bal"], 9)
 
     if LOG_TO_FILE:
         led_df = pd.DataFrame(

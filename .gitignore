@@ -6,6 +6,7 @@ temp/
 
 # pytest
 .cache
+.pytest_cache
 
 # python gifts
 *.egg-info/
