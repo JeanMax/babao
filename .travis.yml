@@ -27,6 +27,7 @@ before_install:
   # - linux() { if test "$TRAVIS_OS_NAME" == "linux"; then $@; fi; }
   - osx() { if test "$TRAVIS_OS_NAME" == "osx"; then $@; fi; }
   - osx brew update
+  - osx rm -vf /usr/local/include/c++
   - osx brew install gcc || true
   - osx brew link --overwrite gcc
   - osx brew install hdf5
@@ -36,7 +37,7 @@ before_install:
   - osx pyenv install $PYTHON
   - osx export PYENV_VERSION=$PYTHON
   - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
-  - osx pyenv-virtualenv venv
+  - osx pyenv virtualenv venv
   - osx source venv/bin/activate
   - python --version
   - python -m pip install -U pip
