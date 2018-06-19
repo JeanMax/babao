@@ -20,15 +20,15 @@ RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
 ECHO = echo -e
-PY = python3 -u
+PY = python -u
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --pdb --fulltrace
 FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
-SETUP = python3 setup.py
-INSTALL_FLAGS = install -O2 --user
-DEVELOP_FLAGS = develop -O2 --user
+SETUP = python setup.py
+INSTALL_FLAGS = install --user -O2
+DEVELOP_FLAGS = develop --user -O2
 RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
 
 ifdef QUIET
@@ -48,6 +48,7 @@ endif
 
 
 $(NAME): | $(ROOT_DIR)
+	 python --version | grep -q ' 3' || (echo "'python' binary must be python3")
 	$(SETUP) $(DEVELOP_FLAGS)
 	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(INSTALL_DIR)/bin/$(NAME)
 	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)

@@ -1,4 +1,11 @@
+sudo: false
 language: python
+dist: trusty
+
+os:
+  - linux
+  - osx
+
 python:
   - "3.4"
   - "3.5"
@@ -14,3 +21,7 @@ script:
   - make flake
   - make lint
   - make test
+  - ./babao
+  - make install
+  - babao
+  - make uninstall
