@@ -5,8 +5,8 @@ Handle money related stuffs
 
 import sys
 import time
-import pandas as pd
 from abc import abstractmethod
+import pandas as pd
 
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
@@ -19,8 +19,9 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
 
     API_DELAY = 3
 
+    @property
     @abstractmethod
-    def asset():
+    def asset(self):
         """TODO"""
         pass
 
@@ -46,7 +47,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
             "start": since, "asset": self.asset.name
         })
         if res["count"] == 0:
-            return
+            return None
 
         if res["count"] > 50 and self.last_row is None:
             # kraken api is *STOOPID*: if don't have the exact date of the
@@ -54,8 +55,8 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
             # the begining... so we'll need a couple extra requests, sorry!
             time.sleep(ABCKrakenLedgerInput.API_DELAY)
             res = self._doRequest("Ledgers", {
-                "ofs": res["count"] - 1, "asset": self.asset.name}
-            )  # first
+                "ofs": res["count"] - 1, "asset": self.asset.name
+            })  # first
 
         raw_ledger = pd.DataFrame(res["ledger"]).T
         if raw_ledger.empty:
@@ -84,16 +85,16 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
 
         return raw_ledger
 
-    def buy(self, todo):
+    def buy(self, ledger, volume_spent, price, timestamp=None):
         raise NotImplementedError("Sorry, this is not implement yet :/")
 
-    def sell(self, todo):
+    def sell(self, ledger, volume_spent, price, timestamp=None):
         raise NotImplementedError("Sorry, this is not implement yet :/")
 
-    def deposit(self, todo):
+    def deposit(self, ledger, volume, timestamp=None):
         raise NotImplementedError("Sorry, this is not implement yet :/")
 
-    def withdraw(self, todo):
+    def withdraw(self, ledger, volume, timestamp=None):
         raise NotImplementedError("Sorry, this is not implement yet :/")
 
 

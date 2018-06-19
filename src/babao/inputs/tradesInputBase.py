@@ -2,8 +2,8 @@
 TODO
 """
 
-import numpy as np
 from abc import abstractmethod
+import numpy as np
 
 from babao.inputs.inputBase import ABCInput
 

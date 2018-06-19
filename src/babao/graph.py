@@ -12,7 +12,7 @@ import babao.utils.file as fu
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.models.macd as macd
+import babao.strategy.models.macd as macd  # TODO: this is weird
 
 DATA = None
 INDICATORS_COLUMNS = [

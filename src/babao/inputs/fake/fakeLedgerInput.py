@@ -5,8 +5,8 @@ Handle money related stuffs
 
 import sys
 import time
-import pandas as pd
 from abc import abstractmethod
+import pandas as pd
 
 import babao.utils.log as log  # TODO: handle mutex
 from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
@@ -16,8 +16,9 @@ from babao.inputs.ledgerInputBase import ABCLedgerInput
 class ABCFakeLedgerInput(ABCLedgerInput):
     """TODO"""
 
+    @property
     @abstractmethod
-    def asset():
+    def asset(self):
         """TODO"""
         pass
 
@@ -32,8 +33,10 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def fetch(self):
         pass  # we said fake
 
-    def __logTransaction(self, typ, volume, refid,
-                         fee=0, product=0, timestamp=None):
+    def __logTransaction(
+            self, typ, volume, refid,
+            fee=0, product=0, timestamp=None
+    ):
         """
         TODO
         Log transaction in a csv ledger file

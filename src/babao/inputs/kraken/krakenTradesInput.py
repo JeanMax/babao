@@ -3,9 +3,9 @@ TODO
 """
 
 import sys
+from abc import abstractmethod
 import pandas as pd
 import numpy as np
-from abc import abstractmethod
 
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum
@@ -16,8 +16,9 @@ from babao.inputs.tradesInputBase import ABCTradesInput
 class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
     """Base class for any kraken trades input"""
 
+    @property
     @abstractmethod
-    def pair():
+    def pair(self):
         """
         Overide this method with the desired asset pair as string
         ex: pair = "XXBTZEUR"

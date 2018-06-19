@@ -10,7 +10,6 @@ from sklearn.grid_search import ParameterGrid
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.data.ledger as ledger
 import babao.strategy.transaction as tx
 # import babao.strategy.modelHelper as modelHelper
 

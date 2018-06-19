@@ -33,7 +33,6 @@ def readConfigFile(cmd_name="unamed"):
     global TIME_INTERVAL
     global MAX_GRAPH_POINTS
     global DB_FILE
-    global LEDGER_FRAME
     global MODEL_MACD_FILE
     global MODEL_EXTREMA_FILE
     global MODEL_TENDENCY_FILE

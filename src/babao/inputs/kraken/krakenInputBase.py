@@ -5,8 +5,8 @@ TODO
 import time
 import http
 import socket
-import krakenex
 from abc import abstractmethod
+import krakenex
 
 import babao.config as conf
 import babao.utils.log as log  # TODO: share a lock between inputs for debug

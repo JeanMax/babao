@@ -6,6 +6,7 @@ from enum import Enum
 
 
 class ActionEnum(Enum):
+    """TODO"""
     HODL = 0
     BUY = 1
     SELL = -1
@@ -15,6 +16,7 @@ class ActionEnum(Enum):
 
 
 class QuoteEnum(Enum):
+    """TODO"""
     CAD = 1
     EUR = 2
     GBP = 3
@@ -23,6 +25,7 @@ class QuoteEnum(Enum):
 
 
 class CryptoEnum(Enum):
+    """TODO"""
     ETC = -1
     ETH = -2
     LTC = -3

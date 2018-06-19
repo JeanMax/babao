@@ -12,8 +12,8 @@ Anyway, I'll leave an empty column "product", which reference another ledger;
 this could be used for later indexing?
 """
 
-import pandas as pd
 from abc import abstractmethod
+import pandas as pd
 
 from babao.inputs.inputBase import ABCInput
 
@@ -47,17 +47,21 @@ class ABCLedgerInput(ABCInput):
         return resampled_data
 
     @abstractmethod
-    def buy(self, ledger, volume):
+    def buy(self, ledger, volume_spent, price, timestamp=None):
+        """TODO"""
         pass
 
     @abstractmethod
-    def sell(self, ledger, volume):
+    def sell(self, ledger, volume_spent, price, timestamp=None):
+        """TODO"""
         pass
 
     @abstractmethod
-    def deposit(self, volume):
+    def deposit(self, ledger, volume, timestamp=None):
+        """TODO"""
         pass
 
     @abstractmethod
-    def withdraw(self, volume):
+    def withdraw(self, ledger, volume, timestamp=None):
+        """TODO"""
         pass

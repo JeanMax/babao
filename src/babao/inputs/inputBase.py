@@ -30,13 +30,17 @@ class ABCInput(ABC):
     """
     __last_write = 0  # TODO: this is not thread-safe
 
+    @property
     @abstractmethod
-    def raw_columns():
-        pass  # TODO: doc, abstractmethod?
+    def raw_columns(self):
+        """TODO"""
+        pass
 
+    @property
     @abstractmethod
-    def resampled_columns():
-        pass  # TODO: doc, abstractmethod?
+    def resampled_columns(self):
+        """TODO"""
+        pass
 
     def __init__(self):
         try:
