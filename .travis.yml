@@ -28,9 +28,10 @@ before_install:
   - osx() { if test "$TRAVIS_OS_NAME" == "osx"; then $@; fi; }
   - osx brew update
   # - osx brew install openssl readline || true
-  - osx brew install lzo
+  - osx brew upgrade gcc
   - osx brew install hdf5
-  - osx brew link --overwrite gcc
+  # - osx brew link --overwrite gcc
+  - osx brew install lzo
   - osx brew outdated pyenv || brew upgrade pyenv
   - osx brew install pyenv-virtualenv
   - osx pyenv install $PYTHON
