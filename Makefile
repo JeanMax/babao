@@ -26,7 +26,7 @@ PY = python -u
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --pdb --fulltrace
 FLAKE = flake8
-LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
+LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) = dumb && echo "-fparseable")
 SETUP = python setup.py
 ifndef TRAVIS
 USER_FLAG = --user -O2 # global non-optimized install on travis...
