@@ -52,7 +52,7 @@ setup(
         # machine learning
         'keras',
         'tensorflow',
-        'scipy'
+        'scipy',
         'scikit-learn',
         'joblib',  # just for saving scikit models...
 

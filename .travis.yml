@@ -29,6 +29,7 @@ addons:
 # https://pythonhosted.org/CodeChat/.travis.yml.html
 before_install: |
   if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    set -x
     brew update
     # brew install openssl readline || true
     brew install hdf5
@@ -41,6 +42,7 @@ before_install: |
     pyenv-virtualenv venv
     source venv/bin/activate
     python --version
+    set +x
   fi
 
 install:
