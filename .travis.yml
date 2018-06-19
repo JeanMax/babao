@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+
+# command to install dependencies
+install:
+  - make
+  - make install_test
+
+# command to run tests
+script:
+  - make flake
+  - make lint
+  - make test
