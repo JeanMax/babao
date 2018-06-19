@@ -33,7 +33,6 @@ before_install:
   - osx brew update
   # - osx brew install openssl readline || true
   - osx brew install lzo
-  - osx brew install blosc
   - osx brew install hdf5
   - osx brew link --overwrite gcc
   - osx brew outdated pyenv || brew upgrade pyenv
@@ -48,11 +47,12 @@ before_install:
   - python -m easy_install -U setuptools
   - pip install --upgrade pip
   - pip install --upgrade setuptools
-  - osx pip uninstall numpy     # DEBUG
+
 
 install:
   - make
   - make install_test
+  - make install_graph
 
 script:
   - make flake
