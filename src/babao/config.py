@@ -1,7 +1,6 @@
 """Here we'll handle the config file and the various file/dir paths"""
 
 import os
-import time
 import configparser as cp
 
 # globad vars
@@ -10,37 +9,18 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
 API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
 LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
 
-DB_FILE = None
-TRADES_FRAME = "trades"
-LEDGER_FRAME = None
 MODEL_MACD_FILE = None
 MODEL_EXTREMA_FILE = None
 MODEL_TENDENCY_FILE = None
 MODEL_QLEARN_FILE = None
 
-RAW_TRADES_COLUMNS = [
-    "price", "volume"
-]
-RESAMPLED_TRADES_COLUMNS = [
-    "open", "high", "low", "close",
-    "vwap", "volume", "count"
-]
-RAW_LEDGER_COLUMNS = [
-    "type", "price",
-    "crypto_vol", "quote_vol",
-    "crypto_fee", "quote_fee",
-    "crypto_bal", "quote_bal"
-]
-RESAMPLED_LEDGER_COLUMNS = [
-    "crypto_bal", "quote_bal"
-]
-
 # config vars
-LOG_DIR = None
-DATA_DIR = None
-ASSET_PAIR = None
+LOG_DIR = None  # useless and annoying... just let the user symlink if needed
+DATA_DIR = None  # idem
+ASSET_PAIR = None  # TODO: QUOTE, CRYPTOS
 TIME_INTERVAL = None
 MAX_GRAPH_POINTS = None
+DB_FILE = None
 
 
 def readConfigFile(cmd_name="unamed"):
@@ -90,11 +70,7 @@ def readConfigFile(cmd_name="unamed"):
     # TODO: check if these vars are valid
 
     pre = os.path.join(DATA_DIR, ASSET_PAIR)
-
-    DB_FILE = os.path.join(DATA_DIR, ASSET_PAIR) + "-database.hdf"
-    LEDGER_FRAME = "ledger_" + cmd_name
-    if cmd_name == "backtest":
-        LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
+    DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")
 
     MODEL_MACD_FILE = pre + "-macd.pkl"
     MODEL_EXTREMA_FILE = pre + "-extrema.pkl"

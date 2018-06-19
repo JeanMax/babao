@@ -9,7 +9,7 @@ import numpy as np
 
 import babao.utils.log as log
 import babao.config as conf
-import babao.data.indicators as indic
+import babao.utils.indicators as indic
 import babao.strategy.modelHelper as modelHelper
 
 MODEL = None
