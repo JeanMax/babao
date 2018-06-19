@@ -27,8 +27,7 @@ before_install:
   # - linux() { if test "$TRAVIS_OS_NAME" == "linux"; then $@; fi; }
   - osx() { if test "$TRAVIS_OS_NAME" == "osx"; then $@; fi; }
   - osx brew update
-  # - osx brew install openssl readline || true
-  - osx brew install gcc
+  - osx brew install gcc || true
   - osx brew link --overwrite gcc
   - osx brew install hdf5
   - osx brew install lzo
