@@ -2,9 +2,11 @@
 
 NAME = babao
 
+PY_VERSION = $(shell python --version | grep -oE '3.[0-9]+.[0-9]+')
+
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
-INSTALL_DIR= $(HOME)/.local
+INSTALL_DIR= $(HOME)/.local  # TODO: this only works on my computer :o
 INSTALL_NAME = $(INSTALL_DIR)/bin/$(NAME)
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
@@ -19,7 +21,6 @@ TMP_FILES = build dist temp __pycache__ $(NAME).egg-info\
 RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
-ECHO = echo -e
 PY = python -u
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
@@ -51,11 +52,12 @@ endif
 
 
 $(NAME): | $(ROOT_DIR)
-	 python --version | grep -q ' 3' || (echo "'python' binary must be python3")
 	$(SETUP) $(DEVELOP_FLAGS)
-	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(INSTALL_DIR)/bin/$(NAME)
-	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)
+ifndef TRAVIS
+	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(INSTALL_NAME)
+	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
 	chmod 755 $(NAME)
+endif
 
 $(ROOT_DIR):
 	$(MKDIR) $(ROOT_DIR)/{data,log}

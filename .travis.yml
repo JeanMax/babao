@@ -60,4 +60,3 @@ script:
   - ./babao
   - make install
   - babao
-  - make uninstall
