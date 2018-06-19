@@ -4,15 +4,11 @@ dist: trusty
 os: linux
 
 python:
-  - "3.4"
   - "3.5"
   - "3.6"
 
 matrix:
   include:
-  - os: osx
-    language: generic
-    env: PYTHON=3.4.6
   - os: osx
     language: generic
     env: PYTHON=3.5.5

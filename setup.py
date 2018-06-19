@@ -40,13 +40,12 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: Unix',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
     ],
     keywords='bitcoin bot',
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     install_requires=[
 
         # machine learning
