@@ -32,7 +32,8 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def fetch(self):
         pass  # we said fake
 
-    def __logTransaction(self, typ, volume, product=None, timestamp=None):
+    def __logTransaction(self, typ, volume, refid,
+                         fee=0, product=0, timestamp=None):
         """
         TODO
         Log transaction in a csv ledger file
@@ -41,21 +42,21 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         if ´timestamp´ is not given, the current time will be used
         """
 
-        self.balance += volume
+        self.balance += volume - fee
         if not self.log_to_file:
             return
 
         if timestamp is None:
             timestamp = int(time.time() * 1e6)
-        if product is None:
-            product = 0  # TODO: enum?
 
         df = pd.DataFrame(
             {
-                "type": typ,
                 "volume": volume,
                 "balance": self.balance,
-                "product": product
+                "fee": fee,
+                "refid": refid,
+                "type": typ,
+                "product": product,
             },
             columns=self.__class__.raw_columns,
             index=[timestamp]
@@ -82,6 +83,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent / price
         fee = volume_bought / 100  # 1% hardcoded fee
+        refid = str(int(time.time() * 1e6))
         if self.verbose:
             log.info(
                 "Bought", round(volume_bought - fee, 4), ledger.asset.name,
@@ -92,18 +94,16 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         self.__logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
+            refid=refid,
             product=ledger.asset.value,
             timestamp=timestamp
         )
         ledger.__logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
+            refid=refid,
+            fee=fee,
             product=self.asset.value,
-            timestamp=timestamp
-        )
-        ledger.__logTransaction(
-            typ=ActionEnum.FEE.value,
-            volume=-fee,
             timestamp=timestamp
         )
         return True
@@ -121,6 +121,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent * price
         fee = volume_bought / 100  # 1% hardcoded fee
+        refid = str(int(time.time() * 1e6))
         if self.verbose:
             log.info(
                 "Sold", round(volume_spent, 4), ledger.asset.name,
@@ -131,18 +132,16 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         ledger.__logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
+            refid=refid,
             product=self.asset.value,
             timestamp=timestamp
         )
         self.__logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
+            refid=refid,
+            fee=fee,
             product=ledger.asset.value,
-            timestamp=timestamp
-        )
-        self.__logTransaction(
-            typ=ActionEnum.FEE.value,
-            volume=-fee,
             timestamp=timestamp
         )
         return True
@@ -150,38 +149,40 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def deposit(self, ledger, volume, timestamp=None):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
+        refid = str(int(time.time() * 1e6))
         self.__logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
+            refid=refid,
+            product=ledger.asset.value,
             timestamp=timestamp
         )
         ledger.__logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
-            timestamp=timestamp
-        )
-        ledger.__logTransaction(
-            typ=ActionEnum.FEE.value,
-            volume=-fee,
+            refid=refid,
+            fee=fee,
+            product=self.asset.value,
             timestamp=timestamp
         )
 
     def withdraw(self, ledger, volume, timestamp=None):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
+        refid = str(int(time.time() * 1e6))
         ledger.__logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
+            refid=refid,
+            product=self.asset.value,
             timestamp=timestamp
         )
         self.__logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
-            timestamp=timestamp
-        )
-        self.__logTransaction(
-            typ=ActionEnum.FEE.value,
-            volume=-fee,
+            refid=refid,
+            fee=fee,
+            product=ledger.asset.value,
             timestamp=timestamp
         )
 

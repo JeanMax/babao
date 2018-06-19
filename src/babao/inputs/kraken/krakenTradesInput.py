@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from abc import abstractmethod
 
+import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum
 from babao.inputs.kraken.krakenInputBase import ABCKrakenInput
 from babao.inputs.tradesInputBase import ABCTradesInput
@@ -45,7 +46,7 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
         )
 
         fresh_data.index = np.append(
-            (fresh_data["time"].values[:-1] * 1e9).astype(int),
+            du.secToNano(fresh_data["time"]),
             int(res["last"])
         )
         del fresh_data["misc"]

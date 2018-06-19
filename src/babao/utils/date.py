@@ -28,5 +28,18 @@ def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
     )
 
     return int(
-        (time.time() - seconds) * 1e9
+        (time.time() - seconds) * 10**9
     )
+
+
+def secToNano(sec):
+    """
+    Convert a dataframe in seconds to nanoseconds
+    Just trying to avoid float rounding...
+    """
+    return (sec * 1e6).astype(int) * 1000
+
+
+def nanoToSec(nano):
+    """Convert nanoseconds to seconds"""
+    return nano / 10**9

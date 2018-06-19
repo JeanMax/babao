@@ -1,6 +1,15 @@
 """
 TODO
 Handle money related stuffs
+
+TODO:
+It is really not obvious how you're gonna link the transaction across
+various ledgers... kraken doesn't give you anything else than an "order id",
+so you still have to iterate over all entries in all ledgers to find the
+matching one :/
+The good new is, I don't know when we'll need that!
+Anyway, I'll leave an empty column "product", which reference another ledger;
+this could be used for later indexing?
 """
 
 import pandas as pd
@@ -13,7 +22,7 @@ class ABCLedgerInput(ABCInput):
     """TODO"""
 
     raw_columns = [
-        "type", "volume", "balance", "product"
+        "volume", "balance", "fee", "refid", "type", "product"
     ]
     resampled_columns = [
         "balance"

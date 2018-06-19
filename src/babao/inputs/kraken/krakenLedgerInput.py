@@ -4,17 +4,20 @@ Handle money related stuffs
 """
 
 import sys
+import time
 import pandas as pd
 from abc import abstractmethod
 
-import babao.config as conf
-from babao.utils.enum import CryptoEnum, QuoteEnum
+import babao.utils.date as du
+from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 from babao.inputs.ledgerInputBase import ABCLedgerInput
 from babao.inputs.kraken.krakenInputBase import ABCKrakenInput
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
     """TODO"""
+
+    API_DELAY = 3
 
     @abstractmethod
     def asset():
@@ -37,104 +40,66 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         if self.last_row is None:
             since = "0"
         else:
-            since = str(self.last_row.name)
+            since = str(du.nanoToSec(self.last_row.name))
 
-        res = self._doRequest("Ledgers", {"start": since})
-        # TODO: start param isn't working
-
+        res = self._doRequest("Ledgers", {
+            "start": since, "asset": self.asset.name
+        })
         if res["count"] == 0:
             return
 
+        if res["count"] > 50 and self.last_row is None:
+            # kraken api is *STOOPID*: if don't have the exact date of the
+            # first transaction, we can't fetch the ledger data starting from
+            # the begining... so we'll need a couple extra requests, sorry!
+            time.sleep(ABCKrakenLedgerInput.API_DELAY)
+            res = self._doRequest("Ledgers", {
+                "ofs": res["count"] - 1, "asset": self.asset.name}
+            )  # first
+
         raw_ledger = pd.DataFrame(res["ledger"]).T
-        raw_ledger.index = (raw_ledger["time"] * 1e6).astype(int)
+        if raw_ledger.empty:
+            return raw_ledger
+
+        raw_ledger.index = du.secToNano(raw_ledger["time"])
         del raw_ledger["time"]
         del raw_ledger["aclass"]
+        del raw_ledger["asset"]
         raw_ledger = raw_ledger.sort_index()
+        raw_ledger.rename(columns={"amount": "volume"}, inplace=True)
 
-        # raw_ledger = raw_ledger.where(
-        #     (raw_ledger["asset"] == conf.ASSET_PAIR[:4])
-        #     | (raw_ledger["asset"] == conf.ASSET_PAIR[4:])
-        # )
-
-        raw_ledger["amount"] = raw_ledger["amount"].astype(float)
+        raw_ledger["volume"] = raw_ledger["volume"].astype(float)
         raw_ledger["fee"] = raw_ledger["fee"].astype(float)
         raw_ledger["balance"] = raw_ledger["balance"].astype(float)
+        raw_ledger["product"] = 0  # TODO: enum?
+        raw_ledger.loc[
+            (raw_ledger["volume"] > 0) & (raw_ledger["type"] == "trade"), "type"
+        ] = "buy"
+        raw_ledger["type"] = raw_ledger["type"].replace({
+            "withdrawal": ActionEnum.WITHDRAW.value,
+            "deposit": ActionEnum.DEPOSIT.value,
+            "buy": ActionEnum.BUY.value,
+            "trade": ActionEnum.SELL.value,
+        }).astype(int)
 
-        for i in range(len(raw_ledger)):
-            ind = raw_ledger.index[i]
-
-            if raw_ledger.at[ind, "type"] == "deposit":
-                if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
-                    ledger.logCryptoDeposit(
-                        raw_ledger.at[ind, "amount"],
-                        raw_ledger.at[ind, "fee"],
-                        ind
-                    )
-                else:
-                    ledger.logQuoteDeposit(
-                        raw_ledger.at[ind, "amount"],
-                        raw_ledger.at[ind, "fee"],
-                        ind
-                    )
-
-            elif raw_ledger.at[ind, "type"] == "withdraw":
-                # TODO: check if fees should be excluded
-                if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
-                    ledger.logCryptoWithdraw(
-                        raw_ledger.at[ind, "amount"] * -1,  # TODO: check if < 0
-                        raw_ledger.at[ind, "fee"],
-                        ind
-                    )
-                else:
-                    ledger.logQuoteWithdraw(
-                        raw_ledger.at[ind, "amount"] * -1,  # TODO: check if < 0
-                        raw_ledger.at[ind, "fee"],
-                        ind
-                    )
-
-            elif raw_ledger.at[ind, "type"] == "trade":
-                if raw_ledger.at[ind, "asset"] == conf.ASSET_PAIR[:4]:
-                    next_ind = raw_ledger.index[i + 1]
-                    crypto_vol = abs(raw_ledger.at[ind, "amount"])
-                    crypto_fee = raw_ledger.at[ind, "fee"]
-                    quote_vol = abs(raw_ledger.at[next_ind, "amount"])
-                    quote_fee = raw_ledger.at[next_ind, "fee"]
-                    price = quote_vol / crypto_vol
-                    if raw_ledger.at[ind, "amount"] > 0:
-                        ledger.logBuy(
-                            quote_vol + quote_fee,
-                            price,
-                            crypto_fee,
-                            quote_fee,
-                            ind
-                        )
-                    else:
-                        ledger.logSell(
-                            crypto_vol + crypto_fee,
-                            price,
-                            crypto_fee,
-                            quote_fee,
-                            ind
-                        )
-
-        return res["count"], str(raw_ledger.index[-1] / 1e6)
+        return raw_ledger
 
     def buy(self, todo):
-        pass
+        raise NotImplementedError("Sorry, this is not implement yet :/")
 
     def sell(self, todo):
-        pass
+        raise NotImplementedError("Sorry, this is not implement yet :/")
 
     def deposit(self, todo):
-        pass
+        raise NotImplementedError("Sorry, this is not implement yet :/")
 
     def withdraw(self, todo):
-        pass
+        raise NotImplementedError("Sorry, this is not implement yet :/")
 
 
 # TODO: move that
 
-# class FakeKrakenEURInput(ABCKrakenLedgerInput):
+# class KrakenLedgerEURInput(ABCKrakenLedgerInput):
 #     asset = QuoteEnum.EUR
 
 for asset in list(QuoteEnum) + list(CryptoEnum):
