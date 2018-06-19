@@ -52,11 +52,13 @@ setup(
         # machine learning
         'keras',
         'tensorflow',
-        'scikit-learn',  # this includes scipy
+        'scipy'
+        'scikit-learn',
         'joblib',  # just for saving scikit models...
 
         # data handling
-        'pandas',  # this includes numpy
+        'numpy',
+        'pandas',
         'tables',
 
         # parsing

@@ -27,8 +27,11 @@ TESTER = pytest --pdb --fulltrace
 FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
 SETUP = python setup.py
-INSTALL_FLAGS = install --user -O2
-DEVELOP_FLAGS = develop --user -O2
+ifndef TRAVIS
+USER = --user  # global install on travis...
+endif
+INSTALL_FLAGS = install $(USER) -O2
+DEVELOP_FLAGS = develop $(USER) -O2
 RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
 
 ifdef QUIET
@@ -67,10 +70,10 @@ conf: | $(ROOT_DIR)
 install: $(NAME) $(INSTALL_NAME) # TODO: won't install if develop already there
 
 install_test: install
-	pip install --user .[test] # TODO
+	pip $(INSTALL_FLAGS) .[test] # TODO
 
 install_graph: install
-	pip install --user .[graph] # TODO
+	pip $(INSTALL_FLAGS) .[graph] # TODO
 
 
 clean:

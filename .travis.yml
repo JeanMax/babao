@@ -32,6 +32,7 @@ before_install: |
     brew update
     # brew install openssl readline || true
     brew install hdf5
+    brew link --overwrite gcc
     brew outdated pyenv || brew upgrade pyenv
     brew install pyenv-virtualenv
     pyenv install $PYTHON
