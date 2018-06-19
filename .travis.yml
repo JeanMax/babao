@@ -27,29 +27,30 @@ addons:
       - hdf5-tools
 
 # https://pythonhosted.org/CodeChat/.travis.yml.html
-before_install: |
-  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    set -x
-    brew update
-    # brew install openssl readline || true
-    brew install hdf5
-    brew link --overwrite gcc
-    brew outdated pyenv || brew upgrade pyenv
-    brew install pyenv-virtualenv
-    pyenv install $PYTHON
-    export PYENV_VERSION=$PYTHON
-    export PATH="/Users/travis/.pyenv/shims:${PATH}"
-    pyenv-virtualenv venv
-    source venv/bin/activate
-    python --version
-    set +x
-  fi
-
-install:
+before_install:
+  # - linux() { if test "$TRAVIS_OS_NAME" == "linux"; then $@; fi; }
+  - osx() { if test "$TRAVIS_OS_NAME" == "osx"; then $@; fi; }
+  - osx brew update
+  # - osx brew install openssl readline || true
+  - osx brew install lzo
+  - osx brew install blosc
+  - osx brew install hdf5
+  - osx brew link --overwrite gcc
+  - osx brew outdated pyenv || brew upgrade pyenv
+  - osx brew install pyenv-virtualenv
+  - osx pyenv install $PYTHON
+  - osx export PYENV_VERSION=$PYTHON
+  - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
+  - osx pyenv-virtualenv venv
+  - osx source venv/bin/activate
+  - python --version
   - python -m pip install -U pip
   - python -m easy_install -U setuptools
   - pip install --upgrade pip
   - pip install --upgrade setuptools
+  - osx pip uninstall numpy     # DEBUG
+
+install:
   - make
   - make install_test
 

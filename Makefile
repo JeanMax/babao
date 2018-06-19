@@ -29,10 +29,10 @@ FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
 SETUP = python setup.py
 ifndef TRAVIS
-USER_FLAG = --user  # global install on travis...
+USER_FLAG = --user -O2 # global non-optimized install on travis...
 endif
-INSTALL_FLAGS = install $(USER_FLAG) -O2
-DEVELOP_FLAGS = develop $(USER_FLAG) -O2
+INSTALL_FLAGS = install $(USER_FLAG)
+DEVELOP_FLAGS = develop $(USER_FLAG)
 RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
 
 ifdef QUIET
