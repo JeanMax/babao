@@ -2,74 +2,71 @@
 
 NAME = babao
 
+
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
-INSTALL_DIR= $(HOME)/.local
-INSTALL_NAME = $(INSTALL_DIR)/bin/$(NAME)
+DOC_DIR = docs
+DOC_BUILD_DIR = docs/_build
+
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
 
-export PATH := $(INSTALL_DIR)/bin:$(PATH)
-
-INSTALL_FILES_LOG = .install_files.list
-TMP_FILES = build dist temp __pycache__ $(NAME).egg-info\
-            $(SRC_DIR)/$(NAME)/**/*/__pycache__ $(SRC_DIR)/$(NAME).egg-info
+TMP_FILES = build dist temp $(shell find . -name __pycache__) \
+            $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info $(DOC_DIR)
 
 RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
-ECHO = echo -e
-PY = python3 -u
+PY = python -u
+
+EUID = $(shell id -u)
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
-TESTER = pytest --pdb --fulltrace
-FLAKE = flake8
-LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) == dumb && echo "-fparseable")
-SETUP = python3 setup.py
-INSTALL_FLAGS = install -O2 --user
-DEVELOP_FLAGS = develop -O2 --user
-RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
-
-ifdef QUIET
-SETUP += --quiet
-.SILENT:
+TESTER = pytest --fulltrace
+ifndef TRAVIS
+TESTER += $(shell if [ "$(TERM)" != dumb ]; then echo "--pdb"; fi)
 endif
+FLAKE = flake8
+LINTER = pylint --rcfile=setup.cfg $(shell if [ "$(TERM)" = dumb ]; then echo "-fparseable"; fi)
+PIP_INSTALL = pip install $(shell if [ "$(EUID)" != 0 ] && [ "$(READTHEDOCS)$(TRAVIS)$(PYENV_VERSION)" = "" ]; then echo "--user"; fi)
+PIP_UNINSTALL = pip uninstall -y
 
 ifdef DEBUG
-BUILD_FLAGS += -g
 EXEC = $(DEBUGER) -m $(NAME) --
 else
 EXEC = $(PY) -m $(NAME)
 endif
 
 
-.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit
+.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage doc html man
 
-
-$(NAME): | $(ROOT_DIR)
-	$(SETUP) $(DEVELOP_FLAGS)
-	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(INSTALL_DIR)/bin/$(NAME)
-	$(ECHO) '#!/bin/bash\n\n$(EXEC) "$$@"' > $(NAME)
+$(NAME): install
+	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
 	chmod 755 $(NAME)
 
-$(ROOT_DIR):
+$(ROOT_DIR):  # TODO: do that in setup.py / babao
 	$(MKDIR) $(ROOT_DIR)/{data,log}
 	$(CP) $(CONFIG_FILE) $(KRAKEN_KEY_FILE) $(ROOT_DIR)
-
-$(INSTALL_NAME):
-	$(SETUP) $(INSTALL_FLAGS)
 
 
 conf: | $(ROOT_DIR)
 
-install: $(NAME) $(INSTALL_NAME) # TODO: won't install if develop already there
+install: conf
+	$(PIP_INSTALL) .
+ifndef TRAVIS
+# unbufferd I/O: TODO: move to forever-babao.sh
+	sed -i 's|^\(#!/.*python\w*\)$$|\1 -u|' $(shell which $(NAME))
+endif
 
-install_test: install
-	pip install --user .[test] # TODO
+develop: install
+	$(PIP_INSTALL) --editable .
 
-install_graph: install
-	pip install --user .[graph] # TODO
+install_test: conf
+	$(PIP_INSTALL) .[test] # TODO
+
+install_graph: conf
+	$(PIP_INSTALL) .[graph] # TODO
 
 
 clean:
@@ -79,16 +76,11 @@ fclean: clean
 	$(RM) $(NAME)
 
 uninstall: fclean
-	$(SETUP) $(RECORD_FLAGS)
-	xargs $(RM) < $(INSTALL_FILES_LOG)
-	$(RM) $(INSTALL_FILES_LOG)
-	find $(INSTALL_DIR)/lib -name $(NAME)\* | xargs $(RM)
-	find $(INSTALL_DIR)/lib -name easy-install.pth | xargs sed -i 's!\./$(NAME)-.*\.egg!!'
-	make fclean #ouch
+	$(PIP_UNINSTALL) $(NAME)
 # $(RM) $(ROOT_DIR)
 
-reinstall: uninstall install
-
+reinstall: uninstall
+	$(MAKE) $(NAME)
 
 flake:
 	$(FLAKE)
@@ -99,7 +91,23 @@ lint:
 test:
 	$(TESTER)
 
+coverage:
+	coverage run --source=$(NAME) setup.py test
+	coveralls
+
 check: flake lint test
+
+$(DOC_BUILD_DIR):
+	sphinx-apidoc --ext-coverage -H $(NAME) -A JeanMax -V 0.1 -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
+
+html: $(DOC_BUILD_DIR)
+	sphinx-build -M html $(DOC_DIR) $(DOC_BUILD_DIR)
+
+man: $(DOC_BUILD_DIR)
+	sphinx-build -M man $(DOC_DIR) $(DOC_BUILD_DIR)
+
+doc: html man
+	sphinx-build -M coverage $(DOC_DIR) $(DOC_BUILD_DIR)
 
 commit: reinstall check fclean
 	git add -A .

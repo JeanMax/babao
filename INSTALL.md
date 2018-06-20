@@ -23,14 +23,16 @@ make install_test
 ```
 
 
-if you're not planning to develop:
+if planning to develop:
 ```shell
-make install
+make develop
 ```
 
 
 ### ...or using pip:
 ```shell
+mkdir -pv ~/.babao.d/{data,log}
+cp -nv config/babao.conf config/kraken.key ~/.babao.d
 pip install .
 ```
 
@@ -44,7 +46,7 @@ pip install .[test]
 
 ## Requirements:
 
-* python3
+* python >= 3.5
 * pip
 * hdf5
 
