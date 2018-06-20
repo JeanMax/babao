@@ -5,8 +5,7 @@ import pandas as pd
 
 import babao.utils.log as log
 import babao.config as conf
-import babao.data.indicators as indic
-import babao.data.ledger as ledger
+import babao.utils.indicators as indic
 import babao.strategy.transaction as tx
 import babao.strategy.modelHelper as modelHelper
 
@@ -269,7 +268,6 @@ def train():
         hodl = price / modelHelper.unscale(FEATURES[0][-1][0]) * 100
         log.debug(
             "Epoch", str(e + 1) + "/" + str(EPOCHS),
-            # "-", str(round((tick - tack) / 1e9, 1)) + "s",
             "- loss:", round(loss, 4),
             "- rewardTotal:", round(rewardTotal, 4),
             "- score:", int(score - hodl),

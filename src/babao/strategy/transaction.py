@@ -5,7 +5,6 @@ Buy/Sell strategy
 import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.log as log
-import babao.data.ledger as ledger
 
 LAST_TX = None
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm

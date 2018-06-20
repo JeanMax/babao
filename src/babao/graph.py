@@ -11,9 +11,8 @@ import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.log as log
 import babao.config as conf
-import babao.data.resample as resamp
-import babao.data.indicators as indic
-import babao.strategy.models.macd as macd
+import babao.utils.indicators as indic
+import babao.strategy.models.macd as macd  # TODO: this is weird
 
 DATA = None
 INDICATORS_COLUMNS = [

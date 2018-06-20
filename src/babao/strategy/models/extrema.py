@@ -19,7 +19,7 @@ import joblib  # just use pickle instead?
 import babao.strategy.modelHelper as modelHelper
 import babao.config as conf
 import babao.utils.log as log
-import babao.data.indicators as indic
+import babao.utils.indicators as indic
 
 MODEL = None
 FEATURES = None

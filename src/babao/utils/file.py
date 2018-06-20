@@ -23,7 +23,7 @@ def write(filename, frame, df):
                 format='table',
                 append=True,
                 # data_column=True,
-                # complib='blosc',
+                complib='blosc',
                 # TODO: compression isn't really required,
                 #       but it's not much slower
             )

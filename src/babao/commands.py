@@ -4,17 +4,19 @@ import time
 import os
 import signal
 import numpy as np
+import pandas as pd
 
 import babao.utils.log as log
 import babao.utils.date as du
 import babao.utils.file as fu
 import babao.config as conf
-import babao.api.api as api
-import babao.data.resample as resamp
-import babao.data.ledger as ledger
 import babao.strategy.strategy as strat
 import babao.strategy.transaction as tx
 import babao.strategy.modelManager as modelManager
+
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
+
+K = None
 
 EXIT = 0
 TICK = None
@@ -89,7 +91,7 @@ def _launchGraph():
     LOCK.acquire()
 
 
-def _initCmd(graph=False, simulate=True, with_private_api=False):
+def _initCmd(graph=False, simulate=True):
     """
     Generic command init function
 
@@ -99,8 +101,8 @@ def _initCmd(graph=False, simulate=True, with_private_api=False):
     signal.signal(signal.SIGINT, _signalHandler)
     signal.signal(signal.SIGTERM, _signalHandler)
 
-    if with_private_api:
-        api.initKey()
+    global K
+    K = KrakenTradesXXBTZEURInput()
 
     ledger.initBalance()
     if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
@@ -116,12 +118,7 @@ def _initCmd(graph=False, simulate=True, with_private_api=False):
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    full_data = resamp.resampleTradeData(
-        fu.read(conf.DB_FILE, conf.TRADES_FRAME)
-        # .loc[du.nowMinus(years=YEARS_OF_DATA):]
-        # TODO: check if faster with "where"
-    )
-
+    full_data = K.read()
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
@@ -138,18 +135,10 @@ def dryRun(args):
     ledger.setVerbose(True)
 
     while True:
-        api.dumpData()  # TODO: this could use a renaming
-
+        K.write()
         # TODO:  do not hardcode the lookback
-        t = str(du.nowMinus(weeks=1))
-        fresh_data = fu.read(
-            conf.DB_FILE,
-            conf.TRADES_FRAME,
-            where="index > " + t
-        )
+        fresh_data = K.read(since=du.nowMinus(weeks=1))
         if not fresh_data.empty:
-            fresh_data = resamp.resampleTradeData(fresh_data)
-
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
             price = fresh_data.at[timestamp, "close"]
@@ -176,20 +165,13 @@ def fetch(args):
             # os.remove(f)  # TODO: warn user / create backup?
             log.warning("Database file already exists (" + f + ").")
 
-    raw_data = api.dumpData(
-        "0"
-        # str(du.nowMinus(years=YEARS_OF_DATA))
-    )
-    while len(raw_data.index) == 1000:  # TODO: this is too much kraken specific
-        du.to_datetime(raw_data)
+    while True:
+        K.write()
         log.debug(
-            "Fetched data from " + str(raw_data.index[0])
-            + " to " + str(raw_data.index[-1])
+            "Fetched data till " + pd.to_datetime(K.last_row.name, unit="ns")
         )
         if not _delay():
             return
-
-        raw_data = api.dumpData()
 
 
 def backtest(args):
