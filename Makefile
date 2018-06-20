@@ -23,11 +23,11 @@ EUID = $(shell id -u)
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --fulltrace
 ifndef TRAVIS
-TESTER += $(shell if [ $(TERM) != dumb ]; then echo "--pdb"; fi)
+TESTER += $(shell if [ "$(TERM)" != dumb ]; then echo "--pdb"; fi)
 endif
 FLAKE = flake8
-LINTER = pylint --rcfile=setup.cfg $(shell if [ $(TERM) = dumb ]; then echo "-fparseable"; fi)
-PIP_INSTALL = pip install $(shell if [ $(EUID) != 0 ]; then echo "--user"; fi)
+LINTER = pylint --rcfile=setup.cfg $(shell if [ "$(TERM)" = dumb ]; then echo "-fparseable"; fi)
+PIP_INSTALL = pip install $(shell if [ "$(EUID)" != 0 ] && [ "$(PYENV_VERSION)" = "" ]; then echo "--user"; fi)
 PIP_UNINSTALL = pip uninstall -y
 
 ifdef DEBUG
