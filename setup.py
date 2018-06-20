@@ -5,11 +5,16 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+import os
 from glob import glob
 from os.path import basename, dirname, join, splitext, abspath
 from codecs import open as copen
 from setuptools import find_packages, setup
 
+
+# let's generate docs...
+if not os.path.isdir("docs"):
+    os.system("make html")
 
 here = abspath(dirname(__file__))
 

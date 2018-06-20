@@ -5,7 +5,8 @@ NAME = babao
 
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
-DOC_DIR = doc
+DOC_DIR = docs
+DOC_BUILD_DIR = docs/_build
 
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
@@ -38,7 +39,7 @@ EXEC = $(PY) -m $(NAME)
 endif
 
 
-.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage doc
+.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage doc html man
 
 $(NAME): install
 	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
@@ -96,11 +97,17 @@ coverage:
 
 check: flake lint test
 
-doc:
+$(DOC_DIR):
 	sphinx-apidoc --ext-coverage -H $(NAME) -A JeanMax -V 0.1 -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
-	sphinx-build -M html $(DOC_DIR) $(DOC_DIR)/_build
-	sphinx-build -M man $(DOC_DIR) $(DOC_DIR)/_build
-	sphinx-build -M coverage $(DOC_DIR) $(DOC_DIR)/_build
+
+html: $(DOC_DIR)
+	sphinx-build -M html $(DOC_DIR) $(DOC_BUILD_DIR)
+
+man: $(DOC_DIR)
+	sphinx-build -M man $(DOC_DIR) $(DOC_BUILD_DIR)
+
+doc: html man
+	sphinx-build -M coverage $(DOC_DIR) $(DOC_BUILD_DIR)
 
 commit: reinstall check fclean
 	git add -A .

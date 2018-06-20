@@ -5,7 +5,7 @@ dist/
 temp/
 
 # sphinx doc
-doc/
+docs/
 
 # pytest
 .cache
