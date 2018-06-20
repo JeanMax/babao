@@ -4,13 +4,20 @@ build/
 dist/
 temp/
 
+# sphinx doc
+docs/
+
 # pytest
 .cache
 .pytest_cache
 
+# coveralls
+.coverage
+
 # python gifts
 *.egg-info/
 *.egg
+.eggs
 *.py[cod]
 __pycache__/
 *.so
