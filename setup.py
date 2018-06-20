@@ -11,11 +11,6 @@ from os.path import basename, dirname, join, splitext, abspath
 from codecs import open as copen
 from setuptools import find_packages, setup
 
-
-# let's generate docs...
-if not os.path.isdir("docs"):
-    os.system("make html")
-
 here = abspath(dirname(__file__))
 
 with copen(join(here, 'README.md'), encoding='utf-8') as f:
@@ -55,23 +50,23 @@ setup(
         # TODO: forbid dev version instead of allowing only specific versions
 
         # machine learning
-        'keras>=2.2.0',
-        'tensorflow>=1.8.0',
-        'scipy>=1.1.0',
-        'scikit-learn>=0.19.1',
-        'joblib>=0.11',  # just for saving scikit models...
+        'keras==2.2.0',
+        'tensorflow==1.8.0',
+        'scipy==1.1.0',
+        'scikit-learn==0.19.1',
+        'joblib==0.11',  # just for saving scikit models...
 
         # data handling
-        'numpy>=1.14.5',
-        'pandas>=0.23.1',
-        'tables>=3.4.4',
+        'numpy==1.14.5',
+        'pandas==0.23.1',
+        'tables==3.4.4',
 
         # parsing
-        'configparser>=3.5.0',
-        'argparse>=1.4.0',
+        'configparser==3.5.0',
+        'argparse==1.4.0',
 
         # api
-        'krakenex>=2.1.0',
+        'krakenex==2.1.0',
     ],
     extras_require={
         'graph': ['matplotlib'],
@@ -88,3 +83,7 @@ setup(
         ],
     },
 )
+
+# let's generate docs...
+if not os.path.isdir("docs"):
+    os.system("make html")
