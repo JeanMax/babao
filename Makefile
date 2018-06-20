@@ -22,13 +22,15 @@ CP = cp -nv
 PY = python -u
 
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
-TESTER = pytest --pdb --fulltrace
+ifdef TRAVIS
+TESTER = pytest --fulltrace
+else
+TESTER = pytest --fulltrace --pdb
+USER_FLAG = --user -O2 # global non-optimized install on travis...
+endif
 FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell test $(TERM) = dumb && echo "-fparseable")
 SETUP = python setup.py
-ifndef TRAVIS
-USER_FLAG = --user -O2 # global non-optimized install on travis...
-endif
 INSTALL_FLAGS = install $(USER_FLAG)
 DEVELOP_FLAGS = develop $(USER_FLAG)
 RECORD_FLAGS = $(INSTALL_FLAGS) --record $(INSTALL_FILES_LOG) # --dry-run is bugged?
