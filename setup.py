@@ -17,12 +17,10 @@ with copen(join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # let's generate docs...
-if os.environ.get("READTHEDOCS") and not os.path.isdir("docs"):
-    os.mkdir("docs")
-    os.system("make")
+if os.environ.get("READTHEDOCS"): # and not os.path.isdir("docs"):
+    # os.mkdir("docs")
     os.system("make html")
 else:
-
     setup(
         name='babao',
         version='0.1.0',
