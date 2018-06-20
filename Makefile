@@ -2,8 +2,6 @@
 
 NAME = babao
 
-PY_VERSION = $(shell python --version | grep -oE '3.[0-9]+.[0-9]+')
-
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
 INSTALL_DIR= $(HOME)/.local  # TODO: this only works on my computer :o

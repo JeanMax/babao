@@ -29,7 +29,6 @@ before_install:
   - osx brew update
   - osx rm -vf /usr/local/include/c++
   - osx brew install gcc || true
-  - osx brew link --overwrite gcc
   - osx brew install hdf5
   - osx brew install lzo
   - osx brew outdated pyenv || brew upgrade pyenv
@@ -38,7 +37,7 @@ before_install:
   - osx export PYENV_VERSION=$PYTHON
   - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
   - osx pyenv virtualenv venv
-  - osx source venv/bin/activate
+  - osx . /Users/travis/.pyenv/versions/$PYTHON/envs/venv/bin/activate
   - python --version
   - python -m pip install -U pip
   - python -m easy_install -U setuptools
