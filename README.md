@@ -1,17 +1,13 @@
 # babao
 
+> I've got 99 problems But A Bot Ain't One
 
+Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
 
 | Branch | Build | Coverage | Doc | Package |
 |-|-|-|-|-|
 | `master` | [![Build Status](https://travis-ci.org/JeanMax/babao.svg?branch=master)](https://travis-ci.org/JeanMax/babao) | [![Coverage Status](https://coveralls.io/repos/github/JeanMax/babao/badge.svg?branch=master)](https://coveralls.io/github/JeanMax/babao?branch=master) | [![Documentation Status](https://readthedocs.org/projects/babao/badge/?version=master)](http://babao.readthedocs.io/en/latest/?badge=master) | [![PyPI version](https://badge.fury.io/py/babao.svg)](https://badge.fury.io/py/babao) |
 | `dev` | [![Build Status](https://travis-ci.org/JeanMax/babao.svg?branch=dev)](https://travis-ci.org/JeanMax/babao) | [![Coverage Status](https://coveralls.io/repos/github/JeanMax/babao/badge.svg?branch=dev)](https://coveralls.io/github/JeanMax/babao?branch=dev) | [![Documentation Status](https://readthedocs.org/projects/babao/badge/?version=dev)](http://babao.readthedocs.io/en/dev/?badge=dev) |-|
-
-
-> I've got 99 problems But A Bot Ain't One
-
-Just a little [insert crypto-currency] trade bot, using [insert strategy] over [insert market-place] api.
-
 
 ## Usage:
 

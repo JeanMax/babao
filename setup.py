@@ -70,7 +70,7 @@ setup(
     ],
     extras_require={
         'graph': ['matplotlib'],
-        'test': ['pytest-runner', 'pytest', 'pylint', 'flake8', 'coveralls'],
+        'test': ['pytest-runner', 'pytest', 'pylint', 'flake8', 'coveralls', 'sphinx'],
     },
     setup_requires=['pytest-runner'],
     test_suite='pytest',

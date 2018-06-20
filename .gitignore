@@ -4,6 +4,9 @@ build/
 dist/
 temp/
 
+# sphinx doc
+doc/
+
 # pytest
 .cache
 .pytest_cache
