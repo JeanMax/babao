@@ -90,7 +90,7 @@ test:
 	$(TESTER)
 
 coverage:
-	coverage run --source=my_package setup.py test
+	coverage run --source=$(NAME) setup.py test
 	coveralls
 
 check: flake lint test

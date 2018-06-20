@@ -54,6 +54,7 @@ script:
   - make flake
   - make lint
   - make test
+  - make coverage
 
 after_script:
   - make develop

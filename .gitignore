@@ -8,6 +8,9 @@ temp/
 .cache
 .pytest_cache
 
+# coveralls
+.coverage
+
 # python gifts
 *.egg-info/
 *.egg
