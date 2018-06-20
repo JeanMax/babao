@@ -24,32 +24,32 @@ addons:
 
 # https://pythonhosted.org/CodeChat/.travis.yml.html
 before_install:
-  # - linux() { if test "$TRAVIS_OS_NAME" == "linux"; then $@; fi; }
+  - linux() { if test "$TRAVIS_OS_NAME" == "linux"; then $@; fi; }
   - osx() { if test "$TRAVIS_OS_NAME" == "osx"; then $@; fi; }
   - osx brew update
   - osx rm -vf /usr/local/include/c++
   - osx brew install gcc
   - osx brew install hdf5
   - osx brew install lzo
-  - osx brew outdated pyenv || brew upgrade pyenv
-  - osx brew install pyenv-virtualenv
+  # - osx brew outdated pyenv || brew upgrade pyenv
+  # - osx brew install pyenv-virtualenv
   - osx pyenv install $PYTHON
-  - osx export PYENV_VERSION=$PYTHON
+  # - osx export PYENV_VERSION=$PYTHON
   - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
-  - osx pyenv virtualenv venv
-  - osx . /Users/travis/.pyenv/versions/$PYTHON/envs/venv/bin/activate
-  - python --version
-  - python -m pip install -U pip
+  # - osx pyenv virtualenv venv
+  # - osx . /Users/travis/.pyenv/versions/$PYTHON/envs/venv/bin/activate
+  # - python --version
+  # - python -m pip install -U pip
   - python -m easy_install -U setuptools
-  - pip install --upgrade pip
-  - pip install --upgrade setuptools
+  # - pip install --upgrade pip
+  # - pip install --upgrade setuptools
 
 
 install:
   - osx pip install .
   - make
   - make install_test
-  - make install_graph
+  - linux make install_graph
   - make install
 
 script:
