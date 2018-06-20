@@ -86,7 +86,7 @@ flake:
 	$(FLAKE)
 
 lint:
-	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_' | xargs $(LINTER)
+	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_|eggs' | xargs $(LINTER)
 
 test:
 	$(TESTER)

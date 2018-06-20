@@ -6,7 +6,7 @@ import os
 def isLocked(lockfile):
     """Check if the ´lockfile´ exists"""
 
-    return os.path.isfile(lockfile)
+    return os.path.isdir(lockfile)
 
 
 def tryLock(lockfile):
@@ -19,7 +19,7 @@ def tryLock(lockfile):
     if isLocked(lockfile):
         return False
 
-    open(lockfile, "w")
+    os.mkdir(lockfile)
     return True
 
 
@@ -33,5 +33,5 @@ def tryUnlock(lockfile):
     if not isLocked(lockfile):
         return False
 
-    os.remove(lockfile)
+    os.rmdir(lockfile)
     return True
