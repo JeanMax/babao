@@ -18,6 +18,8 @@ MKDIR = mkdir -pv
 CP = cp -nv
 PY = python -u
 
+EUID = $(shell id -u)
+
 DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --fulltrace
 ifndef TRAVIS
@@ -25,7 +27,7 @@ TESTER += $(shell if [ $(TERM) != dumb ]; then echo "--pdb"; fi)
 endif
 FLAKE = flake8
 LINTER = pylint --rcfile=setup.cfg $(shell if [ $(TERM) = dumb ]; then echo "-fparseable"; fi)
-PIP_INSTALL = pip install $(shell if (( $$EUID != 0 )); then echo "--user"; fi)
+PIP_INSTALL = pip install $(shell if (( $(EUID) != 0 )); then echo "--user"; fi)
 PIP_UNINSTALL = pip uninstall -y
 
 ifdef DEBUG
@@ -41,7 +43,7 @@ $(NAME): install
 	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
 	chmod 755 $(NAME)
 
-$(ROOT_DIR):
+$(ROOT_DIR):  # TODO: do that in setup.py / babao
 	$(MKDIR) $(ROOT_DIR)/{data,log}
 	$(CP) $(CONFIG_FILE) $(KRAKEN_KEY_FILE) $(ROOT_DIR)
 
