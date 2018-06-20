@@ -60,4 +60,5 @@ after_script:
   - make develop
   - make install
   - make reinstall
+  - make doc
   - make uninstall
