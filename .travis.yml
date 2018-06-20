@@ -44,16 +44,18 @@ before_install:
   - pip install --upgrade pip
   - pip install --upgrade setuptools
 
-
 install:
-  - osx pip install .
   - make
   - make install_test
   - linux make install_graph
-  - make install
 
 script:
   - babao
   - make flake
   - make lint
   - make test
+
+after_script:
+  - make develop
+  - make reinstall
+  - make uninstall

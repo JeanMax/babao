@@ -50,26 +50,23 @@ setup(
         # TODO: forbid dev version instead of allowing only specific versions
 
         # machine learning
-        'keras==2.2.0',
-        'tensorflow==1.8.0',
-        'scipy==1.1.0',
-        'scikit-learn==0.19.1',
-        'joblib==0.11',  # just for saving scikit models...
+        'keras>=2.2.0',
+        'tensorflow>=1.8.0',
+        'scipy>=1.1.0',
+        'scikit-learn>=0.19.1',
+        'joblib>=0.11',  # just for saving scikit models...
 
         # data handling
-        'numpy==1.14.5',
-        'pandas==0.23.1',
-        'tables==3.4.4',
+        'numpy>=1.14.5',
+        'pandas>=0.23.1',
+        'tables>=3.4.4',
 
         # parsing
-        'configparser==3.5.0',
-        'argparse==1.4.0',
+        'configparser>=3.5.0',
+        'argparse>=1.4.0',
 
         # api
-        'krakenex==2.1.0',
-
-        # indirect stuffs
-        'numexpr==2.6.5'
+        'krakenex>=2.1.0',
     ],
     extras_require={
         'graph': ['matplotlib'],
