@@ -70,8 +70,10 @@ setup(
     ],
     extras_require={
         'graph': ['matplotlib'],
-        'test': ['pytest', 'pylint', 'flake8'],
+        'test': ['pytest-runner', 'pytest', 'pylint', 'flake8', 'coveralls'],
     },
+    setup_requires=['pytest-runner'],
+    test_suite='pytest',
     package_data={
         # 'babao': ['package_data.dat'],
     },

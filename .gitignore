@@ -11,6 +11,7 @@ temp/
 # python gifts
 *.egg-info/
 *.egg
+.eggs
 *.py[cod]
 __pycache__/
 *.so

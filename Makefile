@@ -37,7 +37,7 @@ EXEC = $(PY) -m $(NAME)
 endif
 
 
-.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit
+.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage
 
 $(NAME): install
 	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
@@ -88,6 +88,10 @@ lint:
 
 test:
 	$(TESTER)
+
+coverage:
+	coverage run --source=my_package setup.py test
+	coveralls
 
 check: flake lint test
 
