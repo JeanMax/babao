@@ -97,7 +97,7 @@ coverage:
 
 check: flake lint test
 
-$(DOC_DIR):
+$(DOC_BUILD_DIR):
 	sphinx-apidoc --ext-coverage -H $(NAME) -A JeanMax -V 0.1 -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
 
 html: $(DOC_DIR)
