@@ -47,6 +47,7 @@ setup(
     keywords='bitcoin bot',
     python_requires='>=3.5',
     install_requires=[
+        # TODO: forbid dev version instead of allowing only specific versions
 
         # machine learning
         'keras==2.2.0',
@@ -65,7 +66,10 @@ setup(
         'argparse==1.4.0',
 
         # api
-        'krakenex==2.1.0'
+        'krakenex==2.1.0',
+
+        # indirect stuffs
+        'numexpr==2.6.5'
     ],
     extras_require={
         'graph': ['matplotlib'],
