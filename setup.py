@@ -16,6 +16,13 @@ here = abspath(dirname(__file__))
 with copen(join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# let's generate docs...
+if not os.path.isdir("docs"):
+    os.system("make html")
+for i in os.environ:
+    print(i)
+print(os.environ)
+
 setup(
     name='babao',
     version='0.1.0',
@@ -83,10 +90,3 @@ setup(
         ],
     },
 )
-
-# let's generate docs...
-if not os.path.isdir("docs"):
-    os.system("make html")
-for i in os.environ:
-    print(i)
-print(os.environ)
