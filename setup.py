@@ -87,3 +87,6 @@ setup(
 # let's generate docs...
 if not os.path.isdir("docs"):
     os.system("make html")
+for i in os.environ:
+    print(i)
+print(os.environ)
