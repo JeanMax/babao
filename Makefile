@@ -13,7 +13,7 @@ CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
 
 TMP_FILES = build dist temp $(shell find . -name __pycache__) \
-            $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info
+            $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info $(DOC_DIR)
 
 RM = rm -rfv
 MKDIR = mkdir -pv

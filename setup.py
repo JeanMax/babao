@@ -17,8 +17,9 @@ with copen(join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # let's generate docs...
-if os.environ.get("READTHEDOCS"): # and not os.path.isdir("docs"):
-    # os.mkdir("docs")
+if os.environ.get("READTHEDOCS") and not os.path.isdir(".doc"):
+    os.mkdir(".doc")
+    os.system("make")
     os.system("make html")
 else:
     setup(
@@ -51,10 +52,11 @@ else:
         ],
         keywords='bitcoin bot',
         python_requires='>=3.5',
+
         install_requires=[
             # machine learning
             'keras>=2.2.0',
-            'tensorflow>=1.8.0',
+            'tensorflow',
             'scipy>=1.1.0',
             'scikit-learn>=0.19.1',
             'joblib>=0.11',  # just for saving scikit models...
@@ -71,6 +73,7 @@ else:
             # api
             'krakenex>=2.1.0',
         ],
+        # requires=[s.split(">")[0].replace("-", ".") for s in REQ],
         extras_require={
             'graph': ['matplotlib'],
             'test': [
