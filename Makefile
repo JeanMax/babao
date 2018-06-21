@@ -1,7 +1,8 @@
 # yep
 
 NAME = babao
-
+AUTHOR = JeanMax
+VERSION = 0.1
 
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
@@ -15,14 +16,12 @@ KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
 TMP_FILES = build dist temp $(shell find . -name __pycache__) \
             $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info $(DOC_DIR)
 
+EUID = $(shell id -u)
+
 RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
-PY = python -u
 
-EUID = $(shell id -u)
-
-DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --fulltrace
 ifndef TRAVIS
 TESTER += $(shell if [ "$(TERM)" != dumb ]; then echo "--pdb"; fi)
@@ -33,13 +32,11 @@ PIP_INSTALL = pip install $(shell if [ "$(EUID)" != 0 ] && [ "$(READTHEDOCS)$(TR
 PIP_UNINSTALL = pip uninstall -y
 
 ifdef DEBUG
-EXEC = $(DEBUGER) -m $(NAME) --
+EXEC = ipython --no-confirm-exit --no-banner -i --pdb -m $(NAME) --
 else
-EXEC = $(PY) -m $(NAME)
+EXEC = python -u -m $(NAME)
 endif
 
-
-.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage doc html man
 
 $(NAME): install
 	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
@@ -75,6 +72,7 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
+# TODO
 uninstall: fclean
 	$(PIP_UNINSTALL) $(NAME)
 # $(RM) $(ROOT_DIR)
@@ -98,7 +96,7 @@ coverage:
 check: flake lint test
 
 $(DOC_BUILD_DIR):
-	sphinx-apidoc --ext-coverage -H $(NAME) -A JeanMax -V 0.1 -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
+	sphinx-apidoc --ext-coverage -H $(NAME) -A $(AUTHOR) -V $(VERSION) -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
 
 html: $(DOC_BUILD_DIR)
 	sphinx-build -M html $(DOC_DIR) $(DOC_BUILD_DIR)
@@ -113,3 +111,9 @@ commit: reinstall check fclean
 	git add -A .
 	git diff --cached --minimal
 	git commit
+
+
+.PHONY: conf install install_test install_graph \
+		clean fclean uninstall reinstall \
+		flake lint test check commit coverage \
+		doc html man
