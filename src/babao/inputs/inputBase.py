@@ -8,7 +8,7 @@ import pandas as pd
 import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.date as du
-import babao.utils.log as log  # TODO: share a lock between inputs for debug
+import babao.utils.log as log
 from babao.utils.rwlock import RWLock
 
 

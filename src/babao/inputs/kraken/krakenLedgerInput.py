@@ -27,7 +27,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
 
     def __init__(self):
         super().__init__()
-        self.balance = {}  # TODO
+        self.balance = 0  # TODO
 
     def fetch(self):
         """

@@ -19,7 +19,6 @@ from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
 K = None
 
 EXIT = 0
-TICK = None
 
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
@@ -31,32 +30,6 @@ def _signalHandler(signal_code, unused_frame):
 
     global EXIT
     EXIT = 128 + signal_code
-
-
-def _delay():
-    """
-    Sleep the min amount of time required to still be friend with the api
-
-    Also handle a lock to avoid having the graph read data while we write
-    Return False if a signal have been caught (you need to exit).
-    """
-
-    if EXIT:
-        return False
-
-    global TICK
-    if TICK is not None:
-        delta = time.time() - TICK
-        log.debug("Loop took " + str(round(delta, 3)) + "s")
-    else:
-        delta = 0
-
-    delta = 3 - delta  # TODO: define API_DELAY
-    if delta > 0:
-        time.sleep(delta)
-    TICK = time.time()
-
-    return not bool(EXIT)
 
 
 def _launchGraph():
@@ -87,12 +60,9 @@ def _initCmd(graph=False, simulate=True):
 
     global K
     K = KrakenTradesXXBTZEURInput()
-
     tx.initLedger(simulate)
-
     if graph:
         _launchGraph()
-
     modelManager.loadModels()
 
 
@@ -114,7 +84,7 @@ def dryRun(args):
 
     _initCmd(args.graph)
 
-    while True:
+    while not EXIT:
         K.write(K.fetch())
         # TODO:  do not hardcode the lookback
         fresh_data = K.resample(K.read(since=du.nowMinus(weeks=1)))
@@ -127,9 +97,6 @@ def dryRun(args):
                 price=price,
                 timestamp=timestamp
             )
-
-        if not _delay():
-            return
 
 
 def fetch(args):
@@ -145,13 +112,11 @@ def fetch(args):
             # os.remove(f)  # TODO: warn user / create backup?
             log.warning("Database file already exists (" + f + ").")
 
-    while True:
+    while not EXIT:
         K.write(K.fetch())
         log.debug(
             "Fetched data till " + pd.to_datetime(K.last_row.name, unit="ns")
         )
-        if not _delay():
-            return
 
 
 def backtest(args):
@@ -195,8 +160,8 @@ def backtest(args):
 
     if args.graph:
         # TODO: exit if graph is closed
-        while _delay():
-            pass
+        while not EXIT:
+            time.sleep(0.1)
 
 
 def train(args):

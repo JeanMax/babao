@@ -8,9 +8,10 @@ import socket
 from abc import abstractmethod
 import krakenex
 
+import babao.utils.log as log
 import babao.config as conf
-import babao.utils.log as log  # TODO: share a lock between inputs for debug
 from babao.inputs.inputBase import ABCInput
+
 
 class ABCKrakenInput(ABCInput):
     """
@@ -19,9 +20,11 @@ class ABCKrakenInput(ABCInput):
     TODO: don't inherit input
     """
     __k = krakenex.API()
+    API_DELAY = 3
 
     def __init__(self):
         super().__init__()
+        self.__tick = None
         if ABCKrakenInput.__k.key == '':
             try:
                 ABCKrakenInput.__k.load_key(conf.API_KEY_FILE)
@@ -31,10 +34,10 @@ class ABCKrakenInput(ABCInput):
                     + conf.API_KEY_FILE + "': " + repr(e)
                 )
 
-    @staticmethod
-    def _doRequest(method, req=None):
+    def _doRequest(self, method, req=None):
         """General function for kraken api requests"""
 
+        self.__sleep()
         if not req:
             req = {}
 
@@ -72,3 +75,18 @@ class ABCKrakenInput(ABCInput):
     @abstractmethod
     def fetch(self):
         pass
+
+    def __sleep(self):
+        """TODO"""
+        if self.__tick is not None:
+            delta = time.time() - self.__tick
+            log.debug(
+                "Loop took " + str(round(delta, 3)) + "s ("
+                + self.__class__.__name__ + ")"
+            )
+        else:
+            delta = 0
+        delta = self.API_DELAY - delta
+        if delta > 0:
+            time.sleep(delta)
+        self.__tick = time.time()
