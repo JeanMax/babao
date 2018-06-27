@@ -9,6 +9,7 @@ import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.date as du
 import babao.utils.log as log  # TODO: share a lock between inputs for debug
+from babao.utils.rwlock import RWLock
 
 
 class ABCInput(ABC):
@@ -28,7 +29,8 @@ class ABCInput(ABC):
 
     (cf. specific method doc-string in this class)
     """
-    __last_write = 0  # TODO: this is not thread-safe
+    __last_write = 0
+    rw_lock = RWLock()
 
     @property
     @abstractmethod
@@ -44,6 +46,7 @@ class ABCInput(ABC):
 
     def __init__(self):
         self.last_row = None
+        ABCInput.rw_lock.reader_acquire()
         try:
             last_row = fu.getLastRows(
                 conf.DB_FILE, self.__class__.__name__, 1
@@ -53,10 +56,12 @@ class ABCInput(ABC):
                 "Couldn't read database frame for '"
                 + self.__class__.__name__ + "'"
             )
-        else:
-            self.__updateLastRow(last_row.iloc[-1])
-            # TODO: msg, move to tests?
-            assert list(self.last_row.keys()) == self.__class__.raw_columns
+            return
+        finally:
+            ABCInput.rw_lock.reader_release()
+        self.__updateLastRow(last_row.iloc[-1])
+        # TODO: msg, move to tests?
+        # assert list(self.last_row.keys()) == self.__class__.raw_columns
 
     @abstractmethod
     def fetch(self):
@@ -79,9 +84,13 @@ class ABCInput(ABC):
         """
         if raw_data is None or raw_data.empty:
             return None
-        # TODO: mutex
-        if not fu.write(conf.DB_FILE, self.__class__.__name__, raw_data):
+        ABCInput.rw_lock.writer_acquire()
+        try:
+            fu.write(conf.DB_FILE, self.__class__.__name__, raw_data)
+        except RuntimeError:  # HDF5ExtError
             return False
+        finally:
+            ABCInput.rw_lock.writer_release()
         self.__updateLastRow(raw_data.iloc[-1])
         return True
 
@@ -91,6 +100,7 @@ class ABCInput(ABC):
         """
         if since is not None:
             since = "index > %d" % since
+        ABCInput.rw_lock.reader_acquire()
         try:
             raw_data = fu.read(
                 conf.DB_FILE, self.__class__.__name__, where=since
@@ -101,6 +111,8 @@ class ABCInput(ABC):
                 + self.__class__.__name__ + "'"
             )      # DEBUG
             return pd.DataFrame()
+        finally:
+            ABCInput.rw_lock.reader_release()
         # TODO: you might want to store the read data,
         # so it can be shared accross the different models
         self.__updateLastRow(raw_data.iloc[-1])

@@ -13,6 +13,7 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.strategy.models.macd as macd  # TODO: this is weird
+from babao.inputs.inputBase import ABCInput
 
 DATA = None
 INDICATORS_COLUMNS = [
@@ -69,7 +70,7 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
     return resampled_data
 
 
-def _getData(lock, block=False):
+def _getData():
     """
     Initialize ´DATA´ global
 
@@ -90,21 +91,11 @@ def _getData(lock, block=False):
         # TODO: catch missing frame errors
         return False
 
-    if not lock.acquire(block=block):
-        # log.warning("graph._getData(): won't update, lock file found")
-        return False
-    # log.debug("graph._getData(): updating!")
-
     since = str(
         fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
         - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
     )
     DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
-
-    try:
-        lock.release()
-    except ValueError:
-        pass
 
     DATA = resamp.resampleTradeData(DATA)
     DATA = indic.get(DATA, INDICATORS_COLUMNS).dropna()
@@ -120,7 +111,7 @@ def _getData(lock, block=False):
 def _updateGraph(unused_counter, lines, lock):
     """Function called (back) by FuncAnimation, will update graph"""
 
-    if not _getData(lock, block=False):
+    if not _getData():
         return lines.values()
 
     for key in lines:
@@ -128,10 +119,10 @@ def _updateGraph(unused_counter, lines, lock):
     return lines.values()
 
 
-def _initGraph(lock):
+def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
 
-    _getData(lock, block=True)
+    _getData()
 
     fig = plt.figure()
     axes = {}
@@ -254,18 +245,20 @@ def _initGraph(lock):
     unused_animation = animation.FuncAnimation(  # NOQA: F841
         fig,
         _updateGraph,
-        fargs=(lines, lock),
+        fargs=(lines,),
         # blit=True,  # bug?
         interval=1500
     )
     plt.show()  # this is blocking!
 
 
-def initGraph(lock):
+def initGraph(log_lock, rw_lock):
     """Launch an awesome matplotlib graph!"""
 
+    log.setLock(log_lock)
+    ABCInput.rw_lock = rw_lock
     try:
-        _initGraph(lock)
+        _initGraph()
     except:  # pylint: disable=bare-except
         traceback.print_exc()
         log.error("Something's bjorked in your graph :/")

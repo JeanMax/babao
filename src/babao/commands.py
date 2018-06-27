@@ -13,13 +13,13 @@ import babao.strategy.transaction as tx
 import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
+from babao.inputs.inputBase import ABCInput
 from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
 
 K = None
 
 EXIT = 0
 TICK = None
-LOCK = None
 
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
@@ -44,12 +44,6 @@ def _delay(block=True):
     if EXIT:
         return False
 
-    if LOCK:
-        try:
-            LOCK.release()
-        except ValueError:
-            pass
-
     global TICK
     if TICK is not None:
         delta = time.time() - TICK
@@ -62,11 +56,6 @@ def _delay(block=True):
         time.sleep(delta)
     TICK = time.time()
 
-    if LOCK:
-        if delta < 0:
-            time.sleep(1)  # TODO: workaround: graph need time
-        LOCK.acquire(block=block)
-
     return not bool(EXIT)
 
 
@@ -74,20 +63,16 @@ def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
-    from multiprocessing import Process, Lock
+    from multiprocessing import Process
     import babao.graph as graph
 
-    global LOCK
-    LOCK = Lock()
     p = Process(
         target=graph.initGraph,
-        args=(LOCK,),
+        args=(log.LOCK, ABCInput.rw_lock),
         name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
-    time.sleep(0.5)  # TODO: define LIL_DELAY_JUST_IN_CASE
-    LOCK.acquire()
 
 
 def _initCmd(graph=False, simulate=True):
@@ -114,7 +99,7 @@ def _initCmd(graph=False, simulate=True):
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    full_data = K.read()
+    full_data = K.resample(K.read())
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
@@ -130,9 +115,9 @@ def dryRun(args):
     _initCmd(args.graph)
 
     while True:
-        K.write()
+        K.write(K.fetch())
         # TODO:  do not hardcode the lookback
-        fresh_data = K.read(since=du.nowMinus(weeks=1))
+        fresh_data = K.resample(K.read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
@@ -161,7 +146,7 @@ def fetch(args):
             log.warning("Database file already exists (" + f + ").")
 
     while True:
-        K.write()
+        K.write(K.fetch())
         log.debug(
             "Fetched data till " + pd.to_datetime(K.last_row.name, unit="ns")
         )
