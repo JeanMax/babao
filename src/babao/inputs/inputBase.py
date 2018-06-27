@@ -51,7 +51,7 @@ class ABCInput(ABC):
             last_row = fu.getLastRows(
                 conf.DB_FILE, self.__class__.__name__, 1
             )
-        except KeyError:
+        except (FileNotFoundError, KeyError):
             log.warning(
                 "Couldn't read database frame for '"
                 + self.__class__.__name__ + "'"
@@ -105,25 +105,27 @@ class ABCInput(ABC):
             raw_data = fu.read(
                 conf.DB_FILE, self.__class__.__name__, where=since
             )
-        except KeyError:
+        except (KeyError, FileNotFoundError):
             log.warning(
                 "Couldn't read database frame for '"
                 + self.__class__.__name__ + "'"
-            )      # DEBUG
+            )
             return pd.DataFrame()
         finally:
             ABCInput.rw_lock.reader_release()
         # TODO: you might want to store the read data,
         # so it can be shared accross the different models
-        self.__updateLastRow(raw_data.iloc[-1])
+        if not raw_data.empty:
+            self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
 
     def resample(self, raw_data):
         """
         TODO
 
-        ad this to tests:
+        add this to tests:
         assert list(raw_data.columns) == self.__class__.resampled_columns
+        assert isimplemented(_resample, _fillMissing)
         """
         if not raw_data.empty:
             du.to_datetime(raw_data)
@@ -138,7 +140,8 @@ class ABCInput(ABC):
         self.last_row = last_row
         ABCInput.__last_write = max(ABCInput.__last_write, last_row.name)
 
-    def _resampleSerie(self, s):
+    @staticmethod
+    def _resampleSerie(s):
         """
         Call Serie.resample on s with preset parameters
         (the serie's index must be datetime)

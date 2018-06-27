@@ -8,13 +8,16 @@ import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
 import babao.utils.date as du
-import babao.utils.file as fu
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.strategy.models.macd as macd  # TODO: this is weird
+import babao.strategy.transaction as tx
 from babao.inputs.inputBase import ABCInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.tradesInputBase import ABCTradesInput
 
+K = None
 DATA = None
 INDICATORS_COLUMNS = [
     "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
@@ -32,31 +35,28 @@ def _resampleLedgerAndJoinTo(resampled_data, since):
     """
 
     try:
-        raw_ledger = fu.read(
-            conf.DB_FILE,
-            conf.LEDGER_FRAME,
-            where="index > " + since
-        )
-        du.to_datetime(raw_ledger)
-        for col in raw_ledger.columns:
-            if col not in conf.RESAMPLED_LEDGER_COLUMNS:
-                del raw_ledger[col]
+        crypto_ledger = tx.L["crypto"].resample(tx.L["crypto"].read(since))
+        quote_ledger = tx.L["quote"].resample(tx.L["quote"].read(since))
+        du.to_datetime(crypto_ledger)
+        du.to_datetime(quote_ledger)
+
+        if not crypto_ledger.empty:
+            resampled_data["crypto_bal"] = crypto_ledger["balance"]
+        else:
+            resampled_data["crypto_bal"] = 0
+        if not quote_ledger.empty:
+            resampled_data["quote_bal"] = quote_ledger["balance"]
+        else:
+            resampled_data["quote_bal"] = 0
+
+        # resampled_data = resampled_data.join(
+        #     crypto_ledger, how="outer"
+        # ).join(
+        #     quote_ledger, how="outer"
+        # )
         first = resampled_data.index[0]
         last = resampled_data.index[-1]
-        resampled_ledger = raw_ledger.resample(
-            # TODO: these are pasted from resample.py...
-            str(conf.TIME_INTERVAL) + "Min",
-            closed="right",
-            label="right",
-            base=(last.minute + last.second / 60) % 60
-            # TODO: base doesn't always exactly match the trade dataframe
-            # when this happen the next join will drop the ledger...
-        ).last()
-
-        resampled_data = resampled_data.join(
-            resampled_ledger,
-            how="outer"
-        ).ffill().fillna(0).loc[first:last]
+        resampled_data = resampled_data.ffill().fillna(0).loc[first:last]
 
         resampled_data["bal"] = resampled_data["quote_bal"] \
             + resampled_data["crypto_bal"] * resampled_data["close"]
@@ -82,22 +82,20 @@ def _getData():
     if not os.path.isfile(conf.DB_FILE):
         log.warning("Data files not found... Is it your first time around?")
         DATA = pd.DataFrame(
-            columns=conf.RESAMPLED_TRADES_COLUMNS
+            columns=ABCTradesInput.resampled_columns
             + INDICATORS_COLUMNS
-            + conf.RESAMPLED_LEDGER_COLUMNS
-            + ["bal"]  # hmmm... we'll calculate this on the fly
+            + ["crypto_bal", "quote_bal", "bal"]
+            # hmmm... we'll calculate these on the fly
             + ["macd_line", "signal_line", "macd"]  # these too :O
         )
         # TODO: catch missing frame errors
         return False
 
-    since = str(
-        fu.getLastRows(conf.DB_FILE, conf.TRADES_FRAME, 1).index[0]
-        - ((MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9)
+    since = K.last_row.name - (
+        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9
     )
-    DATA = fu.read(conf.DB_FILE, conf.TRADES_FRAME, where="index > " + since)
-
-    DATA = resamp.resampleTradeData(DATA)
+    DATA = K.read(since)
+    DATA = K.resample(DATA)
     DATA = indic.get(DATA, INDICATORS_COLUMNS).dropna()
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.MACD(
         DATA["vwap"], macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
@@ -108,7 +106,7 @@ def _getData():
     return True
 
 
-def _updateGraph(unused_counter, lines, lock):
+def _updateGraph(unused_counter, lines):
     """Function called (back) by FuncAnimation, will update graph"""
 
     if not _getData():
@@ -255,6 +253,8 @@ def _initGraph():
 def initGraph(log_lock, rw_lock):
     """Launch an awesome matplotlib graph!"""
 
+    global K
+    K = KrakenTradesXXBTZEURInput()
     log.setLock(log_lock)
     ABCInput.rw_lock = rw_lock
     try:

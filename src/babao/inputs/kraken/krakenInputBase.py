@@ -12,9 +12,12 @@ import babao.config as conf
 import babao.utils.log as log  # TODO: share a lock between inputs for debug
 from babao.inputs.inputBase import ABCInput
 
-
 class ABCKrakenInput(ABCInput):
-    """Base class for any kraken input"""
+    """
+    Base class for any kraken input
+
+    TODO: don't inherit input
+    """
     __k = krakenex.API()
 
     def __init__(self):
@@ -22,13 +25,14 @@ class ABCKrakenInput(ABCInput):
         if ABCKrakenInput.__k.key == '':
             try:
                 ABCKrakenInput.__k.load_key(conf.API_KEY_FILE)
-            except Exception as e:  # DEBUG
+            except Exception as e:  # TODO
                 log.warning(
                     "Couldn't load kraken api key file '"
                     + conf.API_KEY_FILE + "': " + repr(e)
-                )      # DEBUG
+                )
 
-    def _doRequest(self, method, req=None):
+    @staticmethod
+    def _doRequest(method, req=None):
         """General function for kraken api requests"""
 
         if not req:

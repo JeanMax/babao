@@ -33,7 +33,7 @@ def _signalHandler(signal_code, unused_frame):
     EXIT = 128 + signal_code
 
 
-def _delay(block=True):
+def _delay():
     """
     Sleep the min amount of time required to still be friend with the api
 
@@ -195,7 +195,7 @@ def backtest(args):
 
     if args.graph:
         # TODO: exit if graph is closed
-        while _delay(block=False):
+        while _delay():
             pass
 
 

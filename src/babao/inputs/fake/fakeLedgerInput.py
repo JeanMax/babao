@@ -4,11 +4,11 @@ Handle money related stuffs
 """
 
 import sys
-import time
 from abc import abstractmethod
 import pandas as pd
 
-import babao.utils.log as log  # TODO: handle mutex
+import babao.utils.date as du
+import babao.utils.log as log
 from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 from babao.inputs.ledgerInputBase import ABCLedgerInput
 
@@ -48,7 +48,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """
 
         if timestamp is None:
-            timestamp = int(time.time() * 1e6)
+            timestamp = du.nowMinus(0)
 
         self.balance += volume - fee
         self.last_tx = timestamp
@@ -90,7 +90,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent / price
         fee = volume_bought / 100  # 1% hardcoded fee
-        refid = str(int(time.time() * 1e6))
+        refid = str(du.nowMinus(0))
         if self.verbose:
             log.info(
                 "Bought", round(volume_bought - fee, 4), ledger.asset.name,
@@ -128,7 +128,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent * price
         fee = volume_bought / 100  # 1% hardcoded fee
-        refid = str(int(time.time() * 1e6))
+        refid = str(du.nowMinus(0))
         if self.verbose:
             log.info(
                 "Sold", round(volume_spent, 4), ledger.asset.name,
@@ -156,7 +156,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def deposit(self, ledger, volume, timestamp=None):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
-        refid = str(int(time.time() * 1e6))
+        refid = str(du.nowMinus(0))
         self.__logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
@@ -176,7 +176,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def withdraw(self, ledger, volume, timestamp=None):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
-        refid = str(int(time.time() * 1e6))
+        refid = str(du.nowMinus(0))
         ledger.__logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,

@@ -47,7 +47,7 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
         )
 
         fresh_data.index = np.append(
-            du.secToNano(fresh_data["time"]),
+            du.secToNano(fresh_data["time"].iloc[:-1]),
             int(res["last"])
         )
         del fresh_data["misc"]
