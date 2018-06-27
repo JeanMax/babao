@@ -27,8 +27,10 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         self.log_to_file = log_to_file
         if self.last_row is not None:
             self.balance = self.last_row["balance"]
+            self.last_tx = self.last_row.name
         else:
             self.balance = 0
+            self.last_tx = 0
 
     def fetch(self):
         pass  # we said fake
@@ -45,12 +47,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         if ´timestamp´ is not given, the current time will be used
         """
 
-        self.balance += volume - fee
-        if not self.log_to_file:
-            return
-
         if timestamp is None:
             timestamp = int(time.time() * 1e6)
+
+        self.balance += volume - fee
+        self.last_tx = timestamp
+
+        if not self.log_to_file:
+            return
 
         df = pd.DataFrame(
             {

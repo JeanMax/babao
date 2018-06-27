@@ -43,19 +43,20 @@ class ABCInput(ABC):
         pass
 
     def __init__(self):
+        self.last_row = None
         try:
             last_row = fu.getLastRows(
                 conf.DB_FILE, self.__class__.__name__, 1
             )
-        except Exception as e:  # TODO
+        except KeyError:
             log.warning(
                 "Couldn't read database frame for '"
-                + self.__class__.__name__ + "': " + repr(e)
-            )      # DEBUG
-            self.last_row = None
+                + self.__class__.__name__ + "'"
+            )
         else:
             self.__updateLastRow(last_row.iloc[-1])
-            assert list(self.last_row.keys()) == self.__class__.raw_columns  # TODO: msg
+            # TODO: msg, move to tests?
+            assert list(self.last_row.keys()) == self.__class__.raw_columns
 
     @abstractmethod
     def fetch(self):
@@ -108,17 +109,19 @@ class ABCInput(ABC):
     def resample(self, raw_data):
         """
         TODO
+
+        ad this to tests:
+        assert list(raw_data.columns) == self.__class__.resampled_columns
         """
         if not raw_data.empty:
             du.to_datetime(raw_data)
             raw_data = self._resample(raw_data)
             raw_data = self._fillMissing(raw_data)
             du.to_timestamp(raw_data)
-        assert list(raw_data.columns) == self.__class__.resampled_columns  # TODO: msg, once?
         return raw_data
 
     def __updateLastRow(self, last_row):
-        if last_row.name < self.last_row.name:
+        if self.last_row is not None and last_row.name < self.last_row.name:
             return
         self.last_row = last_row
         ABCInput.__last_write = max(ABCInput.__last_write, last_row.name)

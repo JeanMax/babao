@@ -101,7 +101,7 @@ def _buyOrSell(action, price, index):
     global PREV_PRICE
     reward = 0
 
-    if action == SELL and ledger.BALANCE["crypto"] > 0.001:
+    if action == SELL and tx.L["crypto"].balance > 0.001:
         # reward = (price - (PREV_PRICE + PREV_PRICE / 100)) / PREV_PRICE * 100
         if price > PREV_PRICE + PREV_PRICE * MIN_TRANSACTION_PERCENT / 100:
             reward = 1
@@ -109,17 +109,9 @@ def _buyOrSell(action, price, index):
             reward = 0.1
         else:
             reward = -1
-
-        ledger.logSell(
-            ledger.BALANCE["crypto"],
-            price,
-            crypto_fee=ledger.BALANCE["crypto"] / 100,  # 1% fee
-            timestamp=index
-        )
-
+        tx.L["quote"].sell(tx.L["crypto"], tx.L["crypto"].balance, price, index)
         PREV_PRICE = price
-
-    elif action == BUY and ledger.BALANCE["quote"] > 0.001:
+    elif action == BUY and tx.L["quote"].balance > 0.001:
         if PREV_PRICE is not None:
             # reward = (PREV_PRICE - (price + price / 100)) / PREV_PRICE * 100
             if price < PREV_PRICE - PREV_PRICE * MIN_TRANSACTION_PERCENT / 100:
@@ -128,14 +120,7 @@ def _buyOrSell(action, price, index):
                 reward = 0.1
             else:
                 reward = -1
-
-        ledger.logBuy(
-            ledger.BALANCE["quote"],
-            price,
-            quote_fee=ledger.BALANCE["quote"] / 100,  # 1% fee
-            timestamp=index
-        )
-
+        tx.L["quote"].buy(tx.L["crypto"], tx.L["quote"].balance, price, index)
         PREV_PRICE = price
 
     if log.VERBOSE >= 4 and reward != 0:
@@ -221,8 +206,11 @@ def train():
 
     if MODEL is None:
         _createModel()
-    ledger.setLog(False)
-    ledger.setVerbose(log.VERBOSE >= 4)
+
+    tx.L["crypto"].log_to_file = False
+    tx.L["quote"].log_to_file = False
+    tx.L["crypto"].verbose = log.VERBOSE >= 4
+    tx.L["quote"].verbose = log.VERBOSE >= 4
 
     for e in range(EPOCHS):
         loss = 0.
@@ -230,7 +218,8 @@ def train():
         price = -42
         feature = None
         game_over = False
-        ledger.initBalance({"crypto": 0, "quote": 100})
+        tx.L["crypto"].balance = 0
+        tx.L["quote"].balance = 100
 
         for i, next_feature in enumerate(FEATURES):
             if feature is None:
@@ -264,7 +253,7 @@ def train():
                     log.warning("game over:", i, "/", len(FEATURES))
                 break
 
-        score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+        score = tx.L["crypto"].balance * price + tx.L["quote"].balance
         hodl = price / modelHelper.unscale(FEATURES[0][-1][0]) * 100
         log.debug(
             "Epoch", str(e + 1) + "/" + str(EPOCHS),

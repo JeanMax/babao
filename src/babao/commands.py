@@ -8,10 +8,9 @@ import pandas as pd
 
 import babao.utils.log as log
 import babao.utils.date as du
-import babao.utils.file as fu
 import babao.config as conf
-import babao.strategy.strategy as strat
 import babao.strategy.transaction as tx
+import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
 from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
@@ -104,14 +103,11 @@ def _initCmd(graph=False, simulate=True):
     global K
     K = KrakenTradesXXBTZEURInput()
 
-    ledger.initBalance()
-    if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
-        ledger.logQuoteDeposit(100)
+    tx.initLedger(simulate)
 
     if graph:
         _launchGraph()
 
-    tx.initLastTransaction()
     modelManager.loadModels()
 
 
@@ -124,7 +120,7 @@ def _getData():
 
 def wetRun(args):
     """Dummy"""
-    print(repr(args))
+    _initCmd(args.graph, simulate=False)
     print("Sorry, this is not implemented yet :/")
 
 
@@ -132,7 +128,6 @@ def dryRun(args):
     """Real-time bot simulation"""
 
     _initCmd(args.graph)
-    ledger.setVerbose(True)
 
     while True:
         K.write()
@@ -182,7 +177,6 @@ def backtest(args):
     """
 
     _initCmd(args.graph)
-    ledger.setVerbose(True)
 
     big_fat_data = _getData()[1]
     modelManager.prepareModels(big_fat_data)
@@ -203,7 +197,7 @@ def backtest(args):
             return
 
     price = big_fat_data_prices[-1]
-    score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+    score = tx.L["crypto"].balance * price + tx.L["quote"].balance
     hodl = price / big_fat_data_prices[0] * 100
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))

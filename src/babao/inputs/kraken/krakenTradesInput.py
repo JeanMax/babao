@@ -36,7 +36,7 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             "pair": self.__class__.pair,
             "since": since
         })
-        #TODO: handle delay
+        # TODO: handle delay
 
         fresh_data = pd.DataFrame(
             res[self.__class__.pair],
