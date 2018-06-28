@@ -9,8 +9,8 @@ import numpy as np
 
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum
-from babao.inputs.kraken.krakenInputBase import ABCKrakenInput
-from babao.inputs.tradesInputBase import ABCTradesInput
+from babao.inputs.krakenBase import ABCKrakenInput
+from babao.inputs.trades.tradesInputBase import ABCTradesInput
 
 
 class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
@@ -36,7 +36,6 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             "pair": self.__class__.pair,
             "since": since
         })
-        #TODO: handle delay
 
         fresh_data = pd.DataFrame(
             res[self.__class__.pair],
@@ -46,10 +45,12 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             dtype=float  # TODO: dtypes: object(2) (replace letters with int?)
         )
 
-        fresh_data.index = np.append(
-            du.secToNano(fresh_data["time"]),
-            int(res["last"])
-        )
+        if not fresh_data.empty:
+            fresh_data.index = np.append(
+                du.secToNano(fresh_data["time"].iloc[:-1]),
+                int(res["last"])
+            )
+
         del fresh_data["misc"]
         del fresh_data["market-limit"]  # TODO: this could be useful
         del fresh_data["buy-sell"]  # TODO: this could be useful

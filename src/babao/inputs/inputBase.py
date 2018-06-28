@@ -4,11 +4,12 @@ TODO
 
 from abc import ABC, abstractmethod
 import pandas as pd
+from prwlock import RWLock
 
 import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.date as du
-import babao.utils.log as log  # TODO: share a lock between inputs for debug
+import babao.utils.log as log
 
 
 class ABCInput(ABC):
@@ -28,7 +29,9 @@ class ABCInput(ABC):
 
     (cf. specific method doc-string in this class)
     """
-    __last_write = 0  # TODO: this is not thread-safe
+    __last_write = 0
+    # TODO: hmmm not sure if this is thread safe... so I guess it's not
+    rw_lock = RWLock()
 
     @property
     @abstractmethod
@@ -43,19 +46,21 @@ class ABCInput(ABC):
         pass
 
     def __init__(self):
-        try:
-            last_row = fu.getLastRows(
-                conf.DB_FILE, self.__class__.__name__, 1
-            )
-        except Exception as e:  # TODO
-            log.warning(
-                "Couldn't read database frame for '"
-                + self.__class__.__name__ + "': " + repr(e)
-            )      # DEBUG
-            self.last_row = None
-        else:
-            self.__updateLastRow(last_row.iloc[-1])
-            assert list(self.last_row.keys()) == self.__class__.raw_columns  # TODO: msg
+        self.last_row = None
+        with ABCInput.rw_lock.reader_lock():
+            try:
+                last_row = fu.getLastRows(
+                    conf.DB_FILE, self.__class__.__name__, 1
+                )
+            except (FileNotFoundError, KeyError):
+                log.warning(
+                    "Couldn't read database frame for '"
+                    + self.__class__.__name__ + "'"
+                )
+            else:
+                self.__updateLastRow(last_row.iloc[-1])
+        # TODO: msg, move to tests?
+        # assert list(self.last_row.keys()) == self.__class__.raw_columns
 
     @abstractmethod
     def fetch(self):
@@ -78,9 +83,11 @@ class ABCInput(ABC):
         """
         if raw_data is None or raw_data.empty:
             return None
-        # TODO: mutex
-        if not fu.write(conf.DB_FILE, self.__class__.__name__, raw_data):
-            return False
+        with ABCInput.rw_lock.writer_lock():
+            try:
+                fu.write(conf.DB_FILE, self.__class__.__name__, raw_data)
+            except RuntimeError:  # HDF5ExtError
+                return False
         self.__updateLastRow(raw_data.iloc[-1])
         return True
 
@@ -90,40 +97,46 @@ class ABCInput(ABC):
         """
         if since is not None:
             since = "index > %d" % since
-        try:
-            raw_data = fu.read(
-                conf.DB_FILE, self.__class__.__name__, where=since
-            )
-        except KeyError:
-            log.warning(
-                "Couldn't read database frame for '"
-                + self.__class__.__name__ + "'"
-            )      # DEBUG
-            return pd.DataFrame()
+        with ABCInput.rw_lock.reader_lock():
+            try:
+                raw_data = fu.read(
+                    conf.DB_FILE, self.__class__.__name__, where=since
+                )
+            except (KeyError, FileNotFoundError):
+                log.warning(
+                    "Couldn't read database frame for '"
+                    + self.__class__.__name__ + "'"
+                )
+                return pd.DataFrame()
         # TODO: you might want to store the read data,
         # so it can be shared accross the different models
-        self.__updateLastRow(raw_data.iloc[-1])
+        if not raw_data.empty:
+            self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
 
     def resample(self, raw_data):
         """
         TODO
+
+        add this to tests:
+        assert list(raw_data.columns) == self.__class__.resampled_columns
+        assert isimplemented(_resample, _fillMissing)
         """
         if not raw_data.empty:
             du.to_datetime(raw_data)
             raw_data = self._resample(raw_data)
             raw_data = self._fillMissing(raw_data)
             du.to_timestamp(raw_data)
-        assert list(raw_data.columns) == self.__class__.resampled_columns  # TODO: msg, once?
         return raw_data
 
     def __updateLastRow(self, last_row):
-        if last_row.name < self.last_row.name:
+        if self.last_row is not None and last_row.name < self.last_row.name:
             return
         self.last_row = last_row
         ABCInput.__last_write = max(ABCInput.__last_write, last_row.name)
 
-    def _resampleSerie(self, s):
+    @staticmethod
+    def _resampleSerie(s):
         """
         Call Serie.resample on s with preset parameters
         (the serie's index must be datetime)

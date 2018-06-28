@@ -2,93 +2,55 @@
 
 import time
 import os
-import signal
+from multiprocessing import Process
+from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 import pandas as pd
 
+
+import babao.utils.signal as sig
 import babao.utils.log as log
 import babao.utils.date as du
-import babao.utils.file as fu
 import babao.config as conf
-import babao.strategy.strategy as strat
 import babao.strategy.transaction as tx
+import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.inputBase import ABCInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXLTCZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXREPZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXLMZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXMRZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXRPZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXZECZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZCADInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZGBPInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZJPYInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
 
 K = None
-
-EXIT = 0
-TICK = None
-LOCK = None
 
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
 NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
 
 
-def _signalHandler(signal_code, unused_frame):
-    """Catch signal INT/TERM, so we won't exit while playing with data files"""
-
-    global EXIT
-    EXIT = 128 + signal_code
-
-
-def _delay(block=True):
-    """
-    Sleep the min amount of time required to still be friend with the api
-
-    Also handle a lock to avoid having the graph read data while we write
-    Return False if a signal have been caught (you need to exit).
-    """
-
-    if EXIT:
-        return False
-
-    if LOCK:
-        try:
-            LOCK.release()
-        except ValueError:
-            pass
-
-    global TICK
-    if TICK is not None:
-        delta = time.time() - TICK
-        log.debug("Loop took " + str(round(delta, 3)) + "s")
-    else:
-        delta = 0
-
-    delta = 3 - delta  # TODO: define API_DELAY
-    if delta > 0:
-        time.sleep(delta)
-    TICK = time.time()
-
-    if LOCK:
-        if delta < 0:
-            time.sleep(1)  # TODO: workaround: graph need time
-        LOCK.acquire(block=block)
-
-    return not bool(EXIT)
-
-
 def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
-    from multiprocessing import Process, Lock
     import babao.graph as graph
 
-    global LOCK
-    LOCK = Lock()
     p = Process(
         target=graph.initGraph,
-        args=(LOCK,),
+        args=(log.LOCK, ABCInput.rw_lock),
         name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
-    time.sleep(0.5)  # TODO: define LIL_DELAY_JUST_IN_CASE
-    LOCK.acquire()
 
 
 def _initCmd(graph=False, simulate=True):
@@ -98,33 +60,50 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
-    signal.signal(signal.SIGINT, _signalHandler)
-    signal.signal(signal.SIGTERM, _signalHandler)
-
     global K
-    K = KrakenTradesXXBTZEURInput()
-
-    ledger.initBalance()
-    if simulate and fu.getLastRows(conf.DB_FILE, conf.LEDGER_FRAME, 1).empty:
-        ledger.logQuoteDeposit(100)
-
+    K = [
+        KrakenTradesXXBTZEURInput(),
+        KrakenTradesXETCZEURInput(),
+        KrakenTradesXETHZEURInput(),
+        KrakenTradesXLTCZEURInput(),
+        KrakenTradesXREPZEURInput(),
+        KrakenTradesXXLMZEURInput(),
+        KrakenTradesXXMRZEURInput(),
+        KrakenTradesXXRPZEURInput(),
+        KrakenTradesXZECZEURInput(),
+        KrakenTradesXXBTZCADInput(),
+        KrakenTradesXXBTZGBPInput(),
+        KrakenTradesXXBTZJPYInput(),
+        KrakenTradesXXBTZUSDInput(),
+    ]
+    tx.initLedger(simulate)
+    modelManager.loadModels()
     if graph:
         _launchGraph()
-
-    tx.initLastTransaction()
-    modelManager.loadModels()
+    sig.catchSignal()
 
 
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    full_data = K.read()
+    full_data = K[0].resample(K[0].read())
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
+
+
+def _initLocks(log_lock, rw_lock):
+    """TODO: same in graph"""
+    log.setLock(log_lock)
+    ABCInput.rw_lock = rw_lock
+
+
+def _poolFetcher(pool_input):
+    """TODO"""
+    return pool_input.write(pool_input.fetch())
 
 
 def wetRun(args):
     """Dummy"""
-    print(repr(args))
+    _initCmd(args.graph, simulate=False)
     print("Sorry, this is not implemented yet :/")
 
 
@@ -132,12 +111,14 @@ def dryRun(args):
     """Real-time bot simulation"""
 
     _initCmd(args.graph)
-    ledger.setVerbose(True)
-
-    while True:
-        K.write()
+    pool = ThreadPool(
+        initializer=_initLocks,
+        initargs=(log.LOCK, ABCInput.rw_lock)
+    )
+    while not sig.EXIT:
+        pool.map(_poolFetcher, K)
         # TODO:  do not hardcode the lookback
-        fresh_data = K.read(since=du.nowMinus(weeks=1))
+        fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
@@ -147,9 +128,8 @@ def dryRun(args):
                 price=price,
                 timestamp=timestamp
             )
-
-        if not _delay():
-            return
+    pool.close()
+    pool.join()
 
 
 def fetch(args):
@@ -165,13 +145,11 @@ def fetch(args):
             # os.remove(f)  # TODO: warn user / create backup?
             log.warning("Database file already exists (" + f + ").")
 
-    while True:
-        K.write()
+    while not sig.EXIT:
+        K[0].write(K[0].fetch())
         log.debug(
-            "Fetched data till " + pd.to_datetime(K.last_row.name, unit="ns")
+            "Fetched data till " + pd.to_datetime(K[0].last_row.name, unit="ns")
         )
-        if not _delay():
-            return
 
 
 def backtest(args):
@@ -182,7 +160,6 @@ def backtest(args):
     """
 
     _initCmd(args.graph)
-    ledger.setVerbose(True)
 
     big_fat_data = _getData()[1]
     modelManager.prepareModels(big_fat_data)
@@ -199,11 +176,11 @@ def backtest(args):
             price=big_fat_data_prices[i],
             timestamp=big_fat_data_index[i]
         )
-        if EXIT:
+        if sig.EXIT:
             return
 
     price = big_fat_data_prices[-1]
-    score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+    score = tx.L["crypto"].balance * price + tx.L["quote"].balance
     hodl = price / big_fat_data_prices[0] * 100
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
@@ -216,8 +193,8 @@ def backtest(args):
 
     if args.graph:
         # TODO: exit if graph is closed
-        while _delay(block=False):
-            pass
+        while not sig.EXIT:
+            time.sleep(0.1)
 
 
 def train(args):

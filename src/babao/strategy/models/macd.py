@@ -72,8 +72,8 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         look_back_b_delay,
         signal_delay
     )
-    ledger.initBalance({"crypto": 0, "quote": 100})
-    tx.initLastTransaction(readFile=False)
+    tx.L["crypto"].balance = 0
+    tx.L["quote"].balance = 100
 
     first_price = None
     price = None
@@ -97,7 +97,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
                 log.warning("game over:", index, "/", len(FEATURES_DF))
             return -42
 
-    score = ledger.BALANCE["crypto"] * price + ledger.BALANCE["quote"]
+    score = tx.L["crypto"].balance * price + tx.L["quote"].balance
     hodl = price / first_price * 100
 
     if log.VERBOSE >= 4:
@@ -114,8 +114,10 @@ def train():
 
     log.debug("Train macd")
 
-    ledger.setLog(False)
-    ledger.setVerbose(log.VERBOSE >= 4)
+    tx.L["crypto"].log_to_file = False
+    tx.L["quote"].log_to_file = False
+    tx.L["crypto"].verbose = log.VERBOSE >= 4
+    tx.L["quote"].verbose = log.VERBOSE >= 4
 
     global MODEL
     param_grid = list(ParameterGrid({

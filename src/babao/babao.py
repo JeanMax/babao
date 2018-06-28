@@ -29,7 +29,6 @@ def _kthxbye():
     """KTHXBYE"""
 
     lock.tryUnlock(conf.LOCK_FILE)
-    # TODO: the graph process probably unlock that first...
 
 
 def _init(args=None):

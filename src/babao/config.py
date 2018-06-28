@@ -23,7 +23,7 @@ MAX_GRAPH_POINTS = None
 DB_FILE = None
 
 
-def readConfigFile(cmd_name="unamed"):
+def readConfigFile(unused_cmd_name="unamed"):
     """Read config file and initialize file/dir paths"""
 
     # TODO: find a better way to handle config

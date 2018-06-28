@@ -10,7 +10,7 @@
 * handle log files
 * ideally the test/train data should look like the real-time data (new slice every few seconds)
 * write more tests!
-* mkdir/multiproc.lock for lock
+* multiproc.lock for lock
 
 
 ## Work-around'd:
