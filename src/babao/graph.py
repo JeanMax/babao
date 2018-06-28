@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import MultiCursor
 
+import babao.utils.signal as sig
 import babao.utils.date as du
 import babao.utils.log as log
 import babao.config as conf
@@ -110,6 +111,8 @@ def _getData():
 def _updateGraph(unused_counter, lines):
     """Function called (back) by FuncAnimation, will update graph"""
 
+    if sig.EXIT:
+        sys.exit(0)
     if not _getData():
         return lines.values()
 
@@ -258,6 +261,7 @@ def initGraph(log_lock, rw_lock):
     K = KrakenTradesXXBTZEURInput()
     log.setLock(log_lock)
     ABCInput.rw_lock = rw_lock
+    sig.catchSignal()
     try:
         _initGraph()
     except:  # pylint: disable=bare-except

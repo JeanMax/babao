@@ -2,11 +2,13 @@
 
 import time
 import os
-import signal
+from multiprocessing import Process
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 import pandas as pd
 
+
+import babao.utils.signal as sig
 import babao.utils.log as log
 import babao.utils.date as du
 import babao.config as conf
@@ -31,25 +33,15 @@ from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
 
 K = None
 
-EXIT = 0
-
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
 NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
-
-
-def _signalHandler(signal_code, unused_frame):
-    """Catch signal INT/TERM, so we won't exit while playing with data files"""
-
-    global EXIT
-    EXIT = 128 + signal_code
 
 
 def _launchGraph():
     """Start the graph process"""
 
     # we import here, so matplotlib can stay an optional dependency
-    from multiprocessing import Process
     import babao.graph as graph
 
     p = Process(
@@ -68,9 +60,6 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
-    signal.signal(signal.SIGINT, _signalHandler)
-    signal.signal(signal.SIGTERM, _signalHandler)
-
     global K
     K = [
         KrakenTradesXXBTZEURInput(),
@@ -88,9 +77,10 @@ def _initCmd(graph=False, simulate=True):
         KrakenTradesXXBTZUSDInput(),
     ]
     tx.initLedger(simulate)
+    modelManager.loadModels()
     if graph:
         _launchGraph()
-    modelManager.loadModels()
+    sig.catchSignal()
 
 
 def _getData():
@@ -121,12 +111,11 @@ def dryRun(args):
     """Real-time bot simulation"""
 
     _initCmd(args.graph)
-
     pool = ThreadPool(
         initializer=_initLocks,
         initargs=(log.LOCK, ABCInput.rw_lock)
     )
-    while not EXIT:
+    while not sig.EXIT:
         pool.map(_poolFetcher, K)
         # TODO:  do not hardcode the lookback
         fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
@@ -156,7 +145,7 @@ def fetch(args):
             # os.remove(f)  # TODO: warn user / create backup?
             log.warning("Database file already exists (" + f + ").")
 
-    while not EXIT:
+    while not sig.EXIT:
         K[0].write(K[0].fetch())
         log.debug(
             "Fetched data till " + pd.to_datetime(K[0].last_row.name, unit="ns")
@@ -187,7 +176,7 @@ def backtest(args):
             price=big_fat_data_prices[i],
             timestamp=big_fat_data_index[i]
         )
-        if EXIT:
+        if sig.EXIT:
             return
 
     price = big_fat_data_prices[-1]
@@ -204,7 +193,7 @@ def backtest(args):
 
     if args.graph:
         # TODO: exit if graph is closed
-        while not EXIT:
+        while not sig.EXIT:
             time.sleep(0.1)
 
 

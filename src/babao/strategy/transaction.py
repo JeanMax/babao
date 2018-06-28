@@ -26,6 +26,7 @@ def initLedger(simulate=True):
         }
         if L["quote"].balance == 0 and L["crypto"].balance == 0:
             L["quote"].deposit(FakeLedgerEURInput(log_to_file=False), 100)
+            L["crypto"].deposit(FakeLedgerXBTInput(log_to_file=False), 0)
     else:
         L = {
             "crypto": KrakenLedgerXBTInput(),
