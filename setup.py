@@ -67,6 +67,9 @@ else:
             'pandas>=0.23.1',
             'tables>=3.4.4',
 
+            # reader-writer lock
+            'prwlock>=0.4.0',
+
             # parsing
             'configparser>=3.5.0',
             'argparse>=1.4.0',

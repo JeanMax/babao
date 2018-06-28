@@ -4,12 +4,12 @@ TODO
 
 from abc import ABC, abstractmethod
 import pandas as pd
+from prwlock import RWLock
 
 import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.date as du
 import babao.utils.log as log
-from babao.utils.rwlock import RWLock
 
 
 class ABCInput(ABC):
@@ -30,6 +30,7 @@ class ABCInput(ABC):
     (cf. specific method doc-string in this class)
     """
     __last_write = 0
+    # TODO: hmmm not sure if this is thread safe... so I guess it's not
     rw_lock = RWLock()
 
     @property
@@ -46,20 +47,18 @@ class ABCInput(ABC):
 
     def __init__(self):
         self.last_row = None
-        ABCInput.rw_lock.reader_acquire()
-        try:
-            last_row = fu.getLastRows(
-                conf.DB_FILE, self.__class__.__name__, 1
-            )
-        except (FileNotFoundError, KeyError):
-            log.warning(
-                "Couldn't read database frame for '"
-                + self.__class__.__name__ + "'"
-            )
-            return
-        finally:
-            ABCInput.rw_lock.reader_release()
-        self.__updateLastRow(last_row.iloc[-1])
+        with ABCInput.rw_lock.reader_lock():
+            try:
+                last_row = fu.getLastRows(
+                    conf.DB_FILE, self.__class__.__name__, 1
+                )
+            except (FileNotFoundError, KeyError):
+                log.warning(
+                    "Couldn't read database frame for '"
+                    + self.__class__.__name__ + "'"
+                )
+            else:
+                self.__updateLastRow(last_row.iloc[-1])
         # TODO: msg, move to tests?
         # assert list(self.last_row.keys()) == self.__class__.raw_columns
 
@@ -84,13 +83,11 @@ class ABCInput(ABC):
         """
         if raw_data is None or raw_data.empty:
             return None
-        ABCInput.rw_lock.writer_acquire()
-        try:
-            fu.write(conf.DB_FILE, self.__class__.__name__, raw_data)
-        except RuntimeError:  # HDF5ExtError
-            return False
-        finally:
-            ABCInput.rw_lock.writer_release()
+        with ABCInput.rw_lock.writer_lock():
+            try:
+                fu.write(conf.DB_FILE, self.__class__.__name__, raw_data)
+            except RuntimeError:  # HDF5ExtError
+                return False
         self.__updateLastRow(raw_data.iloc[-1])
         return True
 
@@ -100,19 +97,17 @@ class ABCInput(ABC):
         """
         if since is not None:
             since = "index > %d" % since
-        ABCInput.rw_lock.reader_acquire()
-        try:
-            raw_data = fu.read(
-                conf.DB_FILE, self.__class__.__name__, where=since
-            )
-        except (KeyError, FileNotFoundError):
-            log.warning(
-                "Couldn't read database frame for '"
-                + self.__class__.__name__ + "'"
-            )
-            return pd.DataFrame()
-        finally:
-            ABCInput.rw_lock.reader_release()
+        with ABCInput.rw_lock.reader_lock():
+            try:
+                raw_data = fu.read(
+                    conf.DB_FILE, self.__class__.__name__, where=since
+                )
+            except (KeyError, FileNotFoundError):
+                log.warning(
+                    "Couldn't read database frame for '"
+                    + self.__class__.__name__ + "'"
+                )
+                return pd.DataFrame()
         # TODO: you might want to store the read data,
         # so it can be shared accross the different models
         if not raw_data.empty:

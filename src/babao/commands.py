@@ -5,6 +5,7 @@ import os
 import signal
 import numpy as np
 import pandas as pd
+from multiprocessing.dummy import Pool as ThreadPool
 
 import babao.utils.log as log
 import babao.utils.date as du
@@ -15,6 +16,18 @@ import babao.strategy.modelManager as modelManager
 
 from babao.inputs.inputBase import ABCInput
 from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXETCZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXETHZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXLTCZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXREPZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXLMZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXMRZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXRPZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXZECZEURInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZCADInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZGBPInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZJPYInput
+from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZUSDInput
 
 K = None
 
@@ -59,7 +72,21 @@ def _initCmd(graph=False, simulate=True):
     signal.signal(signal.SIGTERM, _signalHandler)
 
     global K
-    K = KrakenTradesXXBTZEURInput()
+    K = [
+        KrakenTradesXXBTZEURInput(),
+        KrakenTradesXETCZEURInput(),
+        KrakenTradesXETHZEURInput(),
+        KrakenTradesXLTCZEURInput(),
+        KrakenTradesXREPZEURInput(),
+        KrakenTradesXXLMZEURInput(),
+        KrakenTradesXXMRZEURInput(),
+        KrakenTradesXXRPZEURInput(),
+        KrakenTradesXZECZEURInput(),
+        KrakenTradesXXBTZCADInput(),
+        KrakenTradesXXBTZGBPInput(),
+        KrakenTradesXXBTZJPYInput(),
+        KrakenTradesXXBTZUSDInput(),
+    ]
     tx.initLedger(simulate)
     if graph:
         _launchGraph()
@@ -69,8 +96,19 @@ def _initCmd(graph=False, simulate=True):
 def _getData():
     """Return the whole dataset splitted in two parts: (train, test)"""
 
-    full_data = K.resample(K.read())
+    full_data = K[0].resample(K[0].read())
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
+
+
+def _initLocks(log_lock, rw_lock):
+    """TODO: same in graph"""
+    log.setLock(log_lock)
+    ABCInput.rw_lock = rw_lock
+
+
+def _poolFetcher(pool_input):
+    """TODO"""
+    return pool_input.write(pool_input.fetch())
 
 
 def wetRun(args):
@@ -84,10 +122,14 @@ def dryRun(args):
 
     _initCmd(args.graph)
 
+    pool = ThreadPool(
+        initializer=_initLocks,
+        initargs=(log.LOCK, ABCInput.rw_lock)
+    )
     while not EXIT:
-        K.write(K.fetch())
+        pool.map(_poolFetcher, K)
         # TODO:  do not hardcode the lookback
-        fresh_data = K.resample(K.read(since=du.nowMinus(weeks=1)))
+        fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
@@ -97,6 +139,8 @@ def dryRun(args):
                 price=price,
                 timestamp=timestamp
             )
+    pool.close()
+    pool.join()
 
 
 def fetch(args):
@@ -113,9 +157,9 @@ def fetch(args):
             log.warning("Database file already exists (" + f + ").")
 
     while not EXIT:
-        K.write(K.fetch())
+        K[0].write(K[0].fetch())
         log.debug(
-            "Fetched data till " + pd.to_datetime(K.last_row.name, unit="ns")
+            "Fetched data till " + pd.to_datetime(K[0].last_row.name, unit="ns")
         )
 
 

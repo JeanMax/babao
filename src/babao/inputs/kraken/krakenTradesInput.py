@@ -45,10 +45,12 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             dtype=float  # TODO: dtypes: object(2) (replace letters with int?)
         )
 
-        fresh_data.index = np.append(
-            du.secToNano(fresh_data["time"].iloc[:-1]),
-            int(res["last"])
-        )
+        if not fresh_data.empty:
+            fresh_data.index = np.append(
+                du.secToNano(fresh_data["time"].iloc[:-1]),
+                int(res["last"])
+            )
+
         del fresh_data["misc"]
         del fresh_data["market-limit"]  # TODO: this could be useful
         del fresh_data["buy-sell"]  # TODO: this could be useful
