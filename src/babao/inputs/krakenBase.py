@@ -55,13 +55,13 @@ class ABCKrakenInput(ABCInput):
                     ValueError
             ) as e:
                 log.warning(
-                    "Network error while querying Kraken __API!\n" + repr(e)
+                    "Network error while querying Kraken API!\n" + repr(e)
                 )
             else:
                 err = res.get("error", [])
                 if err:
                     for e in err:
-                        log.warning("Exception returned by Kraken __API!\n" + e)
+                        log.warning("Exception returned by Kraken API!\n" + e)
                 else:
                     return res["result"]
             log.debug("Connection fail #" + str(fail_counter))

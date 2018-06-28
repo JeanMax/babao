@@ -1,5 +1,6 @@
 """Data visualisation inside"""
 
+import sys
 import os
 import traceback
 import pandas as pd
@@ -245,7 +246,7 @@ def _initGraph():
         _updateGraph,
         fargs=(lines,),
         # blit=True,  # bug?
-        interval=1500
+        interval=3000
     )
     plt.show()  # this is blocking!
 
@@ -262,3 +263,4 @@ def initGraph(log_lock, rw_lock):
     except:  # pylint: disable=bare-except
         traceback.print_exc()
         log.error("Something's bjorked in your graph :/")
+    sys.exit(0)  # we exit explicitly in the subprocess, to avoid double clean
