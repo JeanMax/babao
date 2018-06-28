@@ -16,22 +16,20 @@ from babao.inputs.inputBase import ABCInput
 class ABCKrakenInput(ABCInput):
     """
     Base class for any kraken input
-
-    TODO: don't inherit input
     """
-    __k = krakenex.API()
+    __API = krakenex.API()
     API_DELAY = 3
 
     def __init__(self):
         super().__init__()
         self.__tick = None
-        if ABCKrakenInput.__k.key == '':
+        if ABCKrakenInput.__API.key == '':
             try:
-                ABCKrakenInput.__k.load_key(conf.API_KEY_FILE)
+                ABCKrakenInput.__API.load_key(conf.API_KEY_FILE)
             except Exception as e:  # TODO
                 log.warning(
                     "Couldn't load kraken api key file '"
-                    + conf.API_KEY_FILE + "': " + repr(e)
+                    + conf.__API_KEY_FILE + "': " + repr(e)
                 )
 
     def _doRequest(self, method, req=None):
@@ -46,9 +44,9 @@ class ABCKrakenInput(ABCInput):
         while fail_counter > 0:  # really nice loop bro, respect... no goto tho
             try:
                 if method == "Trades":
-                    res = ABCKrakenInput.__k.query_public(method, req)
+                    res = ABCKrakenInput.__API.query_public(method, req)
                 else:
-                    res = ABCKrakenInput.__k.query_private(method, req)
+                    res = ABCKrakenInput.__API.query_private(method, req)
             except (
                     socket.timeout,
                     socket.error,
@@ -57,13 +55,13 @@ class ABCKrakenInput(ABCInput):
                     ValueError
             ) as e:
                 log.warning(
-                    "Network error while querying Kraken API!\n" + repr(e)
+                    "Network error while querying Kraken __API!\n" + repr(e)
                 )
             else:
                 err = res.get("error", [])
                 if err:
                     for e in err:
-                        log.warning("Exception returned by Kraken API!\n" + e)
+                        log.warning("Exception returned by Kraken __API!\n" + e)
                 else:
                     return res["result"]
             log.debug("Connection fail #" + str(fail_counter))
@@ -71,10 +69,6 @@ class ABCKrakenInput(ABCInput):
             time.sleep(0.5)
 
         return None  # warning-trap
-
-    @abstractmethod
-    def fetch(self):
-        pass
 
     def __sleep(self):
         """TODO"""
@@ -90,3 +84,7 @@ class ABCKrakenInput(ABCInput):
         if delta > 0:
             time.sleep(delta)
         self.__tick = time.time()
+
+    @abstractmethod
+    def fetch(self):
+        pass

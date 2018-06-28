@@ -9,8 +9,8 @@ import numpy as np
 
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum
-from babao.inputs.kraken.krakenInputBase import ABCKrakenInput
-from babao.inputs.tradesInputBase import ABCTradesInput
+from babao.inputs.krakenBase import ABCKrakenInput
+from babao.inputs.trades.tradesInputBase import ABCTradesInput
 
 
 class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):

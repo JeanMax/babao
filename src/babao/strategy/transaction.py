@@ -4,10 +4,10 @@ Buy/Sell strategy
 
 import babao.config as conf
 import babao.utils.log as log
-from babao.inputs.kraken.krakenLedgerInput import KrakenLedgerEURInput
-from babao.inputs.kraken.krakenLedgerInput import KrakenLedgerXBTInput
-from babao.inputs.fake.fakeLedgerInput import FakeLedgerEURInput
-from babao.inputs.fake.fakeLedgerInput import FakeLedgerXBTInput
+from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerEURInput
+from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerXBTInput
+from babao.inputs.ledger.fakeLedgerInput import FakeLedgerEURInput
+from babao.inputs.ledger.fakeLedgerInput import FakeLedgerXBTInput
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 MIN_PROBA = 1e-2

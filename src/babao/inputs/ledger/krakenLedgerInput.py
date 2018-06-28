@@ -10,14 +10,12 @@ import pandas as pd
 
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
-from babao.inputs.ledgerInputBase import ABCLedgerInput
-from babao.inputs.kraken.krakenInputBase import ABCKrakenInput
+from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
+from babao.inputs.krakenBase import ABCKrakenInput
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
     """TODO"""
-
-    API_DELAY = 3
 
     @property
     @abstractmethod
@@ -53,7 +51,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
             # kraken api is *STOOPID*: if don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!
-            time.sleep(ABCKrakenLedgerInput.API_DELAY)
+            time.sleep(self.API_DELAY)
             res = self._doRequest("Ledgers", {
                 "ofs": res["count"] - 1, "asset": self.asset.name
             })  # first

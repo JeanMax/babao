@@ -14,8 +14,8 @@ import babao.utils.indicators as indic
 import babao.strategy.models.macd as macd  # TODO: this is weird
 import babao.strategy.transaction as tx
 from babao.inputs.inputBase import ABCInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
-from babao.inputs.tradesInputBase import ABCTradesInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.trades.tradesInputBase import ABCTradesInput
 
 K = None
 DATA = None

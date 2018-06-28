@@ -3,9 +3,9 @@
 import time
 import os
 import signal
+from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 import pandas as pd
-from multiprocessing.dummy import Pool as ThreadPool
 
 import babao.utils.log as log
 import babao.utils.date as du
@@ -15,19 +15,19 @@ import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
 from babao.inputs.inputBase import ABCInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXETCZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXETHZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXLTCZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXREPZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXLMZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXMRZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXRPZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXZECZEURInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZCADInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZGBPInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZJPYInput
-from babao.inputs.kraken.krakenTradesInput import KrakenTradesXXBTZUSDInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXLTCZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXREPZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXLMZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXMRZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXRPZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXZECZEURInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZCADInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZGBPInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZJPYInput
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
 
 K = None
 
