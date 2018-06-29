@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.grid_search import ParameterGrid
 
 import babao.utils.log as log
+import babao.utils.date as du
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.strategy.transaction as tx
@@ -89,7 +90,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         tx.buyOrSell(
             macd * -1,
             price,
-            index * conf.TIME_INTERVAL * 60 * 10**9
+            du.secToNano(index * conf.TIME_INTERVAL * 60)
         )
 
         if tx.gameOver(price):

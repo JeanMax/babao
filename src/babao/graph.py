@@ -93,8 +93,8 @@ def _getData():
         # TODO: catch missing frame errors
         return False
 
-    since = K.last_row.name - (
-        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60 * 10**9
+    since = K.last_row.name - du.secToNano(
+        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60
     )
     DATA = K.read(since)
     DATA = K.resample(DATA)
