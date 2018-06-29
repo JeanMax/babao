@@ -44,6 +44,7 @@ class ABCInput(ABC):
 
     def __init__(self):
         self.last_row = None
+        self.__cache_data = None
         try:
             last_row = fu.getLastRows(self.__class__.__name__, 1)
         except (FileNotFoundError, KeyError):
@@ -88,25 +89,38 @@ class ABCInput(ABC):
         self.__updateLastRow(raw_data.iloc[-1])
         return True
 
-    def read(self, since=None):
+    def read(self, since=None, till=None):
         """
         TODO
         """
+        where = None
         if since is not None:
-            since = "index > %d" % since
-        try:
-            raw_data = fu.read(self.__class__.__name__, where=since)
-        except (KeyError, FileNotFoundError):
-            log.warning(
-                "Couldn't read from database frame '"
-                + self.__class__.__name__ + "'"
-            )
-            return pd.DataFrame()
-        # TODO: you might want to store the read data,
-        # so it can be shared accross the different models
+            where = "index > %d" % since
+        if till is not None:
+            where += " & index < %d" % till
+
+        if self.__cache_data is not None:
+            raw_data = self.__cache_data.loc[since:till]
+        else:
+            try:
+                raw_data = fu.read(self.__class__.__name__, where=where)
+            except (KeyError, FileNotFoundError):
+                log.warning(
+                    "Couldn't read from database frame '"
+                    + self.__class__.__name__ + "'"
+                )
+                return pd.DataFrame()
         if not raw_data.empty:
             self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
+
+    def cache(self, since=None, till=None, data=None):
+        """TODO"""
+        if data is not None:
+            self.__cache_data = data
+        else:
+            self.__cache_data = None
+            self.__cache_data = self.read(since, till)
 
     def resample(self, raw_data):
         """
