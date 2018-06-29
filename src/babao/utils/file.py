@@ -33,9 +33,14 @@ def closeStore():
 
 
 def read(frame, where=None):
-    """Read a frame from the hdf database"""
+    """
+    Read a frame from the hdf database
+    TODO
+    """
 
     with LOCK.reader_lock():
+        if not STORE.is_open:  # graph proc will close store, to avoid cache
+            return pd.read_hdf(STORE.filename, frame, where=where)
         if where is None:
             return STORE.get(frame)
         else:

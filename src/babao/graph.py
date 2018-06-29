@@ -261,6 +261,7 @@ def initGraph(log_lock, file_lock):
     K = KrakenTradesXXBTZEURInput()
     log.setLock(log_lock)
     fu.setLock(file_lock)
+    fu.closeStore()
     sig.catchSignal()
     try:
         _initGraph()
