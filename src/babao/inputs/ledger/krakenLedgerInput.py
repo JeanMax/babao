@@ -4,7 +4,6 @@ Handle money related stuffs
 """
 
 import sys
-import time
 from abc import abstractmethod
 import pandas as pd
 
@@ -51,7 +50,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
             # kraken api is *STOOPID*: if don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!
-            time.sleep(self.API_DELAY)
+            self._sleep()
             res = self._doRequest("Ledgers", {
                 "ofs": res["count"] - 1, "asset": self.asset.name
             })  # first

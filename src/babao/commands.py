@@ -11,12 +11,12 @@ import pandas as pd
 import babao.utils.signal as sig
 import babao.utils.log as log
 import babao.utils.date as du
+import babao.utils.file as fu
 import babao.config as conf
 import babao.strategy.transaction as tx
 import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
-from babao.inputs.inputBase import ABCInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
@@ -46,11 +46,17 @@ def _launchGraph():
 
     p = Process(
         target=graph.initGraph,
-        args=(log.LOCK, ABCInput.rw_lock),
+        args=(log.LOCK, fu.LOCK),
         name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
     p.start()
+
+
+def _initLocks(log_lock=None, file_lock=None):
+    """TODO: same in graph"""
+    log.setLock(log_lock)
+    fu.setLock(file_lock)
 
 
 def _initCmd(graph=False, simulate=True):
@@ -60,6 +66,7 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
+    _initLocks()
     global K
     K = [
         KrakenTradesXXBTZEURInput(),
@@ -90,12 +97,6 @@ def _getData():
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
-def _initLocks(log_lock, rw_lock):
-    """TODO: same in graph"""
-    log.setLock(log_lock)
-    ABCInput.rw_lock = rw_lock
-
-
 def _poolFetcher(pool_input):
     """TODO"""
     return pool_input.write(pool_input.fetch())
@@ -113,7 +114,7 @@ def dryRun(args):
     _initCmd(args.graph)
     pool = ThreadPool(
         initializer=_initLocks,
-        initargs=(log.LOCK, ABCInput.rw_lock)
+        initargs=(log.LOCK, fu.LOCK)
     )
     while not sig.EXIT:
         pool.map(_poolFetcher, K)

@@ -16,12 +16,15 @@ MAGENTA = "\033[35;01m"
 WHITE = "\033[37;01m"
 RESET = "\033[0m"
 
-LOCK = Lock()
+LOCK = None
 
 
 def setLock(lock):
     global LOCK
-    LOCK = lock
+    if lock is None:
+        LOCK = Lock()
+    else:
+        LOCK = lock
 
 
 def initLogLevel(verbose, quiet):

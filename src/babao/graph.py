@@ -10,12 +10,12 @@ from matplotlib.widgets import MultiCursor
 
 import babao.utils.signal as sig
 import babao.utils.date as du
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.strategy.models.macd as macd  # TODO: this is weird
 import babao.strategy.transaction as tx
-from babao.inputs.inputBase import ABCInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.inputs.trades.tradesInputBase import ABCTradesInput
 
@@ -254,13 +254,13 @@ def _initGraph():
     plt.show()  # this is blocking!
 
 
-def initGraph(log_lock, rw_lock):
+def initGraph(log_lock, file_lock):
     """Launch an awesome matplotlib graph!"""
 
     global K
     K = KrakenTradesXXBTZEURInput()
     log.setLock(log_lock)
-    ABCInput.rw_lock = rw_lock
+    fu.setLock(file_lock)
     sig.catchSignal()
     try:
         _initGraph()

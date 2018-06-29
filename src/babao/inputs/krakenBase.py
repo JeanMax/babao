@@ -12,30 +12,34 @@ import babao.utils.log as log
 import babao.config as conf
 from babao.inputs.inputBase import ABCInput
 
+API = None
+API_DELAY = 3
+
 
 class ABCKrakenInput(ABCInput):
     """
     Base class for any kraken input
     """
-    __API = krakenex.API()
-    API_DELAY = 3
 
     def __init__(self):
         super().__init__()
         self.__tick = None
-        if ABCKrakenInput.__API.key == '':
+        global API
+        if API is None:
+            API = krakenex.API()
+        if API.key == '':
             try:
-                ABCKrakenInput.__API.load_key(conf.API_KEY_FILE)
+                API.load_key(conf.API_KEY_FILE)
             except Exception as e:  # TODO
                 log.warning(
                     "Couldn't load kraken api key file '"
-                    + conf.__API_KEY_FILE + "': " + repr(e)
+                    + conf.API_KEY_FILE + "': " + repr(e)
                 )
 
     def _doRequest(self, method, req=None):
         """General function for kraken api requests"""
 
-        self.__sleep()
+        self._sleep()
         if not req:
             req = {}
 
@@ -44,9 +48,9 @@ class ABCKrakenInput(ABCInput):
         while fail_counter > 0:  # really nice loop bro, respect... no goto tho
             try:
                 if method == "Trades":
-                    res = ABCKrakenInput.__API.query_public(method, req)
+                    res = API.query_public(method, req)
                 else:
-                    res = ABCKrakenInput.__API.query_private(method, req)
+                    res = API.query_private(method, req)
             except (
                     socket.timeout,
                     socket.error,
@@ -66,11 +70,11 @@ class ABCKrakenInput(ABCInput):
                     return res["result"]
             log.debug("Connection fail #" + str(fail_counter))
             fail_counter += 1
-            time.sleep(0.5)
+            self._sleep()
 
         return None  # warning-trap
 
-    def __sleep(self):
+    def _sleep(self):
         """TODO"""
         if self.__tick is not None:
             delta = time.time() - self.__tick
@@ -80,7 +84,7 @@ class ABCKrakenInput(ABCInput):
             )
         else:
             delta = 0
-        delta = self.API_DELAY - delta
+        delta = API_DELAY - delta
         if delta > 0:
             time.sleep(delta)
         self.__tick = time.time()
