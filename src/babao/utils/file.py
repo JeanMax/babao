@@ -1,10 +1,12 @@
 """Some utils functions for hdf handling"""
 # TODO: should we catch here the read/write errors? (cf inputBase)
+# TODO: append_to_multiple/select_as_multiple
 
 import pandas as pd
 from prwlock import RWLock
 
 LOCK = None
+STORE = None
 
 
 def setLock(lock):
@@ -15,44 +17,53 @@ def setLock(lock):
         LOCK = lock
 
 
-def read(filename, frame, where=None):
+def initStore(filename):
+    """TODO"""
+    global STORE
+    STORE = pd.HDFStore(filename)
+    # complevel=9, complib='blosc'
+    for k in STORE.keys():
+        STORE.create_table_index(k, optlevel=9, kind='full')  # sorry :D
+
+
+def closeStore():
+    """TODO"""
+    if STORE is not None and STORE.is_open:
+        STORE.close()
+
+
+def read(frame, where=None):
     """Read a frame from the hdf database"""
 
     with LOCK.reader_lock():
-        return pd.read_hdf(filename, frame, where=where)
+        if where is None:
+            return STORE.get(frame)
+        else:
+            return STORE.select(frame, where)
 
 
-def write(filename, frame, df):
-    """Write a frame from the hdf database"""
+def write(frame, df):
+    """
+    Write a frame from the hdf database
+    TODO
+    """
 
     with LOCK.writer_lock():
-        return df.to_hdf(
-            filename,
-            frame,
-            mode="a",
-            format='table',
-            append=True,
-            # data_column=True,
-            complib='blosc'
-        )
-        # TODO: (once)
-        # store = pd.HDFStore(conf.DB_FILE)
-        # store.create_table_index(conf.TRADES_FRAME, optlevel=9, kind='full')
-        # store.close()
+        # TODO:
+        # if type(frame) == list:
+            # for i, unused in enumerate(frame):
+                # STORE.append(frame[i], df[i])
+        # else:
+        STORE.append(frame, df)
+        STORE.flush(fsync=True)
 
 
-def getLastRows(filename, frame, nrows):
+def getLastRows(frame, nrows):
     """Return ´nrows´ rows from ´filename´ as a DataFrame"""
 
     with LOCK.reader_lock():
-        # TODO: shouldn't we keep *one* open store for the whole execution?
-        with pd.HDFStore(filename) as store:
-            try:
-                frame_len = store.get_storer(frame).nrows
-            except AttributeError:
-                return pd.DataFrame()
-
-            return store.select(
-                frame,
-                start=frame_len - nrows
-            )
+        try:
+            frame_len = STORE.get_storer(frame).nrows
+        except AttributeError:
+            return pd.DataFrame()
+        return STORE.select(frame, start=frame_len - nrows)

@@ -20,6 +20,7 @@ Why does this file exist, and why not put this in __main__?
 # import babao; args = babao.babao._init(["-vvgf", "t"]); args.func(args)
 
 import babao.utils.log as log
+import babao.utils.file as fu
 import babao.utils.lock as lock
 import babao.config as conf
 import babao.parser as pars
@@ -28,6 +29,7 @@ import babao.parser as pars
 def _kthxbye():
     """KTHXBYE"""
 
+    fu.closeStore()
     lock.tryUnlock(conf.LOCK_FILE)
 
 
@@ -40,6 +42,7 @@ def _init(args=None):
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock file found (" + conf.LOCK_FILE + "), abort.")
+    fu.initStore(conf.DB_FILE)
 
     return args
 

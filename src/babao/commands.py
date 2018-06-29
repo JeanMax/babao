@@ -97,11 +97,6 @@ def _getData():
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
-def _poolFetcher(pool_input):
-    """TODO"""
-    return pool_input.write(pool_input.fetch())
-
-
 def wetRun(args):
     """Dummy"""
     _initCmd(args.graph, simulate=False)
@@ -117,7 +112,10 @@ def dryRun(args):
         initargs=(log.LOCK, fu.LOCK)
     )
     while not sig.EXIT:
-        pool.map(_poolFetcher, K)
+        fetched_data = pool.map(lambda inp: inp.fetch(), K)
+        for i, unused in enumerate(fetched_data):
+            K[i].write(fetched_data[i])
+
         # TODO:  do not hardcode the lookback
         fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:

@@ -45,9 +45,7 @@ class ABCInput(ABC):
     def __init__(self):
         self.last_row = None
         try:
-            last_row = fu.getLastRows(
-                conf.DB_FILE, self.__class__.__name__, 1
-            )
+            last_row = fu.getLastRows(self.__class__.__name__, 1)
         except (FileNotFoundError, KeyError):
             log.warning(
                 "Couldn't read from database frame '"
@@ -80,7 +78,7 @@ class ABCInput(ABC):
         if raw_data is None or raw_data.empty:
             return None
         try:
-            fu.write(conf.DB_FILE, self.__class__.__name__, raw_data)
+            fu.write(self.__class__.__name__, raw_data)
         except RuntimeError:  # HDF5ExtError
             log.warning(
                 "Couldn't write to database frame '"
@@ -97,9 +95,7 @@ class ABCInput(ABC):
         if since is not None:
             since = "index > %d" % since
         try:
-            raw_data = fu.read(
-                conf.DB_FILE, self.__class__.__name__, where=since
-            )
+            raw_data = fu.read(self.__class__.__name__, where=since)
         except (KeyError, FileNotFoundError):
             log.warning(
                 "Couldn't read from database frame '"
