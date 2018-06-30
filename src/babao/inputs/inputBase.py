@@ -3,6 +3,7 @@ TODO
 """
 
 from abc import ABC, abstractmethod
+import pandas as pd
 
 import babao.utils.file as fu
 import babao.utils.date as du
@@ -119,12 +120,14 @@ class ABCInput(ABC):
         assert list(raw_data.columns) == self.__class__.resampled_columns
         assert isimplemented(_resample, _fillMissing)
         """
-        if not raw_data.empty:
-            du.to_datetime(raw_data)
-            raw_data = self._resample(raw_data)
-            raw_data = self._fillMissing(raw_data)
-            du.to_timestamp(raw_data)
-        return raw_data
+        if raw_data.empty:
+            return pd.DataFrame(columns=self.resampled_columns)
+        du.to_datetime(raw_data)
+        resampled_data = self._resample(raw_data)
+        resampled_data = self._fillMissing(resampled_data)
+        du.to_timestamp(raw_data)
+        du.to_timestamp(resampled_data)
+        return resampled_data
 
     def __updateLastRow(self, last_row):
         if self.last_row is not None and last_row.name < self.last_row.name:
