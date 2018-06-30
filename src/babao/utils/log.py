@@ -40,13 +40,15 @@ def initLogLevel(verbose, quiet):
 def _log(header, *args, **kwargs):
     """Genreral logging function, shouldn't be used directly"""
 
-    LOCK.acquire()
+    if LOCK is not None:
+        LOCK.acquire()
     print(
         *((WHITE + time.strftime("[%Y/%m/%d %H:%M:%S] ") + header + RESET, )
           + args),
         **kwargs
     )
-    LOCK.release()
+    if LOCK is not None:
+        LOCK.release()
 
 
 def error(*args):

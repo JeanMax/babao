@@ -43,19 +43,18 @@ class ABCInput(ABC):
         pass
 
     def __init__(self):
+        # TODO: msg, move to tests?
+        # assert list(self.last_row.keys()) == self.__class__.raw_columns
         self.last_row = None
         self.__cache_data = None
-        try:
-            last_row = fu.getLastRows(self.__class__.__name__, 1)
-        except (FileNotFoundError, KeyError):
+        last_row = fu.getLastRows(self.__class__.__name__, 1)
+        if not last_row.empty:
+            self.__updateLastRow(last_row.iloc[-1])
+        else:
             log.warning(
                 "Couldn't read from database frame '"
                 + self.__class__.__name__ + "'"
             )
-        else:
-            self.__updateLastRow(last_row.iloc[-1])
-        # TODO: msg, move to tests?
-        # assert list(self.last_row.keys()) == self.__class__.raw_columns
 
     @abstractmethod
     def fetch(self):
@@ -78,9 +77,7 @@ class ABCInput(ABC):
         """
         if raw_data is None or raw_data.empty:
             return None
-        try:
-            fu.write(self.__class__.__name__, raw_data)
-        except RuntimeError:  # HDF5ExtError
+        if not fu.write(self.__class__.__name__, raw_data):
             log.warning(
                 "Couldn't write to database frame '"
                 + self.__class__.__name__ + "'"
@@ -93,23 +90,15 @@ class ABCInput(ABC):
         """
         TODO
         """
-        where = None
-        if since is not None:
-            where = "index > %d" % since
-        if till is not None:
-            where += " & index < %d" % till
-
         if self.__cache_data is not None:
             raw_data = self.__cache_data.loc[since:till]
         else:
-            try:
-                raw_data = fu.read(self.__class__.__name__, where=where)
-            except (KeyError, FileNotFoundError):
-                log.warning(
-                    "Couldn't read from database frame '"
-                    + self.__class__.__name__ + "'"
-                )
-                return pd.DataFrame()
+            where = None
+            if since is not None:
+                where = "index > %d" % since
+            if till is not None:
+                where += " & index < %d" % till
+            raw_data = fu.read(self.__class__.__name__, where=where)
         if not raw_data.empty:
             self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
