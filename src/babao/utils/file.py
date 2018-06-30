@@ -61,7 +61,7 @@ def read(frame, where=None):
     try:
         if not STORE.is_open:  # graph proc will close store, to avoid cache
             ret = pd.read_hdf(STORE.filename, frame, where=where)
-        if where is None:
+        elif where is None:
             ret = STORE.get(frame)
         else:
             ret = STORE.select(frame, where)

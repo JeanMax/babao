@@ -41,7 +41,7 @@ def _init(args=None):
     conf.readConfigFile(args.func.__name__)
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
-        log.error("Lock file found (" + conf.LOCK_FILE + "), abort.")
+        log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
     fu.initStore(conf.DB_FILE)
 
     return args

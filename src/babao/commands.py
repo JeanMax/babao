@@ -66,7 +66,8 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
-    _initLocks()
+    if graph:
+        _initLocks()
     global K
     K = [
         KrakenTradesXXBTZEURInput(),
