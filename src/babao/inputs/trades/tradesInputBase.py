@@ -6,6 +6,7 @@ from abc import abstractmethod
 import numpy as np
 
 from babao.inputs.inputBase import ABCInput
+import babao.inputs.inputHelper as ih
 
 
 class ABCTradesInput(ABCInput):
@@ -20,12 +21,12 @@ class ABCTradesInput(ABCInput):
 
     def _resample(self, raw_data):
         """TODO"""
-        p = self._resampleSerie(raw_data["price"])
+        p = ih.resampleSerie(raw_data["price"])
         resampled_data = p.ohlc()
 
         # tmp var for ordering
-        v = self._resampleSerie(raw_data["volume"]).sum()
-        resampled_data["vwap"] = self._resampleSerie(
+        v = ih.resampleSerie(raw_data["volume"]).sum()
+        resampled_data["vwap"] = ih.resampleSerie(
             raw_data["price"] * raw_data["volume"]
         ).sum() / v
         resampled_data["volume"] = v

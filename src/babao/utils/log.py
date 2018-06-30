@@ -2,7 +2,6 @@
 
 import sys
 import time
-from multiprocessing import Lock
 
 VERBOSE = 1
 
@@ -21,10 +20,7 @@ LOCK = None
 
 def setLock(lock):
     global LOCK
-    if lock is None:
-        LOCK = Lock()
-    else:
-        LOCK = lock
+    LOCK = lock
 
 
 def initLogLevel(verbose, quiet):

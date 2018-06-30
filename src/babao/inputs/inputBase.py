@@ -3,16 +3,17 @@ TODO
 """
 
 from abc import ABC, abstractmethod
-import pandas as pd
 
-import babao.config as conf
 import babao.utils.file as fu
 import babao.utils.date as du
 import babao.utils.log as log
 
+LAST_WRITE = 0  # TODO: this is a stupid idea, bugs incoming!
+
 
 class ABCInput(ABC):
     """
+    TODO
     Base class for any input
 
     Public attr:
@@ -28,7 +29,6 @@ class ABCInput(ABC):
 
     (cf. specific method doc-string in this class)
     """
-    __last_write = 0  # TODO: this is a stupid idea, bugs incoming!
 
     @property
     @abstractmethod
@@ -130,25 +130,8 @@ class ABCInput(ABC):
         if self.last_row is not None and last_row.name < self.last_row.name:
             return
         self.last_row = last_row
-        ABCInput.__last_write = max(ABCInput.__last_write, last_row.name)
-
-    @staticmethod
-    def _resampleSerie(s):
-        """
-        Call Serie.resample on s with preset parameters
-        (the serie's index must be datetime)
-        """
-        # TODO: would be nice to do the base init once for all features
-        # (ensure sync and save some computing)
-        # also don't convert date or do it in utils.date
-        base = pd.to_datetime(ABCInput.__last_write, unit="ns")
-        base = (base.minute + (base.second + 1) / 60) % 60
-        return s.resample(
-            str(conf.TIME_INTERVAL) + "Min",
-            closed="right",
-            label="right",
-            base=base
-        )
+        global LAST_WRITE
+        LAST_WRITE = max(LAST_WRITE, last_row.name)
 
     def _resample(self, raw_data):
         """
@@ -157,8 +140,10 @@ class ABCInput(ABC):
         ´raw_data´ is a DataFrame with the same columns as the ones returned
         by ´fetch´.
 
-        You should use the helper function ´_resampleSerie´ on the desired
+        You should use the helper function ´resampleSerie´ on the desired
         columns of your discrete ´raw_data´ to generate continuous data.
+
+        TODO
         """
         raise NotImplementedError(
             "Your Input class '%s' should implement a '_resample' method :/"

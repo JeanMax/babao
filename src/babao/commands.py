@@ -2,7 +2,8 @@
 
 import time
 import os
-from multiprocessing import Process
+from prwlock import RWLock
+from multiprocessing import Process, Lock
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 import pandas as pd
@@ -53,12 +54,6 @@ def _launchGraph():
     p.start()
 
 
-def _initLocks(log_lock=None, file_lock=None):
-    """TODO: same in graph"""
-    log.setLock(log_lock)
-    fu.setLock(file_lock)
-
-
 def _initCmd(graph=False, simulate=True):
     """
     Generic command init function
@@ -66,8 +61,9 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
+    log.setLock(Lock())
     if graph:
-        _initLocks()
+        fu.setLock(RWLock())
     global K
     K = [
         KrakenTradesXXBTZEURInput(),
@@ -109,7 +105,7 @@ def dryRun(args):
 
     _initCmd(args.graph)
     pool = ThreadPool(
-        initializer=_initLocks,
+        initializer=lambda x, y: [log.setLock(x), fu.setLock(y)],
         initargs=(log.LOCK, fu.LOCK)
     )
     while not sig.EXIT:

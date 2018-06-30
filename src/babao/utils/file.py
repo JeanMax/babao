@@ -1,8 +1,6 @@
 """Some utils functions for hdf handling"""
-# TODO: append_to_multiple/select_as_multiple
 
 import pandas as pd
-from prwlock import RWLock
 
 LOCK = None
 STORE = None
@@ -10,10 +8,7 @@ STORE = None
 
 def setLock(lock):
     global LOCK
-    if lock is None:
-        LOCK = RWLock()
-    else:
-        LOCK = lock
+    LOCK = lock
 
 
 def initStore(filename):
@@ -46,7 +41,7 @@ def write(frame, df):
         ret = False
     finally:
         if LOCK is not None:
-            STORE.flush(fsync=True)
+            # STORE.flush(fsync=True)
             LOCK.release()
     return ret
 
