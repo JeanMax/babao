@@ -2,9 +2,9 @@
 
 import time
 import os
-from prwlock import RWLock
-from multiprocessing import Process, Lock
 from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Process, Lock
+from prwlock import RWLock
 import numpy as np
 import pandas as pd
 

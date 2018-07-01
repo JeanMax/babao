@@ -5,8 +5,8 @@ TODO
 import time
 import http
 import socket
-import requests
 from abc import abstractmethod
+import requests
 import krakenex
 
 import babao.utils.log as log
