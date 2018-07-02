@@ -25,10 +25,10 @@ from prwlock import RWLock
 import babao.utils.log as log
 import babao.utils.file as fu
 import babao.utils.lock as lock
-import babao.utils.signal as sig
+# import babao.utils.signal as sig
 import babao.config as conf
 import babao.parser as pars
-import babao.strategy.transaction as tx
+import babao.inputs.ledger.ledgerManager as lm
 import babao.strategy.modelManager as modelManager
 
 
@@ -68,7 +68,7 @@ def _init(args=None):
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
-    tx.initLedger(
+    lm.initLedger(
         simulate=args.func.__name__ != "wetRun",
         log_to_file=args.func.__name__ != "train",
     )

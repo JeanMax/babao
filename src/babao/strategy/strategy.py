@@ -5,8 +5,9 @@ This whole shit is temporary, don't worry
 """
 
 import babao.utils.log as log
-import babao.strategy.transaction as tx
+import babao.inputs.ledger.ledgerManager as lm
 import babao.strategy.modelManager as modelManager
+from babao.utils.enum import CryptoEnum
 
 
 def analyse(feature_index, price, timestamp):
@@ -33,4 +34,4 @@ def analyse(feature_index, price, timestamp):
     if log.VERBOSE >= 4:
         log.debug("target:", target)
 
-    tx.buyOrSell(target, price, timestamp)
+    lm.buyOrSell(target, CryptoEnum.XBT)

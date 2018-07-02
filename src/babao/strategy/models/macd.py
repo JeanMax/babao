@@ -11,7 +11,8 @@ import babao.utils.log as log
 import babao.utils.date as du
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.transaction as tx
+import babao.inputs.ledger.ledgerManager as lm
+from babao.utils.enum import CryptoEnum
 # import babao.strategy.modelHelper as modelHelper
 
 MODEL = {"a": 46, "b": 75, "c": 22}
@@ -73,8 +74,9 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         look_back_b_delay,
         signal_delay
     )
-    tx.L["crypto"].balance = 0
-    tx.L["quote"].balance = 100
+    lm.LEDGERS[CryptoEnum.XBT].balance = 0
+    lm.LEDGERS[conf.QUOTE].balance = 100
+    # TODO: is there any more stuffs to reset in ledger(s)?
 
     first_price = None
     price = None
@@ -87,18 +89,15 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         if first_price is None:
             first_price = price
 
-        tx.buyOrSell(
-            macd * -1,
-            price,
-            du.secToNano(index * conf.TIME_INTERVAL * 60)
-        )
+        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))  # TODO: eheheh this won't work :o
+        lm.buyOrSell(macd * -1, CryptoEnum.XBT)
 
-        if tx.gameOver(price):
+        if lm.gameOver():
             if log.VERBOSE >= 4:
                 log.warning("game over:", index, "/", len(FEATURES_DF))
             return -42
 
-    score = tx.L["crypto"].balance * price + tx.L["quote"].balance
+    score = lm.getGlobalBalanceInQuote()
     hodl = price / first_price * 100
 
     if log.VERBOSE >= 4:
@@ -115,10 +114,9 @@ def train():
 
     log.debug("Train macd")
 
-    tx.L["crypto"].log_to_file = False
-    tx.L["quote"].log_to_file = False
-    tx.L["crypto"].verbose = log.VERBOSE >= 4
-    tx.L["quote"].verbose = log.VERBOSE >= 4
+    # TODO: move these?
+    lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
+    lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
 
     global MODEL
     param_grid = list(ParameterGrid({

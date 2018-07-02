@@ -14,8 +14,9 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.strategy.models.macd as macd  # TODO: this is weird
-import babao.strategy.transaction as tx
+import babao.inputs.ledger.ledgerManager as lm
 import babao.inputs.inputHelper as ih
+from babao.utils.enum import CryptoEnum
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 
 K = None
@@ -47,7 +48,10 @@ def _getData():
     since = K.last_row.name - du.secToNano(
         (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60
     )
-    DATA = ih.readInputs([K, tx.L["quote"], tx.L["crypto"]], since)
+    DATA = ih.readInputs(
+        [K, lm.LEDGERS[conf.QUOTE], lm.LEDGERS[CryptoEnum.XBT]],
+        since
+    )
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.MACD(
         DATA["KrakenTradesXXBTZEURInput-vwap"],

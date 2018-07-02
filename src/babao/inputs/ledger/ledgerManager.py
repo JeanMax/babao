@@ -7,13 +7,13 @@ import re
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.date as du
-import babao.utils.enum as enu
 import babao.inputs.trades.krakenTradesInput as tra
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
+MIN_PROBA = 1e-2
 
 LEDGERS = None
-TRADES = None
+TRADES = None  # TODO: all prices are going to be desync in simulation
 
 
 def initLedger(simulate=True, log_to_file=True):
@@ -157,15 +157,16 @@ def buyOrSell(target, crypto_enum):
     TODO
     """
 
-    trade_enum = enu.floatToTradeEnum(target)
-    if trade_enum == enu.TradeEnum.HODL:
-        return True
+    # trade_enum = enu.floatToTradeEnum(target)
+    # if trade_enum == enu.TradeEnum.HODL:
+    #     return True
+    # action_enum = enu.tradeEnumToActionEnum(trade_enum)
+    # crypto_enum = enu.tradeEnumToCryptoEnum(trade_enum)
 
-    action_enum = enu.tradeEnumToActionEnum(trade_enum)
-    crypto_enum = enu.tradeEnumToCryptoEnum(trade_enum)
-
-    if action_enum == enu.ActionEnum.SELL:
+    # TODO: change that ugly target
+    # LABELS = {"buy": -1, "hold": 0, "sell": 1}
+    if target > MIN_PROBA:  # SELL
         return sell(crypto_enum, LEDGERS[crypto_enum].balance)
-    elif action_enum == enu.ActionEnum.BUY:
+    elif target < -MIN_PROBA:  # BUY
         return buy(crypto_enum, LEDGERS[conf.QUOTE].balance)
     return True

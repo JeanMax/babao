@@ -12,7 +12,7 @@ import babao.utils.log as log
 import babao.utils.date as du
 import babao.utils.file as fu
 import babao.config as conf
-import babao.strategy.transaction as tx
+import babao.inputs.ledger.ledgerManager as lm
 import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
@@ -131,7 +131,7 @@ def backtest(args):
             return
 
     price = big_fat_data_prices[-1]
-    score = tx.L["crypto"].balance * price + tx.L["quote"].balance
+    score = lm.getGlobalBalanceInQuote()
     hodl = price / big_fat_data_prices[0] * 100
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
