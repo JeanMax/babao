@@ -21,7 +21,7 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
     def pair(self):
         """
         Overide this method with the desired asset pair as string
-        ex: pair = "XXBTZEUR"
+        ex: self.pair = "XXBTZEUR"
         """
         pass
 
@@ -63,6 +63,8 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
 
 # class KrakenTradesXXBTZEURInput(ABCKrakenTradesInput):
 #     pair = "XXBTZEUR"
+#     quote = QuoteEnum.EUR
+#     crypto = "CryptoEnum.XBT
 
 for quote in QuoteEnum:
     for crypto in CryptoEnum:
@@ -71,5 +73,9 @@ for quote in QuoteEnum:
         setattr(
             sys.modules[__name__],
             cls,
-            type(cls, (ABCKrakenTradesInput,), {"pair": pair})
+            type(cls, (ABCKrakenTradesInput,), {
+                "pair": pair,
+                "quote": quote,
+                "crypto": crypto
+            })
         )

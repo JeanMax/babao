@@ -3,6 +3,7 @@
 import signal
 
 EXIT = 0
+SIG_HANDLER = None
 
 
 def _signalHandler(signal_code, unused_frame):
@@ -14,5 +15,20 @@ def _signalHandler(signal_code, unused_frame):
 
 def catchSignal():
     """TODO"""
-    signal.signal(signal.SIGINT, _signalHandler)
-    signal.signal(signal.SIGTERM, _signalHandler)
+    global SIG_HANDLER
+    if SIG_HANDLER is None:
+        SIG_HANDLER = {}
+    SIG_HANDLER.setdefault(
+        signal.SIGINT,
+        signal.signal(signal.SIGINT, _signalHandler)
+    )
+    SIG_HANDLER.setdefault(
+        signal.SIGTERM,
+        signal.signal(signal.SIGTERM, _signalHandler)
+    )
+
+
+def restoreSignal():
+    """TODO"""
+    signal.signal(signal.SIGINT, SIG_HANDLER[signal.SIGINT])
+    signal.signal(signal.SIGTERM, SIG_HANDLER[signal.SIGTERM])

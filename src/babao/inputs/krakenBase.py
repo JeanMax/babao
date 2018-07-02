@@ -23,7 +23,7 @@ def _initAPI():
     API = krakenex.API()
     try:
         API.load_key(conf.API_KEY_FILE)
-    except Exception as e:  # TODO
+    except FileNotFoundError as e:
         log.warning(
             "Couldn't load kraken api key file '"
             + conf.API_KEY_FILE + "': " + repr(e)

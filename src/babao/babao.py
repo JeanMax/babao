@@ -19,11 +19,32 @@ Why does this file exist, and why not put this in __main__?
 # from ipdb import set_trace; set_trace()
 # import babao; args = babao.babao._init(["-vv", "d"]); args.func(args)
 
+from multiprocessing import Process, Lock
+from prwlock import RWLock
+
 import babao.utils.log as log
 import babao.utils.file as fu
 import babao.utils.lock as lock
+# import babao.utils.signal as sig
 import babao.config as conf
 import babao.parser as pars
+import babao.inputs.ledger.ledgerManager as lm
+import babao.strategy.modelManager as modelManager
+
+
+def _launchGraph():
+    """Start the graph process"""
+
+    # we import here, so matplotlib can stay an optional dependency
+    import babao.graph as graph
+
+    p = Process(
+        target=graph.initGraph,
+        args=(log.LOCK, fu.LOCK),
+        name="babao-graph",
+        daemon=True  # so we don't have to terminate it
+    )
+    p.start()
 
 
 def _kthxbye():
@@ -42,7 +63,22 @@ def _init(args=None):
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
+    if args.func.__name__ not in ["train", "backtest"]:
+        log.setLock(Lock())
+    if args.graph:
+        fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
+    lm.initLedger(
+        simulate=args.func.__name__ != "wetRun",
+        log_to_file=args.func.__name__ != "train",
+    )
+    try:
+        modelManager.loadModels()
+    except FileNotFoundError:
+        log.warning("No model found.")
+    if args.graph:
+        _launchGraph()
+    # sig.catchSignal()
 
     return args
 
