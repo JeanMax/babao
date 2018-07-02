@@ -16,6 +16,7 @@ from abc import abstractmethod
 import pandas as pd
 
 from babao.inputs.inputBase import ABCInput
+import babao.inputs.inputHelper as ih
 
 
 class ABCLedgerInput(ABCInput):
@@ -34,7 +35,7 @@ class ABCLedgerInput(ABCInput):
 
     def _resample(self, raw_data):
         """TODO"""
-        resampled_data = self._resampleSerie(raw_data["balance"]).last()
+        resampled_data = ih.resampleSerie(raw_data["balance"]).last()
         return pd.DataFrame(
             resampled_data,
             columns=self.__class__.resampled_columns

@@ -2,41 +2,82 @@
 
 import pandas as pd
 
-
-def read(filename, frame, where=None):
-    """Read a frame from the hdf database"""
-
-    return pd.read_hdf(filename, frame, where=where)
+LOCK = None
+STORE = None
 
 
-def write(filename, frame, df):
-    """Write a frame from the hdf database"""
-
-    return df.to_hdf(
-        filename,
-        frame,
-        mode="a",
-        format='table',
-        append=True,
-        # data_column=True,
-        complib='blosc'
-    )
-    # TODO: (once)
-    # store = pd.HDFStore(conf.DB_FILE)
-    # store.create_table_index(conf.TRADES_FRAME, optlevel=9, kind='full')
-    # store.close()
+def setLock(lock):
+    global LOCK
+    LOCK = lock
 
 
-def getLastRows(filename, frame, nrows):
+def initStore(filename):
+    """TODO"""
+    global STORE
+    STORE = pd.HDFStore(filename)
+    # complevel=9, complib='blosc'
+    for k in STORE.keys():
+        STORE.create_table_index(k, optlevel=9, kind='full')  # sorry :D
+
+
+def closeStore():
+    """TODO"""
+    if STORE is not None and STORE.is_open:
+        STORE.flush(fsync=True)  # just being paranoid
+        STORE.close()
+
+
+def write(frame, df):
+    """
+    Write a frame from the hdf database
+    TODO
+    """
+    ret = True
+    if LOCK is not None:
+        LOCK.acquire_write()
+    try:
+        STORE.append(frame, df)
+    except RuntimeError:  # HDF5ExtError
+        ret = False
+    finally:
+        if LOCK is not None:
+            # STORE.flush(fsync=True)
+            LOCK.release()
+    return ret
+
+
+def read(frame, where=None):
+    """
+    Read a frame from the hdf database
+    TODO
+    """
+    if LOCK is not None:
+        LOCK.acquire_read()
+    try:
+        if not STORE.is_open:  # graph proc will close store, to avoid cache
+            ret = pd.read_hdf(STORE.filename, frame, where=where)
+        elif where is None:
+            ret = STORE.get(frame)
+        else:
+            ret = STORE.select(frame, where)
+    except (KeyError, FileNotFoundError):
+        ret = pd.DataFrame()
+    finally:
+        if LOCK is not None:
+            LOCK.release()
+    return ret
+
+
+def getLastRows(frame, nrows):
     """Return ´nrows´ rows from ´filename´ as a DataFrame"""
-
-    with pd.HDFStore(filename) as store:
-        try:
-            frame_len = store.get_storer(frame).nrows
-        except AttributeError:
-            return pd.DataFrame()
-
-        return store.select(
-            frame,
-            start=frame_len - nrows
-        )
+    if LOCK is not None:
+        LOCK.acquire_read()
+    try:
+        frame_len = STORE.get_storer(frame).nrows
+        ret = STORE.select(frame, start=frame_len - nrows)
+    except (KeyError, FileNotFoundError, AttributeError):
+        ret = pd.DataFrame()
+    finally:
+        if LOCK is not None:
+            LOCK.release()
+    return ret

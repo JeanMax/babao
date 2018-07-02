@@ -3,6 +3,14 @@
 import time
 import pandas as pd
 
+NOW = None
+
+
+def setTime(now):
+    """TODO"""
+    global NOW
+    NOW = now
+
 
 def to_datetime(df):
     """Convert the index of the given dataframe to datetime"""
@@ -27,16 +35,18 @@ def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
         + years * 60 * 60 * 24 * 7 * 365.25
     )
 
-    return int(
-        (time.time() - seconds) * 10**9
-    )
+    if NOW is None:
+        return secToNano(time.time() - seconds)
+    return NOW - secToNano(seconds)
 
 
 def secToNano(sec):
     """
-    Convert a dataframe in seconds to nanoseconds
+    Convert seconds to nanoseconds
     Just trying to avoid float rounding...
     """
+    if type(sec) == float or type(sec) == int:
+        return int(sec * 1e6) * 1000
     return (sec * 1e6).astype(int) * 1000
 
 

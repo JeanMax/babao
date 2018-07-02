@@ -4,6 +4,7 @@ Buy/Sell strategy
 
 import babao.config as conf
 import babao.utils.log as log
+import babao.utils.date as du
 from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerEURInput
 from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerXBTInput
 from babao.inputs.ledger.fakeLedgerInput import FakeLedgerEURInput
@@ -52,7 +53,7 @@ def _tooSoon(timestamp):
 
     last_tx = min(L["crypto"].last_tx, L["quote"].last_tx)
     if last_tx > 0 \
-       and timestamp - last_tx < 3 * conf.TIME_INTERVAL * 60 * 10**9:
+       and timestamp - last_tx < du.secToNano(3 * conf.TIME_INTERVAL * 60):
         if L["crypto"].verbose:
             log.warning("Previous transaction was too soon, waiting")
         return True

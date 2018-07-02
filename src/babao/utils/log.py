@@ -2,7 +2,6 @@
 
 import sys
 import time
-from multiprocessing import Lock
 
 VERBOSE = 1
 
@@ -16,7 +15,7 @@ MAGENTA = "\033[35;01m"
 WHITE = "\033[37;01m"
 RESET = "\033[0m"
 
-LOCK = Lock()
+LOCK = None
 
 
 def setLock(lock):
@@ -37,13 +36,15 @@ def initLogLevel(verbose, quiet):
 def _log(header, *args, **kwargs):
     """Genreral logging function, shouldn't be used directly"""
 
-    LOCK.acquire()
+    if LOCK is not None:
+        LOCK.acquire()
     print(
         *((WHITE + time.strftime("[%Y/%m/%d %H:%M:%S] ") + header + RESET, )
           + args),
         **kwargs
     )
-    LOCK.release()
+    if LOCK is not None:
+        LOCK.release()
 
 
 def error(*args):

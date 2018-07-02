@@ -2,8 +2,9 @@
 
 import time
 import os
-from multiprocessing import Process
 from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Process, Lock
+from prwlock import RWLock
 import numpy as np
 import pandas as pd
 
@@ -11,12 +12,12 @@ import pandas as pd
 import babao.utils.signal as sig
 import babao.utils.log as log
 import babao.utils.date as du
+import babao.utils.file as fu
 import babao.config as conf
 import babao.strategy.transaction as tx
 import babao.strategy.strategy as strat
 import babao.strategy.modelManager as modelManager
 
-from babao.inputs.inputBase import ABCInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
@@ -46,7 +47,7 @@ def _launchGraph():
 
     p = Process(
         target=graph.initGraph,
-        args=(log.LOCK, ABCInput.rw_lock),
+        args=(log.LOCK, fu.LOCK),
         name="babao-graph",
         daemon=True  # so we don't have to terminate it
     )
@@ -60,6 +61,9 @@ def _initCmd(graph=False, simulate=True):
     Init: signal handlers, api key, graph
     """
 
+    log.setLock(Lock())
+    if graph:
+        fu.setLock(RWLock())
     global K
     K = [
         KrakenTradesXXBTZEURInput(),
@@ -90,17 +94,6 @@ def _getData():
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
-def _initLocks(log_lock, rw_lock):
-    """TODO: same in graph"""
-    log.setLock(log_lock)
-    ABCInput.rw_lock = rw_lock
-
-
-def _poolFetcher(pool_input):
-    """TODO"""
-    return pool_input.write(pool_input.fetch())
-
-
 def wetRun(args):
     """Dummy"""
     _initCmd(args.graph, simulate=False)
@@ -112,11 +105,14 @@ def dryRun(args):
 
     _initCmd(args.graph)
     pool = ThreadPool(
-        initializer=_initLocks,
-        initargs=(log.LOCK, ABCInput.rw_lock)
+        initializer=lambda x, y: [log.setLock(x), fu.setLock(y)],
+        initargs=(log.LOCK, fu.LOCK)
     )
     while not sig.EXIT:
-        pool.map(_poolFetcher, K)
+        fetched_data = pool.map(lambda inp: inp.fetch(), K)
+        for i, unused in enumerate(fetched_data):
+            K[i].write(fetched_data[i])
+
         # TODO:  do not hardcode the lookback
         fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:
