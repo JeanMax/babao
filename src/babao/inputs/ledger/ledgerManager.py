@@ -7,17 +7,22 @@ import re
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.date as du
+import babao.inputs.trades.krakenTradesInput as tra
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 MIN_PROBA = 1e-2
 
-L = None
+LEDGERS = None
+TRADES = None
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
 
 
 def initLedger(simulate=True):
     """TODO"""
+    global LEDGERS
+    global TRADES
+
     if simulate:
         import babao.inputs.ledger.fakeLedgerInput as led
     else:
@@ -26,23 +31,29 @@ def initLedger(simulate=True):
     pat = ".*(" + conf.QUOTE.name + "|" + "|".join(
         [c.name for c in conf.CRYPTOS]
     ) + ")"
-    led_filter = filter(lambda s: re.match(pat, s), led.__dict__.keys())
-    ledgers = [led.__dict__[k]() for k in led_filter]
+    ledgers = [
+        led.__dict__[k]() for k in led.__dict__.keys() if re.match(pat, k)
+    ]
 
     if simulate and sum([l.balance for l in ledgers]) == 0:
         ledgers[0].deposit(ledgers[0].__class__(log_to_file=False), 100)
         for l in ledgers[1:]:
             l.deposit(l.__class__(log_to_file=False), 0)
 
-    global L
-    L = dict(zip([l.asset for l in ledgers], ledgers))
+    LEDGERS = {l.asset: l for l in ledgers}
+    TRADES = {
+        l.asset: next(
+            x for x in tra.__dict__.keys()
+            if l.asset.name in x and conf.QUOTE.name in x
+        ) for l in ledgers[1:]
+    }
 
 
 def gameOver(price):
     """Check if you're broke"""
 
     return bool(
-        L["crypto"].balance * price + L["quote"].balance
+        LEDGERS["crypto"].balance * price + LEDGERS["quote"].balance
         < MIN_BAL
     )
 
@@ -54,10 +65,10 @@ def _tooSoon(timestamp):
     The delay is based on conf.TIME_INTERVAL.
     """
 
-    last_tx = min(L["crypto"].last_tx, L["quote"].last_tx)
+    last_tx = min(LEDGERS["crypto"].last_tx, LEDGERS["quote"].last_tx)
     if last_tx > 0 \
        and timestamp - last_tx < du.secToNano(3 * conf.TIME_INTERVAL * 60):
-        if L["crypto"].verbose:
+        if LEDGERS["crypto"].verbose:
             log.warning("Previous transaction was too soon, waiting")
         return True
     return False
@@ -72,7 +83,7 @@ def _canBuy():
 
     # if LAST_TX["type"] == "b":
     #     return False
-    if L["quote"].balance < MIN_BAL:
+    if LEDGERS["quote"].balance < MIN_BAL:
         log.warning("Not enough quote to buy (aka: You're broke :/)")
         return False
     return True
@@ -87,7 +98,7 @@ def _canSell():
 
     # if LAST_TX["type"] == "s":
     #     return False
-    if L["crypto"].balance < 0.002:
+    if LEDGERS["crypto"].balance < 0.002:
         # TODO: this can be quite high actually
         # support.kraken.com/ \
         # hc/en-us/articles/205893708-What-is-the-minimum-order-size-
@@ -107,9 +118,13 @@ def buyOrSell(target, price, timestamp):
     if target > MIN_PROBA:  # SELL
         if not _canSell() or _tooSoon(timestamp):
             return False
-        L["quote"].sell(L["crypto"], L["crypto"].balance, price, timestamp)
+        LEDGERS["quote"].sell(
+            LEDGERS["crypto"], LEDGERS["crypto"].balance, price, timestamp
+        )
     elif target < -MIN_PROBA:  # BUY
         if not _canBuy() or _tooSoon(timestamp):  # I can english tho
             return False
-        L["quote"].buy(L["crypto"], L["quote"].balance, price, timestamp)
+        LEDGERS["quote"].buy(
+            LEDGERS["crypto"], LEDGERS["quote"].balance, price, timestamp
+        )
     return True
