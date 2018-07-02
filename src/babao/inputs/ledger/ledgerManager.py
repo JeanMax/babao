@@ -42,11 +42,23 @@ def initLedger(simulate=True):
 
     LEDGERS = {l.asset: l for l in ledgers}
     TRADES = {
-        l.asset: next(
-            x for x in tra.__dict__.keys()
-            if l.asset.name in x and conf.QUOTE.name in x
-        ) for l in ledgers[1:]
+        l.asset: tra.__dict__[next(
+            k for k in tra.__dict__.keys()
+            if l.asset.name in k and conf.QUOTE.name in k
+        )]() for l in ledgers[1:]
     }
+
+
+def getBalanceInQuote(crypto_enum):
+    """TODO"""
+    return LEDGERS[crypto_enum].balance * TRADES[crypto_enum].last_row.price
+
+
+def getGlobalBalanceInQuote():
+    """TODO"""
+    return sum(
+        (getBalanceInQuote(c) for c in TRADES.keys())
+    ) + LEDGERS[conf.QUOTE].balance
 
 
 def gameOver(price):
