@@ -68,7 +68,10 @@ def _init(args=None):
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
-    tx.initLedger(args.func.__name__ != "wetRun")
+    tx.initLedger(
+        simulate=args.func.__name__ != "wetRun",
+        log_to_file=args.func.__name__ != "train",
+    )
     try:
         modelManager.loadModels()
     except FileNotFoundError:
