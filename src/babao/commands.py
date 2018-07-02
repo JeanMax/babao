@@ -3,8 +3,6 @@
 import time
 import os
 from multiprocessing.dummy import Pool as ThreadPool
-from multiprocessing import Process, Lock
-from prwlock import RWLock
 import numpy as np
 import pandas as pd
 
@@ -32,59 +30,25 @@ from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZGBPInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZJPYInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
 
-K = None
+K = [
+    KrakenTradesXXBTZEURInput(),
+    KrakenTradesXETCZEURInput(),
+    KrakenTradesXETHZEURInput(),
+    KrakenTradesXLTCZEURInput(),
+    KrakenTradesXREPZEURInput(),
+    KrakenTradesXXLMZEURInput(),
+    KrakenTradesXXMRZEURInput(),
+    KrakenTradesXXRPZEURInput(),
+    KrakenTradesXZECZEURInput(),
+    KrakenTradesXXBTZCADInput(),
+    KrakenTradesXXBTZGBPInput(),
+    KrakenTradesXXBTZJPYInput(),
+    KrakenTradesXXBTZUSDInput(),
+]
 
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
 NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
-
-
-def _launchGraph():
-    """Start the graph process"""
-
-    # we import here, so matplotlib can stay an optional dependency
-    import babao.graph as graph
-
-    p = Process(
-        target=graph.initGraph,
-        args=(log.LOCK, fu.LOCK),
-        name="babao-graph",
-        daemon=True  # so we don't have to terminate it
-    )
-    p.start()
-
-
-def _initCmd(graph=False, simulate=True):
-    """
-    Generic command init function
-
-    Init: signal handlers, api key, graph
-    """
-
-    log.setLock(Lock())
-    if graph:
-        fu.setLock(RWLock())
-    global K
-    K = [
-        KrakenTradesXXBTZEURInput(),
-        KrakenTradesXETCZEURInput(),
-        KrakenTradesXETHZEURInput(),
-        KrakenTradesXLTCZEURInput(),
-        KrakenTradesXREPZEURInput(),
-        KrakenTradesXXLMZEURInput(),
-        KrakenTradesXXMRZEURInput(),
-        KrakenTradesXXRPZEURInput(),
-        KrakenTradesXZECZEURInput(),
-        KrakenTradesXXBTZCADInput(),
-        KrakenTradesXXBTZGBPInput(),
-        KrakenTradesXXBTZJPYInput(),
-        KrakenTradesXXBTZUSDInput(),
-    ]
-    tx.initLedger(simulate)
-    modelManager.loadModels()
-    if graph:
-        _launchGraph()
-    sig.catchSignal()
 
 
 def _getData():
@@ -96,14 +60,12 @@ def _getData():
 
 def wetRun(args):
     """Dummy"""
-    _initCmd(args.graph, simulate=False)
     print("Sorry, this is not implemented yet :/")
 
 
 def dryRun(args):
     """Real-time bot simulation"""
 
-    _initCmd(args.graph)
     pool = ThreadPool(
         initializer=lambda x, y: [log.setLock(x), fu.setLock(y)],
         initargs=(log.LOCK, fu.LOCK)
@@ -131,11 +93,6 @@ def dryRun(args):
 def fetch(args):
     """Fetch raw trade data since the beginning of times"""
 
-    try:
-        _initCmd(args.graph)
-    except FileNotFoundError:
-        log.warning("No model found.")
-
     for f in [conf.DB_FILE]:
         if os.path.isfile(f):
             # os.remove(f)  # TODO: warn user / create backup?
@@ -154,8 +111,6 @@ def backtest(args):
 
     It will call the trained strategies on each test data point
     """
-
-    _initCmd(args.graph)
 
     big_fat_data = _getData()[1]
     modelManager.prepareModels(big_fat_data)
@@ -195,8 +150,6 @@ def backtest(args):
 
 def train(args):
     """Train the various (awesome) algorithms"""
-
-    # _initCmd(args.graph)
 
     train_data, test_data = _getData()
 
