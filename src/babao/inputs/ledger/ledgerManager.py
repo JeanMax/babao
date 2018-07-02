@@ -2,13 +2,11 @@
 Buy/Sell strategy
 """
 
+import re
+
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.date as du
-from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerEURInput
-from babao.inputs.ledger.krakenLedgerInput import KrakenLedgerXBTInput
-from babao.inputs.ledger.fakeLedgerInput import FakeLedgerEURInput
-from babao.inputs.ledger.fakeLedgerInput import FakeLedgerXBTInput
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 MIN_PROBA = 1e-2
@@ -19,20 +17,25 @@ L = None
 
 
 def initLedger(simulate=True):
-    global L
+    """TODO"""
     if simulate:
-        L = {
-            "crypto": FakeLedgerXBTInput(),
-            "quote": FakeLedgerEURInput()
-        }
-        if L["quote"].balance == 0 and L["crypto"].balance == 0:
-            L["quote"].deposit(FakeLedgerEURInput(log_to_file=False), 100)
-            L["crypto"].deposit(FakeLedgerXBTInput(log_to_file=False), 0)
+        import babao.inputs.ledger.fakeLedgerInput as led
     else:
-        L = {
-            "crypto": KrakenLedgerXBTInput(),
-            "quote": KrakenLedgerEURInput()
-        }
+        import babao.inputs.ledger.krakenLedgerInput as led
+
+    pat = ".*(" + conf.QUOTE.name + "|" + "|".join(
+        [c.name for c in conf.CRYPTOS]
+    ) + ")"
+    led_filter = filter(lambda s: re.match(pat, s), led.__dict__.keys())
+    ledgers = [led.__dict__[k]() for k in led_filter]
+
+    if simulate and sum([l.balance for l in ledgers]) == 0:
+        ledgers[0].deposit(ledgers[0].__class__(log_to_file=False), 100)
+        for l in ledgers[1:]:
+            l.deposit(l.__class__(log_to_file=False), 0)
+
+    global L
+    L = dict(zip([l.asset for l in ledgers], ledgers))
 
 
 def gameOver(price):

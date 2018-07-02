@@ -29,6 +29,12 @@ class ABCLedgerInput(ABCInput):
         "balance"
     ]
 
+    @property
+    @abstractmethod
+    def asset(self):
+        """TODO"""
+        pass
+
     def __init__(self):
         super().__init__()
         self.verbose = True
