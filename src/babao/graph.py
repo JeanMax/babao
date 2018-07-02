@@ -176,10 +176,10 @@ def _initGraph():
     axes["macd"].set_ylim(bottom=-y_max, top=y_max)
     axes["bal"].set_ylim(bottom=0, top=200)
 
-    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylabel(conf.ASSET_PAIR[4:])
-    axes["KrakenTradesXXBTZEURInput-volume"].set_ylabel(conf.ASSET_PAIR[:4])
+    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylabel("XBT")
+    axes["KrakenTradesXXBTZEURInput-volume"].set_ylabel("EUR")
     axes["macd"].set_ylabel("%")
-    axes["bal"].set_ylabel(conf.ASSET_PAIR[4:])
+    axes["bal"].set_ylabel("XBT")
 
     for key in axes:
         axes[key].grid(True)
