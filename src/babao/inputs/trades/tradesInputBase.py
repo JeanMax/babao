@@ -19,6 +19,24 @@ class ABCTradesInput(ABCInput):
         "open", "high", "low", "close", "vwap", "volume", "count"
     ]
 
+    @property
+    @abstractmethod
+    def quote(self):
+        """
+        Overide this method with the desired QuoteEnum
+        ex: self.quote = QuoteEnum.EUR
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def crypto(self):
+        """
+        Overide this method with the desired CryptoEnum
+        ex: self.crypto = CryptoEnum.XBT
+        """
+        pass
+
     def _resample(self, raw_data):
         """TODO"""
         p = ih.resampleSerie(raw_data["price"])
