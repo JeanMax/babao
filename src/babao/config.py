@@ -3,75 +3,66 @@
 import os
 import configparser as cp
 
+from babao.utils.enum import QuoteEnum, CryptoEnum
+
 # globad vars
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
 API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
 LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
+LOG_DIR = os.path.join(CONFIG_DIR, "log")
+DATA_DIR = os.path.join(CONFIG_DIR, "data")
+DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")
 
-MODEL_MACD_FILE = None
-MODEL_EXTREMA_FILE = None
-MODEL_TENDENCY_FILE = None
-MODEL_QLEARN_FILE = None
+# TODO: don't
+MODEL_MACD_FILE = os.path.join(DATA_DIR, "macd.pkl")
+MODEL_EXTREMA_FILE = os.path.join(DATA_DIR, "extrema.pkl")
+MODEL_TENDENCY_FILE = os.path.join(DATA_DIR, "tendency.h5")
+MODEL_QLEARN_FILE = os.path.join(DATA_DIR, "qlearn.h5")
 
 # config vars
-LOG_DIR = None  # useless and annoying... just let the user symlink if needed
-DATA_DIR = None  # idem
-ASSET_PAIR = None  # TODO: QUOTE, CRYPTOS
+QUOTE = None
+CRYPTOS = None
 TIME_INTERVAL = None
 MAX_GRAPH_POINTS = None
-DB_FILE = None
 
 
 def readConfigFile(unused_cmd_name="unamed"):
     """Read config file and initialize file/dir paths"""
 
     # TODO: find a better way to handle config
-    global LOG_DIR
-    global DATA_DIR
-    global ASSET_PAIR
+    global QUOTE
+    global CRYPTOS
     global TIME_INTERVAL
     global MAX_GRAPH_POINTS
-    global DB_FILE
-    global MODEL_MACD_FILE
-    global MODEL_EXTREMA_FILE
-    global MODEL_TENDENCY_FILE
-    global MODEL_QLEARN_FILE
 
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
 
-    LOG_DIR = config.get(
+    QUOTE = config.get(
         "babao",
-        "LOG_DIR",
-        fallback="/tmp"
+        "QUOTE",
+        fallback="EUR"
     )
-    DATA_DIR = config.get(
+    QUOTE = QuoteEnum[QUOTE]
+
+    CRYPTOS = config.get(
         "babao",
-        "DATA_DIR",
-        fallback=os.path.join(CONFIG_DIR, "data")
+        "CRYPTOS",
+        fallback="ETH LTC XBT"
     )
-    ASSET_PAIR = config.get(
-        "babao",
-        "ASSET_PAIR",
-        fallback="XXBTZEUR"
-    )
+    CRYPTOS = [CryptoEnum[c] for c in CRYPTOS.split()]
+
     TIME_INTERVAL = config.getint(
         "babao",
         "TIME_INTERVAL",
         fallback=5
     )
+
     MAX_GRAPH_POINTS = config.getint(
         "babao",
         "MAX_GRAPH_POINTS",
         fallback=420
     )
+
     # TODO: check if these vars are valid
-
-    pre = os.path.join(DATA_DIR, ASSET_PAIR)
-    DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")
-
-    MODEL_MACD_FILE = pre + "-macd.pkl"
-    MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
-    MODEL_TENDENCY_FILE = pre + "-tendency.h5"
-    MODEL_QLEARN_FILE = pre + "-qlearn.h5"
