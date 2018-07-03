@@ -8,6 +8,7 @@ ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src
 DOC_DIR = docs
 DOC_BUILD_DIR = docs/_build
+TEST_DIR = test
 
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
@@ -72,7 +73,7 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
-# TODO
+# TODO: clean all installed files
 uninstall: fclean
 	$(PIP_UNINSTALL) $(NAME)
 # $(RM) $(ROOT_DIR)
@@ -112,8 +113,12 @@ commit: reinstall check fclean
 	git diff --cached --minimal
 	git commit
 
+todo:
+	grep -rin todo . | grep -vE '^(Binary file|\./Makefile|\./TODO.md|\./\.travis\.yml.* make todo)'
+	grep -iHn todo ./Makefile | head -n -$(shell grep -A1000 'todo:' Makefile | grep -ic todo)
+	cat TODO.md
 
 .PHONY: conf install install_test install_graph \
 		clean fclean uninstall reinstall \
 		flake lint test check commit coverage \
-		doc html man
+		doc html man todo
