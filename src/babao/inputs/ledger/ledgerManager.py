@@ -17,7 +17,7 @@ LEDGERS = None
 TRADES = None  # TODO: all prices are going to be desync in simulation
 
 
-def initLedger(simulate=True, log_to_file=True):
+def initLedgers(simulate=True, log_to_file=True):
     """TODO"""
     global LEDGERS
     global TRADES

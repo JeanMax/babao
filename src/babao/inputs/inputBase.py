@@ -8,8 +8,27 @@ import pandas as pd
 import babao.utils.file as fu
 import babao.utils.date as du
 import babao.utils.log as log
+import babao.config as conf
 
 LAST_WRITE = 0  # TODO: this is a stupid idea, bugs incoming!
+
+
+def resampleSerie(s):
+    """
+    Call Serie.resample on s with preset parameters
+    (the serie's index must be datetime)
+    """
+    # TODO: would be nice to do the base init once for all features
+    # (ensure sync and save some computing)
+    # also don't convert date or do it in utils.date
+    base = pd.to_datetime(LAST_WRITE, unit="ns")
+    base = (base.minute + (base.second + 1) / 60) % 60
+    return s.resample(
+        str(conf.TIME_INTERVAL) + "Min",
+        closed="right",
+        label="right",
+        base=base
+    )
 
 
 class ABCInput(ABC):

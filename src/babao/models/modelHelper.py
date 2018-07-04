@@ -6,7 +6,6 @@ They could be called from the models themselves, or from the modelManager
 
 import pandas as pd
 
-import babao.utils.log as log
 import babao.utils.date as du
 
 SCALE_MAX = 100000
@@ -15,9 +14,6 @@ SCALE_MIN = 0
 
 def plotModel(model, full_data):
     """Plot the given model"""
-
-    import matplotlib.pyplot as plt  # lazy load...
-    # TODO: give names to figures, it's kinda annoying right now
 
     y = unscale(model.FEATURES)  # be sure it has been scale_fit'ed
     # ndim should be 2/3, otherwise you deserve a crash
@@ -50,9 +46,7 @@ def plotModel(model, full_data):
             del plot_data[col]
     du.to_datetime(plot_data)
     plot_data.fillna(0, inplace=True)
-
-    plot_data.plot()
-    plt.show(block=False)
+    return plot_data
 
 
 def scale(arr):
@@ -77,9 +71,3 @@ def unscale(arr):
     """Unscale features after train/predict"""
 
     return arr * (SCALE_MAX - SCALE_MIN) + SCALE_MIN
-
-
-def getVerbose():
-    """Transform our verbose level to match keras one"""
-
-    return int(log.VERBOSE / 2) if log.VERBOSE != 1 else 1

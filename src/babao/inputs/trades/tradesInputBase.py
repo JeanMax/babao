@@ -5,11 +5,11 @@ TODO
 from abc import abstractmethod
 import numpy as np
 
-from babao.inputs.inputBase import ABCInput
-import babao.inputs.inputHelper as ih
+import babao.inputs.inputBase as ib
+import babao.inputs.inputManager as im
 
 
-class ABCTradesInput(ABCInput):
+class ABCTradesInput(ib.ABCInput):
     """Base class for any kraken trades input"""
 
     raw_columns = [
@@ -39,12 +39,12 @@ class ABCTradesInput(ABCInput):
 
     def _resample(self, raw_data):
         """TODO"""
-        p = ih.resampleSerie(raw_data["price"])
+        p = ib.resampleSerie(raw_data["price"])
         resampled_data = p.ohlc()
 
         # tmp var for ordering
-        v = ih.resampleSerie(raw_data["volume"]).sum()
-        resampled_data["vwap"] = ih.resampleSerie(
+        v = ib.resampleSerie(raw_data["volume"]).sum()
+        resampled_data["vwap"] = ib.resampleSerie(
             raw_data["price"] * raw_data["volume"]
         ).sum() / v
         resampled_data["volume"] = v

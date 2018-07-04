@@ -4,28 +4,6 @@ or is it a manager?
 """
 
 from functools import partial
-import pandas as pd
-
-import babao.inputs.inputBase as inputBase
-import babao.config as conf
-
-
-def resampleSerie(s):
-    """
-    Call Serie.resample on s with preset parameters
-    (the serie's index must be datetime)
-    """
-    # TODO: would be nice to do the base init once for all features
-    # (ensure sync and save some computing)
-    # also don't convert date or do it in utils.date
-    base = pd.to_datetime(inputBase.LAST_WRITE, unit="ns")
-    base = (base.minute + (base.second + 1) / 60) % 60
-    return s.resample(
-        str(conf.TIME_INTERVAL) + "Min",
-        closed="right",
-        label="right",
-        base=base
-    )
 
 
 def readInputs(input_list, since=None, till=None):

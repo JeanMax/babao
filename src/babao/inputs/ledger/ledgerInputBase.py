@@ -15,11 +15,11 @@ this could be used for later indexing?
 from abc import abstractmethod
 import pandas as pd
 
-from babao.inputs.inputBase import ABCInput
-import babao.inputs.inputHelper as ih
+import babao.inputs.inputBase as ib
+import babao.inputs.inputManager as im
 
 
-class ABCLedgerInput(ABCInput):
+class ABCLedgerInput(ib.ABCInput):
     """TODO"""
 
     raw_columns = [
@@ -41,7 +41,7 @@ class ABCLedgerInput(ABCInput):
 
     def _resample(self, raw_data):
         """TODO"""
-        resampled_data = ih.resampleSerie(raw_data["balance"]).last()
+        resampled_data = ib.resampleSerie(raw_data["balance"]).last()
         return pd.DataFrame(
             resampled_data,
             columns=self.__class__.resampled_columns
