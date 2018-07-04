@@ -13,8 +13,8 @@ import babao.utils.date as du
 import babao.utils.file as fu
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
-import babao.strategy.strategy as strat
-import babao.strategy.modelManager as modelManager
+import babao.models.rootModel as rootModel
+import babao.models.modelManager as modelManager
 
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
@@ -58,12 +58,12 @@ def _getData():
     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
-def wetRun(args):
+def wetRun(unused_args):
     """Dummy"""
     print("Sorry, this is not implemented yet :/")
 
 
-def dryRun(args):
+def dryRun(unused_args):
     """Real-time bot simulation"""
 
     pool = ThreadPool(
@@ -72,7 +72,7 @@ def dryRun(args):
     )
     while not sig.EXIT:
         fetched_data = pool.map(lambda inp: inp.fetch(), K)
-        for i, unused in enumerate(fetched_data):
+        for i, unused_var in enumerate(fetched_data):
             K[i].write(fetched_data[i])
 
         # TODO:  do not hardcode the lookback
@@ -81,7 +81,7 @@ def dryRun(args):
             modelManager.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
             price = fresh_data.at[timestamp, "close"]
-            strat.analyse(
+            rootModel.analyse(
                 feature_index=-1,  # there should be only one feature
                 price=price,
                 timestamp=timestamp
@@ -90,7 +90,7 @@ def dryRun(args):
     pool.join()
 
 
-def fetch(args):
+def fetch(unused_args):
     """Fetch raw trade data since the beginning of times"""
 
     for f in [conf.DB_FILE]:
@@ -122,7 +122,7 @@ def backtest(args):
 
     # pylint: disable=consider-using-enumerate
     for i in range(len(big_fat_data_index)):
-        strat.analyse(
+        rootModel.analyse(
             feature_index=i,
             price=big_fat_data_prices[i],
             timestamp=big_fat_data_index[i]

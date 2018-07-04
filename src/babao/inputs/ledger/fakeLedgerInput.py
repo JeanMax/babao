@@ -35,7 +35,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def fetch(self):
         pass  # we said fake
 
-    def __logTransaction(
+    def logTransaction(
             self, typ, volume, refid,
             fee=0, product=0, timestamp=None
     ):
@@ -98,14 +98,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
                 "@", int(price)
             )
 
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
             refid=refid,
             product=ledger.asset.value,
             timestamp=timestamp
         )
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
             refid=refid,
@@ -136,14 +136,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
                 "@", int(price)
             )
 
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
             refid=refid,
             product=self.asset.value,
             timestamp=timestamp
         )
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
             refid=refid,
@@ -157,14 +157,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
             refid=refid,
             product=ledger.asset.value,
             timestamp=timestamp
         )
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
             refid=refid,
@@ -177,14 +177,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
             refid=refid,
             product=self.asset.value,
             timestamp=timestamp
         )
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
             refid=refid,

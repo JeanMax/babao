@@ -7,7 +7,7 @@ import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
 import babao.inputs.ledger.ledgerManager as lm
-import babao.strategy.modelHelper as modelHelper
+import babao.models.modelHelper as modelHelper
 from babao.utils.enum import CryptoEnum
 
 MODEL = None
@@ -127,7 +127,7 @@ def _buyOrSell(action, price, index):
             else:
                 reward = -1
         lm.LEDGERS[conf.QUOTE].buy(
-            lm.LEDGERSL[CryptoEnum.XBT],
+            lm.LEDGERS[CryptoEnum.XBT],
             lm.LEDGERS[conf.QUOTE].balance,
             price,
             index

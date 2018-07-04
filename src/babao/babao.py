@@ -27,9 +27,9 @@ import babao.utils.file as fu
 import babao.utils.lock as lock
 # import babao.utils.signal as sig
 import babao.config as conf
-import babao.parser as pars
+import babao.arg as arg
 import babao.inputs.ledger.ledgerManager as lm
-import babao.strategy.modelManager as modelManager
+import babao.models.modelManager as mm
 
 
 def _launchGraph():
@@ -57,7 +57,7 @@ def _kthxbye():
 def _init(args=None):
     """Initialize config and parse argv"""
 
-    args = pars.parseArgv(args)
+    args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
 
@@ -72,8 +72,9 @@ def _init(args=None):
         simulate=args.func.__name__ != "wetRun",
         log_to_file=args.func.__name__ != "train",
     )
+    mm.initTree()
     try:
-        modelManager.loadModels()
+        mm.loadModels()
     except FileNotFoundError:
         log.warning("No model found.")
     if args.graph:

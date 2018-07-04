@@ -13,7 +13,7 @@ import babao.utils.file as fu
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.models.macd as macd  # TODO: this is weird
+import babao.models.tree.macdModel as macd  # TODO: this is weird
 import babao.inputs.ledger.ledgerManager as lm
 import babao.inputs.inputHelper as ih
 from babao.utils.enum import CryptoEnum
@@ -81,8 +81,6 @@ def _updateGraph(unused_counter, lines):
 
 def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
-
-    _getData()
 
     fig = plt.figure()
     axes = {}
@@ -232,6 +230,7 @@ def initGraph(log_lock, file_lock):
     fu.closeStore()
     sig.catchSignal()
     try:
+        _getData()
         _initGraph()
     except:  # pylint: disable=bare-except
         traceback.print_exc()

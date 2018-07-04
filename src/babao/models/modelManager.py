@@ -8,22 +8,50 @@ so you can use these wrappers to call all of them at once.
 import numpy as np
 
 import babao.utils.log as log
-import babao.strategy.modelHelper as modelHelper
-import babao.strategy.models.macd as macd
-# import babao.strategy.models.extrema as extrema
-# import babao.strategy.models.tendency as tendency
-# import babao.strategy.models.qlearn as qlearn
+import babao.inputs.ledger.ledgerManager as lm
+import babao.models.modelHelper as modelHelper
+from babao.inputs.inputBase import ABCInput
+from babao.models.modelBase import ABCModel
+from babao.models.rootModel import RootModel
 
 
 # LABELS = {"buy": -1, "hold": 0, "sell": 1}
-MODELS_LIST = [
-    macd,
-    # extrema,
-    # tendency,
-    # qlearn,
-]  # TODO: config var eventually
+MODELS = None
+INPUTS = None
 
-FEATURES_LEN = 0
+
+# TODO: move that to modelbase.__init__?
+def initTree():
+    """TODO"""
+    global INPUTS
+    global MODELS
+    # TODO: should we init lm here?
+    INPUTS = [
+        i.__class__ for i in
+        list(lm.LEDGERS.values()) + list(lm.TRADES.values())
+    ]
+    MODELS = []
+    to_check = []
+
+    def rec(node):
+        """TODO"""
+        for n in node.dependencies:
+            if issubclass(n, ABCInput):
+                if n not in INPUTS:
+                    INPUTS.append(n)
+            elif issubclass(n, ABCModel) and n not in MODELS:
+                MODELS.append(n)
+                to_check.append(n)
+        while to_check:
+            rec(to_check.pop(0))
+
+    rec(RootModel)
+    tmp_list = []
+    for i in list(lm.LEDGERS.values()) + list(lm.TRADES.values()):
+        INPUTS.pop(0)
+        tmp_list.append(i)
+    INPUTS = tmp_list + [i() for i in INPUTS[::-1]]
+    MODELS = [m() for m in MODELS[::-1]]
 
 
 def plotModels(full_data):
@@ -33,7 +61,7 @@ def plotModels(full_data):
     ´full_data´ is the whole data(frame) used as feature before preparing it
     """
 
-    for model in MODELS_LIST:
+    for model in MODELS:
         modelHelper.plotModel(model, full_data)
 
 
@@ -46,20 +74,20 @@ def prepareModels(full_data, train_mode=False):
     """
 
     len_list = []
-    for model in MODELS_LIST:
+    for model in MODELS:
         model.prepare(full_data, train_mode)
         len_list.append(len(model.FEATURES))
 
     global FEATURES_LEN
     FEATURES_LEN = min(len_list)
-    # for model in MODELS_LIST:
+    # for model in MODELS:
     #     model.FEATURES = model.FEATURES[-FEATURES_LEN:]
 
 
 def trainModels():
     """Train all models and save the awesome result"""
 
-    for model in MODELS_LIST:
+    for model in MODELS:
         try:
             model.load()
         except OSError:
@@ -71,7 +99,7 @@ def trainModels():
 def loadModels():
     """Load all previous amazing models training"""
 
-    for model in MODELS_LIST:
+    for model in MODELS:
         model.load()
 
 
@@ -92,7 +120,7 @@ def predictModels(feature_index):
     """
 
     res = np.array([])
-    for model in MODELS_LIST:
+    for model in MODELS:
         res = np.append(
             res,
             model.predict(  # TODO: looping that is slow as fuck :/

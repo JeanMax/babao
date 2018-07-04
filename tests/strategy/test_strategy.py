@@ -1,3 +1,3 @@
-import babao.strategy.strategy as strat
+import babao.models.rootModel as rootModel
 
 # TODO: nothing interesting to test now

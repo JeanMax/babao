@@ -1,5 +1,6 @@
 """
 TODO
+or is it a manager?
 """
 
 from functools import partial

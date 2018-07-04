@@ -13,7 +13,7 @@ import babao.config as conf
 import babao.utils.indicators as indic
 import babao.inputs.ledger.ledgerManager as lm
 from babao.utils.enum import CryptoEnum
-# import babao.strategy.modelHelper as modelHelper
+# import babao.models.modelHelper as modelHelper
 
 MODEL = {"a": 46, "b": 75, "c": 22}
 FEATURES = None

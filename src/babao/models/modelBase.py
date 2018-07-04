@@ -21,19 +21,24 @@ class ABCModel(ABC):
         # that = self.__class__
         # assert type(that.inputs) == list
         # assert issubclass(that.inputs[0], Input)
+        pass
 
     @abstractmethod
     def train(self, since):
+        """TODO"""
         raise NotImplementedError("TODO")
 
     @abstractmethod
     def predict(self, since):
+        """TODO"""
         raise NotImplementedError("TODO")
 
     @abstractmethod
     def save(self):
+        """TODO"""
         raise NotImplementedError("TODO")
 
     @abstractmethod
     def load(self):
+        """TODO"""
         raise NotImplementedError("TODO")

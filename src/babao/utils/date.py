@@ -50,7 +50,7 @@ def secToNano(sec):
     Convert seconds to nanoseconds
     Just trying to avoid float rounding...
     """
-    if isinstance(sec, float) or isinstance(sec, int):
+    if isinstance(sec, (float, int)):
         return int(sec * 1e6) * 1000
     return (sec * 1e6).astype(int) * 1000
 

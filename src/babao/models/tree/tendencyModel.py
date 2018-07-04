@@ -10,7 +10,7 @@ import numpy as np
 import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.modelHelper as modelHelper
+import babao.models.modelHelper as modelHelper
 
 MODEL = None
 FEATURES = None

@@ -71,8 +71,8 @@ class ABCKrakenInput(ABCInput):
             else:
                 err = res.get("error", [])
                 if err:
-                    for e in err:
-                        log.warning("Exception returned by Kraken API!\n" + e)
+                    for er in err:
+                        log.warning("Exception returned by Kraken API!\n" + er)
                 else:
                     return res["result"]
             fail_counter += 1
