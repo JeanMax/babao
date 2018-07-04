@@ -5,7 +5,7 @@ AUTHOR = JeanMax
 VERSION = 0.1
 
 ROOT_DIR = $(HOME)/.$(NAME).d
-SRC_DIR = src
+SRC_DIR = src/$(NAME)
 DOC_DIR = docs
 DOC_BUILD_DIR = docs/_build
 TEST_DIR = test
@@ -15,7 +15,7 @@ CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
 
 TMP_FILES = build dist temp $(shell find . -name __pycache__) \
-            $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info $(DOC_DIR)
+            $(NAME).egg-info $(SRC_DIR).egg-info $(DOC_DIR) .pyre
 
 EUID = $(shell id -u)
 
@@ -28,6 +28,8 @@ ifndef TRAVIS
 TESTER += $(shell if [ "$(TERM)" != dumb ]; then echo "--pdb"; fi)
 endif
 FLAKE = flake8
+PYRE = pyre --source-directory $(SRC_DIR) $(shell if [ "$(TERM)" = dumb ]; then echo "--noninteractive"; fi) # server looks broken :/ $(shell python -c 'import sys; import os; print(" ".join(["--search-path " + i for i in sys.path if os.path.isdir(i)]))')
+MYPY = mypy --ignore-missing-imports $(SRC_DIR)
 LINTER = pylint --rcfile=setup.cfg $(shell if [ "$(TERM)" = dumb ]; then echo "-fparseable"; fi)
 PIP_INSTALL = pip install $(shell if [ "$(EUID)" != 0 ] && [ "$(READTHEDOCS)$(TRAVIS)$(PYENV_VERSION)" = "" ]; then echo "--user"; fi)
 PIP_UNINSTALL = pip uninstall -y
@@ -84,6 +86,13 @@ reinstall: uninstall
 flake:
 	$(FLAKE)
 
+pyre:
+    # TODO: debug cache, opt stubs import
+	$(PYRE) check 2>/dev/null | grep -v 'Undefined import \[21\]' || true
+
+mypy:
+	$(MYPY)
+
 lint:
 	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_|eggs' | xargs $(LINTER)
 
@@ -94,10 +103,10 @@ coverage:
 	coverage run --source=$(NAME) setup.py test
 	coveralls
 
-check: flake lint test
+check: flake lint pyre mypy test
 
 $(DOC_BUILD_DIR):
-	sphinx-apidoc --ext-coverage -H $(NAME) -A $(AUTHOR) -V $(VERSION) -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
+	sphinx-apidoc --ext-coverage -H $(NAME) -A $(AUTHOR) -V $(VERSION) -F -o $(DOC_DIR) $(SRC_DIR)
 
 html: $(DOC_BUILD_DIR)
 	sphinx-build -M html $(DOC_DIR) $(DOC_BUILD_DIR)
@@ -120,5 +129,5 @@ todo:
 
 .PHONY: conf install install_test install_graph \
 		clean fclean uninstall reinstall \
-		flake lint test check commit coverage \
+		flake pyre mypy lint test check commit coverage \
 		doc html man todo

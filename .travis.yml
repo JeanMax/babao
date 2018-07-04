@@ -53,8 +53,11 @@ script:
   - babao
   - make flake
   - make lint
+  - make pyre
+  - make mypy
   - make test
   - make coverage
+  - make todo
 
 after_script:
   - make develop
@@ -62,4 +65,3 @@ after_script:
   - make reinstall
   - make doc
   - make uninstall
-  - make todo

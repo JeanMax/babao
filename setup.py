@@ -86,7 +86,9 @@ else:
                 'pylint',
                 'flake8',
                 'coveralls',
-                'sphinx'
+                'sphinx',
+                'pyre',
+                'mypy'
             ],
         },
         setup_requires=['pytest-runner'],
