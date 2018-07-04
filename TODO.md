@@ -8,3 +8,5 @@
 * handle log files
 * ideally the test/train data should look like the real-time data (new slice every few seconds)
 * write more tests!
+* pip package
+* refactor graph: one page per crypto, one page for all at once, one menu page

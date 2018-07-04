@@ -87,7 +87,7 @@ else:
                 'flake8',
                 'coveralls',
                 'sphinx',
-                'pyre',
+                'pyre-check',
                 'mypy'
             ],
         },
