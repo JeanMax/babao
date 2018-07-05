@@ -12,11 +12,13 @@ Anyway, I'll leave an empty column "product", which reference another ledger;
 this could be used for later indexing?
 """
 
+from typing import TYPE_CHECKING, Union
 from abc import abstractmethod
 import pandas as pd
 
 import babao.inputs.inputBase as ib
-import babao.inputs.inputManager as im
+if TYPE_CHECKING:
+    from babao.utils.enum import CryptoEnum, QuoteEnum  # NOQA: F401
 
 
 class ABCLedgerInput(ib.ABCInput):
@@ -31,7 +33,7 @@ class ABCLedgerInput(ib.ABCInput):
 
     @property
     @abstractmethod
-    def asset(self):
+    def asset(self) -> Union[CryptoEnum, QuoteEnum]:
         """TODO"""
         pass
 
@@ -47,7 +49,7 @@ class ABCLedgerInput(ib.ABCInput):
             columns=self.__class__.resampled_columns
         )
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """TODO"""
         resampled_data["balance"].ffill(inplace=True)
         resampled_data["balance"].fillna(0, inplace=True)

@@ -10,7 +10,7 @@ def test_resampleDate():
     raw_data = kraken.getRawTrades("1380563220")[0]
     time_interval = str(conf.TIME_INTERVAL) + "Min"
     resampled_data = resample._doResample(raw_data, time_interval)
-    resampled_data = resample._fillMissing(resampled_data)
+    resampled_data = resample.fillMissing(resampled_data)
 
     assert not resampled_data["open"].empty
     assert not resampled_data["high"].empty

@@ -32,7 +32,7 @@ def readInputs(input_list, since=None, till=None):
         partial_restorer = partial(_restorer, inp.__class__.__name__)
         partial_renamer = partial(_renamer, inp.__class__.__name__)
         inp_col = [partial_renamer(col) for col in inp.resampled_columns]
-        df[inp_col] = inp._fillMissing(
+        df[inp_col] = inp.fillMissing(
             df.loc[:, inp_col].rename(partial_restorer, axis="columns")
         )
 

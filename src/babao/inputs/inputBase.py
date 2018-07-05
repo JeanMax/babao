@@ -2,6 +2,7 @@
 TODO
 """
 
+from typing import List
 from abc import ABC, abstractmethod
 import pandas as pd
 
@@ -45,20 +46,20 @@ class ABCInput(ABC):
 
     And eventually: (if you want self.resample to works)
     * _resample : self -> DataFrame -> DataFrame
-    * _fillMissing : self -> DataFrame -> DataFrame
+    * fillMissing : self -> DataFrame -> DataFrame
 
     (cf. specific method doc-string in this class)
     """
 
     @property
     @abstractmethod
-    def raw_columns(self):
+    def raw_columns(self) -> List[str]:
         """TODO"""
         pass
 
     @property
     @abstractmethod
-    def resampled_columns(self):
+    def resampled_columns(self) -> List[str]:
         """TODO"""
         pass
 
@@ -137,13 +138,13 @@ class ABCInput(ABC):
 
         add this to tests:
         assert list(raw_data.columns) == self.__class__.resampled_columns
-        assert isimplemented(_resample, _fillMissing)
+        assert isimplemented(_resample, fillMissing)
         """
         if raw_data.empty:
             return pd.DataFrame(columns=self.resampled_columns)
         du.to_datetime(raw_data)
         resampled_data = self._resample(raw_data)
-        resampled_data = self._fillMissing(resampled_data)
+        resampled_data = self.fillMissing(resampled_data)
         du.to_timestamp(raw_data)
         du.to_timestamp(resampled_data)
         return resampled_data
@@ -172,11 +173,11 @@ class ABCInput(ABC):
             % self.__class__.__name__
         )
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """
         Fill missing values (np.nan/np.inf) in ´resampled_data´
         """
         raise NotImplementedError(
-            "Your Input class '%s' should implement a '_fillMissing' method :/"
+            "Your Input class '%s' should implement a 'fillMissing' method :/"
             % self.__class__.__name__
         )

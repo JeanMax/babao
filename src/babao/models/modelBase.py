@@ -1,5 +1,6 @@
 """TODO"""
 
+from typing import List, Union  # NOQA: F401
 from abc import ABC, abstractmethod
 
 import babao.utils.log as log
@@ -26,13 +27,13 @@ class ABCModel(ABC):
 
     @property
     @abstractmethod
-    def _dependencies(self):
+    def dependencies(self) -> List[Union['ABCModel', ABCInput]]:
         """TODO"""
         pass
 
     @property
     @abstractmethod
-    def _needTraining(self):
+    def needTraining(self) -> bool:
         """TODO"""
         pass
 
@@ -92,15 +93,13 @@ class ABCModel(ABC):
         """TODO"""
         raise NotImplementedError("TODO")
 
-    def plot(self, since):
+    def getPlotData(self, since):
         """TODO"""
-        import matplotlib.pyplot as plt  # lazy load...
-        # TODO: give names to figures, it's kinda annoying right now
-        plot_data = self._getPlotData()
-        plot_data.plot()
-        plt.show(block=False)
+        try:
+            return self._getPlotData(since)
+        except NotImplementedError:
+            return self.predict(since)
 
-    @abstractmethod
     def _getPlotData(self, since):
         """TODO"""
         raise NotImplementedError("TODO")

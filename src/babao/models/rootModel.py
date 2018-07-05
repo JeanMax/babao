@@ -5,9 +5,9 @@ Buy/Sell strategy
 This whole shit is temporary, don't worry
 """
 
-import babao.utils.log as log
-import babao.inputs.ledger.ledgerManager as lm
-from babao.utils.enum import CryptoEnum
+# import babao.utils.log as log
+# import babao.inputs.ledger.ledgerManager as lm
+# from babao.utils.enum import CryptoEnum
 from babao.models.modelBase import ABCModel
 # import babao.models.models.extrema as extrema
 # import babao.models.models.tendency as tendency
@@ -18,12 +18,14 @@ import babao.models.tree.macdModel as macd
 class RootModel(ABCModel):
     """TODO"""
 
+    dependencies = [
+        macd
+    ]
+    needTraining = False
+
     def __init__(self):
         """TODO"""
         super().__init__()
-        self.dependencies = [
-            macd
-        ]
 
     def analyse(feature_index, price, timestamp):
         """

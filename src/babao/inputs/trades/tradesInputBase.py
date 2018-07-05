@@ -6,7 +6,6 @@ from abc import abstractmethod
 import numpy as np
 
 import babao.inputs.inputBase as ib
-import babao.inputs.inputManager as im
 
 
 class ABCTradesInput(ib.ABCInput):
@@ -52,7 +51,7 @@ class ABCTradesInput(ib.ABCInput):
 
         return resampled_data
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """Fill missing values in ´resampled_data´"""
         resampled_data["volume"].fillna(0, inplace=True)
         resampled_data["vwap"].replace(np.inf, np.nan, inplace=True)
