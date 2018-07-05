@@ -10,7 +10,7 @@ import pandas as pd
 import babao.utils.date as du
 from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
-from babao.inputs.krakenBase import ABCKrakenInput
+from babao.inputs.krakenInputBase import ABCKrakenInput
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):

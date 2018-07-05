@@ -16,36 +16,6 @@ import babao.inputs.ledger.ledgerManager as lm
 import babao.models.rootModel as rootModel
 import babao.models.modelManager as modelManager
 
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXLTCZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXREPZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXLMZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXMRZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXRPZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXZECZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZCADInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZGBPInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZJPYInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
-
-K = [
-    KrakenTradesXXBTZEURInput(),
-    KrakenTradesXETCZEURInput(),
-    KrakenTradesXETHZEURInput(),
-    KrakenTradesXLTCZEURInput(),
-    KrakenTradesXREPZEURInput(),
-    KrakenTradesXXLMZEURInput(),
-    KrakenTradesXXMRZEURInput(),
-    KrakenTradesXXRPZEURInput(),
-    KrakenTradesXZECZEURInput(),
-    KrakenTradesXXBTZCADInput(),
-    KrakenTradesXXBTZGBPInput(),
-    KrakenTradesXXBTZJPYInput(),
-    KrakenTradesXXBTZUSDInput(),
-]
-
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
 NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?

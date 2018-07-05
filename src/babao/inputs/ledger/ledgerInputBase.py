@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING, Union
 from abc import abstractmethod
 import pandas as pd
 
-import babao.inputs.inputBase as ib
+from babao.inputs.inputBase import ABCInput, resampleSerie
 if TYPE_CHECKING:
     from babao.utils.enum import CryptoEnum, QuoteEnum  # NOQA: F401
 
 
-class ABCLedgerInput(ib.ABCInput):
+class ABCLedgerInput(ABCInput):
     """TODO"""
 
     raw_columns = [
@@ -38,12 +38,12 @@ class ABCLedgerInput(ib.ABCInput):
         pass
 
     def __init__(self):
-        super().__init__()
+        ABCInput.__init__(self)
         self.verbose = True
 
     def _resample(self, raw_data):
         """TODO"""
-        resampled_data = ib.resampleSerie(raw_data["balance"]).last()
+        resampled_data = resampleSerie(raw_data["balance"]).last()
         return pd.DataFrame(
             resampled_data,
             columns=self.__class__.resampled_columns

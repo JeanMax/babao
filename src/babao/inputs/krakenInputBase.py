@@ -36,7 +36,7 @@ class ABCKrakenInput(ABCInput):
     """
 
     def __init__(self):
-        super().__init__()
+        ABCInput.__init__(self)
         self.__tick = None
         if API is None:
             _initAPI()

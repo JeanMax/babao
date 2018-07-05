@@ -23,7 +23,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         pass
 
     def __init__(self, log_to_file=True):
-        super().__init__()
+        ABCLedgerInput.__init__(self)
         self.log_to_file = log_to_file
         if self.last_row is not None:
             self.balance = self.last_row["balance"]

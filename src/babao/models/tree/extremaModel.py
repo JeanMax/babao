@@ -2,6 +2,8 @@
 The idea of that model is to find local extrema,
 then classify them as minimum/nop/maximum (-1/0/1)
 using a knn classifier (sklearn)
+
+TODO
 """
 
 import pandas as pd
@@ -16,138 +18,100 @@ from sklearn import neighbors
 # from sklearn.externals import joblib
 import joblib  # just use pickle instead?
 
-import babao.models.modelHelper as modelHelper
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.indicators as indic
+from babao.utils.scale import Scaler
+from babao.models.modelBase import ABCModel
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 
-MODEL = None
-FEATURES = None
-TARGETS = None
-
-REQUIRED_COLUMNS = [
-    "vwap", "volume",
-]
-INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
-    "SMA_volume_26", "SMA_volume_77",
-]
+LOOKBACK = 47  # TODO: nice one
 
 
-def _prepareFeatures(full_data):
+def _getTradeData(krakenTradesInput, since):
+    """TODO"""
+    trade_data = krakenTradesInput.read(since=since)
+    trade_data = krakenTradesInput.resample(trade_data)
+    return trade_data[["vwap", "volume"]]
+
+
+def _prepareFeatures(trade_data):
+    """Prepare features for train/predict"""
+    indic_data = indic.get(trade_data, [
+        "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
+        "SMA_volume_26", "SMA_volume_77",
+    ]).dropna()
+    return Scaler().scale_fit(indic_data)  # TODO: save scaler
+
+
+def _prepareTargets(trade_data, lookback):
     """
-    Prepare features for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
+    Prepare targets for train/predict
+    Return a serie with values -1 (minimum), 0 (nop), or 1 (maximum)
     """
-
-    global FEATURES
-    FEATURES = full_data.copy()
-
-    # TODO: same pattern in tendency.py
-    for col in FEATURES.columns:
-        if col not in REQUIRED_COLUMNS:
-            del FEATURES[col]
-
-    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = modelHelper.scale_fit(FEATURES).values
-
-
-def _prepareTargets(full_data, lookback):
-    """
-    Prepare targets for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
-    """
-
-    def _findExtrema(lookback, prices):
-        """Return a serie with values -1 (minimum), 0 (nop), or 1 (maximum)"""
-
-        lookback = int(lookback)
-        rev_prices = prices[::-1]
-
-        return (
-            (  # min forward & backward
-                (prices.rolling(lookback).min() == prices)
-                & ((rev_prices.rolling(lookback).min() == rev_prices)[::-1])
-            ).astype(int).replace(1, -1)  # minima set to -1
-        ) | (  # max forward & backward
-            (prices.rolling(lookback).max() == prices)
-            & ((rev_prices.rolling(lookback).max() == rev_prices)[::-1])
-        ).astype(int).values  # maxima set to +1
-
-    global TARGETS
-    TARGETS = _findExtrema(lookback, full_data["vwap"])
-    TARGETS = TARGETS[-len(FEATURES):]
+    prices = trade_data["vwap"]
+    rev_prices = prices[::-1]
+    return (
+        (  # min forward & backward
+            (prices.rolling(lookback).min() == prices)
+            & ((rev_prices.rolling(lookback).min() == rev_prices)[::-1])
+        ).astype(int).replace(1, -1)  # minima set to -1
+    ) | (  # max forward & backward
+        (prices.rolling(lookback).max() == prices)
+        & ((rev_prices.rolling(lookback).max() == rev_prices)[::-1])
+    ).astype(int).values  # maxima set to +1
 
 
-def prepare(full_data, train_mode=False):
-    """
-    Prepare features and targets for training (copy)
+class ExtremaModel(ABCModel):
+    """TODO"""
 
-    ´full_data´: cf. ´prepareModels´
-    """
+    dependencies = [KrakenTradesXXBTZEURInput]
+    needTraining = True
 
-    _prepareFeatures(full_data)
-    if train_mode:
-        lookback = 47  # TODO: nice one
-        _prepareTargets(full_data, lookback)
+    def predict(self, since):
+        """TODO"""
+        trade_data = _getTradeData(self.dependencies[0], since)
+        features = _prepareFeatures(trade_data)
+        pred_df = pd.DataFrame(
+            self.knn.predict_proba(features),
+            columns=["buy", "hold", "sell"]
+        )
+        # return (pred_df["sell"] - pred_df["buy"]).values
+        # TODO: cast to ActionEnum or something
+        return pred_df
 
-        global FEATURES
-        global TARGETS
-        FEATURES = FEATURES[lookback:-lookback]
-        TARGETS = TARGETS[lookback:-lookback]
+    def _train(self, since):
+        """TODO"""
+        log.debug("Train extrema")
+        trade_data = _getTradeData(self.dependencies[0], since)
+        features = _prepareFeatures(trade_data)
+        targets = _prepareTargets(trade_data, LOOKBACK)
+        targets = targets[-len(features):]  # compensate features.dropna()
+        features = features[LOOKBACK:-LOOKBACK]
+        targets = targets[LOOKBACK:-LOOKBACK]
+        return self.knn.fit(features, targets)
 
+    def _getPlotData(self, since):
+        """TODO"""
+        trade_data = _getTradeData(self.dependencies[0], since)
+        features = _prepareFeatures(trade_data)
+        targets = _prepareTargets(trade_data, LOOKBACK)
+        targets = targets[-len(features):]  # compensate features.dropna()
+        pred_df = self.predict(since)  # TODO: don't double read/prepare
+        plot_data = features
+        plot_data["target"] = targets
+        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
+        return plot_data
 
-def train(k=3):
-    """Fit the ´MODEL´"""
+    def _save(self):
+        """TODO"""
+        joblib.dump(self.knn, conf.MODEL_EXTREMA_FILE)  # TODO: file
 
-    log.debug("Train extrema")
-
-    global MODEL
-    if MODEL is None:
-        MODEL = neighbors.KNeighborsClassifier(k, weights="distance")  # TODO: k
-    MODEL.fit(FEATURES, TARGETS)
-
-
-def save():
-    """Save the ´MODEL´ to ´conf.MODEL_EXTREMA_FILE´"""
-
-    joblib.dump(MODEL, conf.MODEL_EXTREMA_FILE)
-
-
-def load():
-    """Load the ´MODEL´ saved in ´conf.MODEL_EXTREMA_FILE´"""
-
-    global MODEL
-    if MODEL is None:
-        MODEL = joblib.load(conf.MODEL_EXTREMA_FILE)
-
-
-def _mergeCategories(arr):
-    """TODO: we could use a generic function for all models"""
-
-    df = pd.DataFrame(arr, columns=["buy", "hold", "sell"])
-    return (df["sell"] - df["buy"]).values
-
-
-def predict(X=None):
-    """
-    Call predict on the current ´MODEL´
-
-    Format the result as values between -1 (buy) and 1 (sell))
-    """
-
-    if X is None:
-        X = FEATURES
-
-    return _mergeCategories(MODEL.predict_proba(X))
-
-
-def getMergedTargets():
-    """Return ´TARGETS´ in the same format than predict()"""
-
-    if TARGETS is None or len(TARGETS) != len(FEATURES):
-        return None
-
-    return TARGETS  # this is already merged
+    # TODO: move to init?
+    def _load(self):
+        """TODO"""
+        try:
+            self.knn = joblib.load(conf.MODEL_EXTREMA_FILE)
+        except OSError:
+            # TODO: k
+            self.knn = neighbors.KNeighborsClassifier(k=3, weights="distance")
