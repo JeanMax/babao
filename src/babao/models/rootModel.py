@@ -34,7 +34,7 @@ class RootModel(ABCModel):
         )
         return (
             (pred_df < -MIN_PROBA).replace(True, ActionEnum.SELL)
-            + (pred_df > MIN_PROBA).replace(True, ActionEnum.BUY)
+            | (pred_df > MIN_PROBA).replace(True, ActionEnum.BUY)
         ).replace(False, ActionEnum.HODL.value)
 
     def getPlotData(self, since):

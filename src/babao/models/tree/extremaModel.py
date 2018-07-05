@@ -87,7 +87,7 @@ class ExtremaModel(ABCModel):
         targets = targets[-len(features):]  # compensate features.dropna()
         features = features[LOOKBACK:-LOOKBACK]
         targets = targets[LOOKBACK:-LOOKBACK]
-        return self.knn.fit(features, targets)
+        return self.knn.fit(features, targets)  # TODO: return scor
 
     def getPlotData(self, since):
         """TODO"""
@@ -112,4 +112,7 @@ class ExtremaModel(ABCModel):
             self.knn = joblib.load(conf.MODEL_EXTREMA_FILE)
         except OSError:
             # TODO: k
-            self.knn = neighbors.KNeighborsClassifier(k=3, weights="distance")
+            self.knn = neighbors.KNeighborsClassifier(
+                n_neighbors=3,
+                weights="distance"
+            )

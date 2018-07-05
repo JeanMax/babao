@@ -12,14 +12,13 @@ import babao.utils.log as log
 import babao.utils.file as fu
 import babao.models.modelBase as mb
 import babao.inputs.ledger.ledgerManager as lm
-from babao.utils.enum import CryptoEnum
+from babao.utils.enum import CryptoEnum, ActionEnum
 
 POOL = None
 
 
 def fetchDeps():
     """TODO: move?"""
-
     global POOL
     if POOL is None:
         POOL = ThreadPool(
@@ -38,7 +37,6 @@ def plotModels(since):
     Plot all models
     TODO
     """
-
     mb.MODELS[0].getPlotData(since).plot()
 
 
@@ -47,7 +45,6 @@ def trainModels(since):
     Train all models and save the awesome result
     TODO
     """
-
     for model in mb.MODELS:
         model.train(since)
 
@@ -56,7 +53,9 @@ def predictModelsMaybeTrade(since):
     """
     TODO
     """
+    # TODO: break if inputs are out of sync
     rootModel = mb.MODELS[0]
-    action_enum = rootModel.predict(since)
+    pred_df = rootModel.predict(since)
+    action_enum = ActionEnum(pred_df.iat[-1, 0])
     # TODO: do not hardcode crypto_enum
     return lm.buyOrSell(action_enum, CryptoEnum.XBT)

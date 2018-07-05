@@ -11,3 +11,4 @@
 * pip package
 * refactor graph: one page per crypto, one page for all at once, one menu page
 * add type hints
+* cache db data (~1 week in dry-run mode, 1 read needed, then fetch to cache)

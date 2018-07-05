@@ -55,10 +55,9 @@ class ABCModel(ABC):
             """TODO"""
             if issubclass(cls, ABCInput):
                 node_list = INPUTS
-            elif issubclass(cls, ABCModel):
+            # elif issubclass(cls, ABCModel):
+            else:  # we are all grown up here
                 node_list = MODELS
-            else:
-                raise TypeError("Dependency class is not ABCInput/ABCModel")
             try:
                 return node_list[[n.__class__ for n in node_list].index(cls)]
             except ValueError:
@@ -73,9 +72,9 @@ class ABCModel(ABC):
         global INPUTS
         if MODELS is None:
             # TODO: should we init lm here?
-            MODELS = list(self)
+            MODELS = [self]
             INPUTS = list(lm.LEDGERS.values()) + list(lm.TRADES.values())
-        for index, cls in self.dependencies:
+        for index, cls in enumerate(self.dependencies):
             self.dependencies[index] = getNodeFromList(cls)
 
     @abstractmethod
@@ -85,8 +84,13 @@ class ABCModel(ABC):
 
     def train(self, since):
         """TODO"""
-        if self.needTraining and self._train(since):
-            self._save()
+        if self.needTraining:
+            ret = self._train(since)
+            if ret:
+                self._save()
+                return ret
+            return ret
+        return False
 
     @abstractmethod
     def _train(self, since):

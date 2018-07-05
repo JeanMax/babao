@@ -12,13 +12,12 @@ Anyway, I'll leave an empty column "product", which reference another ledger;
 this could be used for later indexing?
 """
 
-from typing import TYPE_CHECKING, Union
+from typing import Union
 from abc import abstractmethod
 import pandas as pd
 
 from babao.inputs.inputBase import ABCInput, resampleSerie
-if TYPE_CHECKING:
-    from babao.utils.enum import CryptoEnum, QuoteEnum  # NOQA: F401
+from babao.utils.enum import CryptoEnum, QuoteEnum
 
 
 class ABCLedgerInput(ABCInput):
