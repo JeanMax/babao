@@ -2,19 +2,15 @@
 
 import time
 import os
-from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
-import pandas as pd
-
 
 import babao.utils.signal as sig
 import babao.utils.log as log
 import babao.utils.date as du
-import babao.utils.file as fu
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
+import babao.models.modelManager as mm
 import babao.models.rootModel as rootModel
-import babao.models.modelManager as modelManager
 
 TRAIN_SET_LEN = 850  # TODO: config-var?
 TEST_SET_LEN = 850  # TODO: config-var?
@@ -36,19 +32,13 @@ def wetRun(unused_args):
 def dryRun(unused_args):
     """Real-time bot simulation"""
 
-    pool = ThreadPool(
-        initializer=lambda x, y: [log.setLock(x), fu.setLock(y)],
-        initargs=(log.LOCK, fu.LOCK)
-    )
     while not sig.EXIT:
-        fetched_data = pool.map(lambda inp: inp.fetch(), K)
-        for i, unused_var in enumerate(fetched_data):
-            K[i].write(fetched_data[i])
+        mm.fetchDeps()
 
         # TODO:  do not hardcode the lookback
         fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
         if not fresh_data.empty:
-            modelManager.prepareModels(fresh_data)
+            mm.prepareModels(fresh_data)
             timestamp = fresh_data.index[-1]
             price = fresh_data.at[timestamp, "close"]
             rootModel.analyse(
@@ -56,8 +46,6 @@ def dryRun(unused_args):
                 price=price,
                 timestamp=timestamp
             )
-    pool.close()
-    pool.join()
 
 
 def fetch(unused_args):
@@ -69,10 +57,12 @@ def fetch(unused_args):
             log.warning("Database file already exists (" + f + ").")
 
     while not sig.EXIT:
-        K[0].write(K[0].fetch())
-        log.debug(
-            "Fetched data till " + pd.to_datetime(K[0].last_row.name, unit="ns")
-        )
+        mm.fetchDeps()
+        # log.debug(
+        #     "Fetched data till "
+        #     + pd.to_datetime(K[0].last_row.name, unit="ns")
+        # )
+        # TODO
 
 
 def backtest(args):
@@ -83,7 +73,7 @@ def backtest(args):
     """
 
     big_fat_data = _getData()[1]
-    modelManager.prepareModels(big_fat_data)
+    mm.prepareModels(big_fat_data)
     big_fat_data_index = big_fat_data.index.values
     big_fat_data_prices = big_fat_data["close"].values
     del big_fat_data
@@ -135,15 +125,15 @@ def train(args):
             "- set length:", len(splits[i])
         )
 
-        modelManager.prepareModels(splits[i], train_mode=True)
-        modelManager.trainModels()
+        mm.prepareModels(splits[i], train_mode=True)
+        mm.trainModels()
 
         if args.graph:
-            modelManager.plotModels(splits[i])
+            mm.plotModels(splits[i])
 
     if args.graph:
-        modelManager.prepareModels(test_data, train_mode=False)
-        modelManager.plotModels(test_data)
+        mm.prepareModels(test_data, train_mode=False)
+        mm.plotModels(test_data)
 
         import matplotlib.pyplot as plt
         plt.show()
