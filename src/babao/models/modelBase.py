@@ -93,14 +93,8 @@ class ABCModel(ABC):
         """TODO"""
         raise NotImplementedError("TODO")
 
+    @abstractmethod
     def getPlotData(self, since):
-        """TODO"""
-        try:
-            return self._getPlotData(since)
-        except NotImplementedError:
-            return self.predict(since)
-
-    def _getPlotData(self, since):
         """TODO"""
         raise NotImplementedError("TODO")
 

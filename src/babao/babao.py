@@ -29,7 +29,7 @@ import babao.utils.lock as lock
 import babao.config as conf
 import babao.arg as arg
 import babao.inputs.ledger.ledgerManager as lm
-import babao.models.modelManager as mm
+from babao.models.rootModel import RootModel
 
 
 def _launchGraph():
@@ -72,11 +72,7 @@ def _init(args=None):
         simulate=args.func.__name__ != "wetRun",
         log_to_file=args.func.__name__ != "train",
     )
-    mm.initTree()
-    try:
-        mm.loadModels()
-    except FileNotFoundError:
-        log.warning("No model found.")
+    RootModel()
     if args.graph:
         _launchGraph()
     # sig.catchSignal()

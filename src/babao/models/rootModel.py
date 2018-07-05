@@ -5,14 +5,16 @@ Buy/Sell strategy
 This whole shit is temporary, don't worry
 """
 
-# import babao.utils.log as log
-# import babao.inputs.ledger.ledgerManager as lm
-# from babao.utils.enum import CryptoEnum
+import pandas as pd
+
+from babao.utils.enum import ActionEnum
 from babao.models.modelBase import ABCModel
 from babao.models.tree.extremaModel import ExtremaModel
 # import babao.models.models.tendency as tendency
 # import babao.models.models.qlearn as qlearn
 # import babao.models.tree.macdModel as macd
+
+MIN_PROBA = 1e-2
 
 
 class RootModel(ABCModel):
@@ -23,29 +25,21 @@ class RootModel(ABCModel):
     ]
     needTraining = False
 
-    def __init__(self):
-        """TODO"""
-        ABCModel.__init__(self)
-
     def predict(self, since):
         """TODO"""
-        # extrema = self.dependencies[0]
-        # pred_df = extrema.predict(since)
-        raise NotImplementedError("TODO")
-        # TODO: ugly workaround
-        # avoid problems when the features are too short (lookback)
-        # if (feature_index >= modelManager.FEATURES_LEN
-        #         or modelManager.FEATURES_LEN <= 0):
-        #     log.warning("models: feature_index out of range")
-        #     return
+        extrema = self.dependencies[0]
+        pred_df = extrema.predict(since)
+        pred_df = pd.DataFrame(
+            (pred_df["buy"] - pred_df["sell"]).values, columns=["action"]
+        )
+        return (
+            (pred_df < -MIN_PROBA).replace(True, ActionEnum.SELL)
+            + (pred_df > MIN_PROBA).replace(True, ActionEnum.BUY)
+        ).replace(False, ActionEnum.HODL.value)
 
-        # TODO: 2d array if predict_proba
-        # target = target_arr[0]  # TODO: merges model (decistion tree?)
-
-        # if log.VERBOSE >= 4:
-        #     log.debug("target:", target)
-
-        # lm.buyOrSell(target, CryptoEnum.XBT)
+    def getPlotData(self, since):
+        """TODO"""
+        return self.dependencies[0].getPlotData(since)
 
     def _train(self, since):
         """TODO"""

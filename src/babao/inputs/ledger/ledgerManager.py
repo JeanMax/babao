@@ -8,10 +8,10 @@ import re
 import babao.config as conf
 import babao.utils.log as log
 import babao.utils.date as du
+from babao.utils.enum import ActionEnum
 import babao.inputs.trades.krakenTradesInput as tra
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
-MIN_PROBA = 1e-2
 
 LEDGERS = None
 TRADES = None  # TODO: all prices are going to be desync in simulation
@@ -22,6 +22,7 @@ def initLedgers(simulate=True, log_to_file=True):
     global LEDGERS
     global TRADES
 
+    # TODO: put args.func in a conf global
     if simulate:
         import babao.inputs.ledger.fakeLedgerInput as led
     else:
@@ -150,24 +151,19 @@ def sell(crypto_enum, volume):
     return True
 
 
-def buyOrSell(target, crypto_enum):
+def buyOrSell(action_enum, crypto_enum, volume=None):
     """
     Decide wether to buy or sell based on the given ´target´
 
     It will consider the current ´ledger.BALANCE´, and evenutally update it.
     TODO
     """
-
-    # trade_enum = enu.floatToTradeEnum(target)
-    # if trade_enum == enu.TradeEnum.HODL:
-    #     return True
-    # action_enum = enu.tradeEnumToActionEnum(trade_enum)
-    # crypto_enum = enu.tradeEnumToCryptoEnum(trade_enum)
-
-    # TODO: change that ugly target
-    # LABELS = {"buy": -1, "hold": 0, "sell": 1}
-    if target > MIN_PROBA:  # SELL
-        return sell(crypto_enum, LEDGERS[crypto_enum].balance)
-    elif target < -MIN_PROBA:  # BUY
-        return buy(crypto_enum, LEDGERS[conf.QUOTE].balance)
-    return True
+    if action_enum == ActionEnum.BUY:
+        if volume is None:
+            volume = LEDGERS[conf.QUOTE].balance
+        return buy(crypto_enum, volume)
+    elif action_enum == ActionEnum.SELL:
+        if volume is None:
+            volume = LEDGERS[crypto_enum].balance
+        return sell(crypto_enum, volume)
+    return False

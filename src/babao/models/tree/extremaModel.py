@@ -76,8 +76,6 @@ class ExtremaModel(ABCModel):
             self.knn.predict_proba(features),
             columns=["buy", "hold", "sell"]
         )
-        # return (pred_df["sell"] - pred_df["buy"]).values
-        # TODO: cast to ActionEnum or something
         return pred_df
 
     def _train(self, since):
@@ -91,7 +89,7 @@ class ExtremaModel(ABCModel):
         targets = targets[LOOKBACK:-LOOKBACK]
         return self.knn.fit(features, targets)
 
-    def _getPlotData(self, since):
+    def getPlotData(self, since):
         """TODO"""
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data)

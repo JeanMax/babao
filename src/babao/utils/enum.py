@@ -37,41 +37,41 @@ class CryptoEnum(Enum):
     ZEC = -9
 
 
-class TradeEnum(Enum):
-    """TODO"""
-    HODL = 0
+# class TradeEnum(Enum):
+#     """TODO"""
+#     HODL = 0
 
-    BUY_ETC = 1
-    BUY_ETH = 2
-    BUY_LTC = 3
-    BUY_REP = 4
-    BUY_XBT = 5
-    BUY_XLM = 6
-    BUY_XMR = 7
-    BUY_XRP = 8
-    BUY_ZEC = 9
+#     BUY_ETC = 1
+#     BUY_ETH = 2
+#     BUY_LTC = 3
+#     BUY_REP = 4
+#     BUY_XBT = 5
+#     BUY_XLM = 6
+#     BUY_XMR = 7
+#     BUY_XRP = 8
+#     BUY_ZEC = 9
 
-    SELL_ETC = -1
-    SELL_ETH = -2
-    SELL_LTC = -3
-    SELL_REP = -4
-    SELL_XBT = -5
-    SELL_XLM = -6
-    SELL_XMR = -7
-    SELL_XRP = -8
-    SELL_ZEC = -9
-
-
-def floatToTradeEnum(f):
-    """TODO"""
-    return TradeEnum(round(f))
+#     SELL_ETC = -1
+#     SELL_ETH = -2
+#     SELL_LTC = -3
+#     SELL_REP = -4
+#     SELL_XBT = -5
+#     SELL_XLM = -6
+#     SELL_XMR = -7
+#     SELL_XRP = -8
+#     SELL_ZEC = -9
 
 
-def tradeEnumToActionEnum(trade_enum):
-    """TODO"""
-    return ActionEnum(trade_enum.value / abs(trade_enum.value))
+# def floatToTradeEnum(f):
+#     """TODO"""
+#     return TradeEnum(round(f))
 
 
-def tradeEnumToCryptoEnum(trade_enum):
-    """TODO"""
-    return CryptoEnum(abs(trade_enum.value) * -1)
+# def tradeEnumToActionEnum(trade_enum):
+#     """TODO"""
+#     return ActionEnum(trade_enum.value / abs(trade_enum.value))
+
+
+# def tradeEnumToCryptoEnum(trade_enum):
+#     """TODO"""
+#     return CryptoEnum(abs(trade_enum.value) * -1)
