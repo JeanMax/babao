@@ -3,8 +3,9 @@ TODO
 """
 
 from abc import abstractmethod
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 import babao.utils.date as du
 from babao.inputs.krakenInputBase import ABCKrakenInput

@@ -6,10 +6,10 @@ Buy/Sell strategy
 import re
 
 import babao.config as conf
-import babao.utils.log as log
-import babao.utils.date as du
-from babao.utils.enum import ActionEnum
 import babao.inputs.trades.krakenTradesInput as tra
+import babao.utils.date as du
+import babao.utils.log as log
+from babao.utils.enum import ActionEnum
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 

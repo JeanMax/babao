@@ -1,23 +1,24 @@
 """Data visualisation inside"""
 
-import sys
 import os
+import sys
 import traceback
-import matplotlib.pyplot as plt
+
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor
 
-import babao.utils.signal as sig
+import babao.config as conf
+import babao.inputs.inputManager as im
+import babao.inputs.ledger.ledgerManager as lm
+import babao.models.tree.macdModel as macd  # TODO: this is weird
 import babao.utils.date as du
 import babao.utils.file as fu
-import babao.utils.log as log
-import babao.config as conf
 import babao.utils.indicators as indic
-import babao.models.tree.macdModel as macd  # TODO: this is weird
-import babao.inputs.ledger.ledgerManager as lm
-import babao.inputs.inputManager as im
-from babao.utils.enum import CryptoEnum
+import babao.utils.log as log
+import babao.utils.signal as sig
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.utils.enum import CryptoEnum
 
 K = None
 DATA = None
@@ -232,7 +233,7 @@ def initGraph(log_lock, file_lock):
     try:
         _getData()
         _initGraph()
-    except:  # pylint: disable=bare-except
+    except Exception:  # pylint: disable=broad-except
         traceback.print_exc()
         log.error("Something's bjorked in your graph :/")
     sys.exit(0)  # we exit explicitly in the subprocess, to avoid double clean

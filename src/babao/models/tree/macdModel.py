@@ -4,15 +4,17 @@ with a very elegant algorithm (aka: brute-force)
 """
 
 import pickle
+
 import numpy as np
 from sklearn.grid_search import ParameterGrid
 
-import babao.utils.log as log
-import babao.utils.date as du
 import babao.config as conf
-import babao.utils.indicators as indic
 import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.date as du
+import babao.utils.indicators as indic
+import babao.utils.log as log
 from babao.utils.enum import CryptoEnum
+
 # import babao.models.modelHelper as modelHelper
 
 MODEL = {"a": 46, "b": 75, "c": 22}

@@ -1,13 +1,13 @@
 """In this model we'll use q-learning to optimize buy/sell actions"""
 
+import babao.models.modelHelper as modelHelper
 import numpy as np
 import pandas as pd
 
-import babao.utils.log as log
 import babao.config as conf
-import babao.utils.indicators as indic
 import babao.inputs.ledger.ledgerManager as lm
-import babao.models.modelHelper as modelHelper
+import babao.utils.indicators as indic
+import babao.utils.log as log
 from babao.utils.enum import CryptoEnum
 
 MODEL = None

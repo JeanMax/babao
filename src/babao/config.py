@@ -1,7 +1,7 @@
 """Here we'll handle the config file and the various file/dir paths"""
 
-import os
 import configparser as cp
+import os
 
 from babao.utils.enum import QuoteEnum, CryptoEnum
 

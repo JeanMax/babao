@@ -20,15 +20,16 @@ Why does this file exist, and why not put this in __main__?
 # import babao; args = babao.babao._init(["-vv", "d"]); args.func(args)
 
 from multiprocessing import Process, Lock
+
 from prwlock import RWLock
 
-import babao.utils.log as log
+import babao.arg as arg
+import babao.config as conf
+import babao.inputs.ledger.ledgerManager as lm
 import babao.utils.file as fu
 import babao.utils.lock as lock
-# import babao.utils.signal as sig
-import babao.config as conf
-import babao.arg as arg
-import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.log as log
+import babao.utils.signal as sig
 from babao.models.rootModel import RootModel
 
 
@@ -75,7 +76,7 @@ def _init(args=None):
     RootModel()
     if args.graph:
         _launchGraph()
-    # sig.catchSignal()
+    sig.catchSignal()
 
     return args
 

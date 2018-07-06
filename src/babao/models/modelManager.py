@@ -8,11 +8,11 @@ TODO
 
 from multiprocessing.dummy import Pool as ThreadPool
 
-import babao.utils.log as log
-import babao.utils.file as fu
-import babao.models.modelBase as mb
 import babao.inputs.ledger.ledgerManager as lm
+import babao.models.modelBase as mb
 import babao.utils.enum as enu
+import babao.utils.file as fu
+import babao.utils.log as log
 
 POOL = None
 
@@ -28,7 +28,7 @@ def fetchDeps():
         # well educated people use to join & close pool
     fetched_data = POOL.map(lambda inp: inp.fetch(), mb.INPUTS)
     # TODO: catch if inputs are out of sync (then you need to stop predictModels)
-    for i, unused_var in enumerate(fetched_data):
+    for i, _unused in enumerate(fetched_data):
         mb.INPUTS[i].write(fetched_data[i])
 
 
@@ -37,7 +37,8 @@ def plotModels(since):
     Plot all models
     TODO
     """
-    mb.MODELS[0].getPlotData(since).plot()
+    rootModel = mb.MODELS[0]
+    rootModel.getPlotData(since).plot()
 
 
 def trainModels(since):
@@ -57,7 +58,9 @@ def predictModelsMaybeTrade(since):
     rootModel = mb.MODELS[0]
     pred_df = rootModel.predict(since)
     trade_enum_val = pred_df.iat[-1, 0]
+    if not trade_enum_val:
+        return False
     return lm.buyOrSell(
         enu.ActionEnum(enu.tradeToAction(trade_enum_val)),
-        enu.CryptoEnum(enu.tradeToEnum(trade_enum_val))
+        enu.CryptoEnum(enu.tradeToCrypto(trade_enum_val))
     )

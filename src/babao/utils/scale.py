@@ -3,7 +3,7 @@ TODO
 """
 
 
-class Scaler():
+class Scaler:
     """TODO"""
     def __init__(self):
         self.scale_min = 0

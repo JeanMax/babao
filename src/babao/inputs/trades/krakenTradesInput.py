@@ -2,8 +2,9 @@
 TODO
 """
 
-from babao.utils.enum import CryptoEnum, QuoteEnum
 from babao.inputs.trades.krakenTradesInputBase import ABCKrakenTradesInput
+from babao.utils.enum import CryptoEnum, QuoteEnum
+
 
 # import sys
 # for quote in QuoteEnum:

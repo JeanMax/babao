@@ -85,6 +85,7 @@ else:
                 'pytest',
                 'pylint',
                 'flake8',
+                'flake8-bugbear',
                 'coveralls',
                 'sphinx',
                 'pyre-check',

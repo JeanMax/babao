@@ -3,14 +3,12 @@ TODO
 """
 
 import time
-import http
-import socket
 from abc import abstractmethod
-import requests
+
 import krakenex
 
-import babao.utils.log as log
 import babao.config as conf
+import babao.utils.log as log
 from babao.inputs.inputBase import ABCInput
 
 API = None
@@ -57,14 +55,7 @@ class ABCKrakenInput(ABCInput):
             self._sleep()
             try:
                 res = query(method, req, timeout=42)
-            except (
-                    socket.timeout,
-                    socket.error,
-                    requests.HTTPError,
-                    http.client.BadStatusLine,
-                    http.client.CannotSendRequest,
-                    ValueError
-            ) as e:
+            except (OSError, ValueError) as e:
                 log.warning(
                     "Network error while querying Kraken API!\n" + repr(e)
                 )

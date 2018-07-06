@@ -1,15 +1,17 @@
 """Commands launched by parseArgv"""
 
-import time
 import os
-# import numpy as np
+import time
 
-import babao.utils.signal as sig
-import babao.utils.log as log
-import babao.utils.date as du
 import babao.config as conf
 # import babao.inputs.ledger.ledgerManager as lm
 import babao.models.modelManager as mm
+import babao.utils.date as du
+import babao.utils.log as log
+import babao.utils.signal as sig
+
+
+# import numpy as np
 
 # TRAIN_SET_LEN = 850  # TODO: config-var?
 # TEST_SET_LEN = 850  # TODO: config-var?

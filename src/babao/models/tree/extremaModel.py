@@ -6,24 +6,24 @@ using a knn classifier (sklearn)
 TODO
 """
 
+# from sklearn.externals import joblib
+import joblib  # just use pickle instead?
 import pandas as pd
 # import numpy as np
 # from scipy import optimize
 # from sklearn import preprocessing
 from sklearn import neighbors
+
+import babao.config as conf
+import babao.utils.indicators as indic
+import babao.utils.log as log
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.models.modelBase import ABCModel
+from babao.utils.scale import Scaler
+
 # from sklearn import svm
 # from sklearn import tree
 # from sklearn import neural_network
-
-# from sklearn.externals import joblib
-import joblib  # just use pickle instead?
-
-import babao.config as conf
-import babao.utils.log as log
-import babao.utils.indicators as indic
-from babao.utils.scale import Scaler
-from babao.models.modelBase import ABCModel
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 
 LOOKBACK = 47  # TODO: nice one
 
@@ -87,7 +87,7 @@ class ExtremaModel(ABCModel):
         targets = targets[-len(features):]  # compensate features.dropna()
         features = features[LOOKBACK:-LOOKBACK]
         targets = targets[LOOKBACK:-LOOKBACK]
-        return self.knn.fit(features, targets)  # TODO: return scor
+        return self.knn.fit(features, targets)  # TODO: return score
 
     def getPlotData(self, since):
         """TODO"""

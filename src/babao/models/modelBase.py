@@ -1,10 +1,10 @@
 """TODO"""
 
-from typing import List, Union  # NOQA: F401
 from abc import ABC, abstractmethod
+from typing import List, Union  # NOQA: F401
 
-import babao.utils.log as log
 import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.log as log
 from babao.inputs.inputBase import ABCInput
 
 # TODO: not sure if I prefer globals over class attributes...
@@ -51,9 +51,9 @@ class ABCModel(ABC):
     def _initDeps(self):
         """TODO"""
 
-        def getNodeFromList(cls):
+        def getNodeFromList(node_class):
             """TODO"""
-            if issubclass(cls, ABCInput):
+            if issubclass(node_class, ABCInput):
                 node_list = INPUTS
             # elif issubclass(cls, ABCModel):
             else:  # we are all grown up here
@@ -61,7 +61,7 @@ class ABCModel(ABC):
             try:
                 return node_list[[n.__class__ for n in node_list].index(cls)]
             except ValueError:
-                node = cls()  # recursive horror
+                node = node_class()  # recursive horror
                 if node.__class__ not in [n.__class__ for n in node_list]:
                     node_list.append(node)
                     # TODO: sort the MODELS by priority order

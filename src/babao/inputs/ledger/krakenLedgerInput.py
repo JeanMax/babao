@@ -5,12 +5,13 @@ Handle money related stuffs
 
 import sys
 from abc import abstractmethod
+
 import pandas as pd
 
 import babao.utils.date as du
-from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
-from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
 from babao.inputs.krakenInputBase import ABCKrakenInput
+from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
+from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):

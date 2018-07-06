@@ -4,13 +4,13 @@ then classify them as 0 (hold), 1 (sell), 2 (buy)
 using a lstm neural network (keras)
 """
 
-import pandas as pd
+import babao.models.modelHelper as modelHelper
 import numpy as np
+import pandas as pd
 
-import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.models.modelHelper as modelHelper
+import babao.utils.log as log
 
 MODEL = None
 FEATURES = None
@@ -41,13 +41,13 @@ def _prepareFeatures(full_data, lookback):
     ´full_data´: cf. ´prepareModels´
     """
 
-    def _addLookbacks(df, lookback):
+    def _addLookbacks(df, look_back):
         """Add lookback(s) (shifted columns) to each df columns"""
 
-        for i in range(1, lookback + 1):
-            for c in df.columns:
-                if "lookback" not in c:
-                    df[c + "_lookback_" + str(i)] = df[c].shift(i)
+        for i in range(1, look_back + 1):
+            for col in df.columns:
+                if "lookback" not in col:
+                    df[col + "_lookback_" + str(i)] = df[col].shift(i)
         return df.dropna()
 
     def _reshape(arr):
@@ -174,7 +174,7 @@ def train():
         batch_size=BATCH_SIZE,
         shuffle=False,
         verbose=modelHelper.getVerbose()
-    )   # TODO: make this interuptible
+    )
 
     # score = MODEL.evaluate(
     #     FEATURES, TARGETS,

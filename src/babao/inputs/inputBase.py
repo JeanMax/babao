@@ -2,14 +2,15 @@
 TODO
 """
 
-from typing import List
 from abc import ABC, abstractmethod
+from typing import List
+
 import pandas as pd
 
-import babao.utils.file as fu
-import babao.utils.date as du
-import babao.utils.log as log
 import babao.config as conf
+import babao.utils.date as du
+import babao.utils.file as fu
+import babao.utils.log as log
 
 LAST_WRITE = 0  # TODO: this is a stupid idea, bugs incoming!
 

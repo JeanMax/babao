@@ -34,7 +34,7 @@ def MACD(serie, fast_delay, slow_delay, signal_delay, full=False):
     signal_line = EWMA(macd_line, signal_delay)
 
     if full:
-        return (macd_line, signal_line, macd_line - signal_line)
+        return macd_line, signal_line, macd_line - signal_line
     return macd_line - signal_line
 
 
@@ -51,7 +51,7 @@ def PPO(serie, fast_delay, slow_delay, signal_delay, full=False):
     signal_line = EWMA(ppo_line, signal_delay)
 
     if full:
-        return (ppo_line, signal_line, ppo_line - signal_line)
+        return ppo_line, signal_line, ppo_line - signal_line
     return ppo_line - signal_line
 
 

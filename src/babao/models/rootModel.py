@@ -7,9 +7,10 @@ This whole shit is temporary, don't worry
 
 import pandas as pd
 
-from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
 from babao.models.modelBase import ABCModel
 from babao.models.tree.extremaModel import ExtremaModel
+from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
+
 # import babao.models.models.tendency as tendency
 # import babao.models.models.qlearn as qlearn
 # import babao.models.tree.macdModel as macd

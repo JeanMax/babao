@@ -3,6 +3,7 @@ TODO
 """
 
 from abc import abstractmethod
+
 import numpy as np
 
 import babao.inputs.inputBase as ib
