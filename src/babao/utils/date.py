@@ -39,7 +39,7 @@ def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
         + hours * 60 * 60
         + days * 60 * 60 * 24
         + weeks * 60 * 60 * 24 * 7
-        + years * 60 * 60 * 24 * 7 * 365.25
+        + years * 60 * 60 * 24 * 365.25
     )
 
     return getTime() - secToNano(seconds)
