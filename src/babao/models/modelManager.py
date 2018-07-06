@@ -12,7 +12,7 @@ import babao.utils.log as log
 import babao.utils.file as fu
 import babao.models.modelBase as mb
 import babao.inputs.ledger.ledgerManager as lm
-from babao.utils.enum import CryptoEnum, ActionEnum
+import babao.utils.enum as enu
 
 POOL = None
 
@@ -56,6 +56,8 @@ def predictModelsMaybeTrade(since):
     # TODO: break if inputs are out of sync
     rootModel = mb.MODELS[0]
     pred_df = rootModel.predict(since)
-    action_enum = ActionEnum(pred_df.iat[-1, 0])
-    # TODO: do not hardcode crypto_enum
-    return lm.buyOrSell(action_enum, CryptoEnum.XBT)
+    trade_enum_val = pred_df.iat[-1, 0]
+    return lm.buyOrSell(
+        enu.ActionEnum(enu.tradeToAction(trade_enum_val)),
+        enu.CryptoEnum(enu.tradeToEnum(trade_enum_val))
+    )

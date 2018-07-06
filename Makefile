@@ -86,15 +86,15 @@ reinstall: uninstall
 flake:
 	$(FLAKE)
 
+lint:
+	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_|eggs' | xargs $(LINTER)
+
 pyre:
     # TODO: debug cache, opt stubs import
 	$(PYRE) check 2>/dev/null | grep -v 'Undefined import \[21\]' || true
 
 mypy:
 	$(MYPY)
-
-lint:
-	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_|eggs' | xargs $(LINTER)
 
 test:
 	$(TESTER)

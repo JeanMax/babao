@@ -7,7 +7,7 @@ This whole shit is temporary, don't worry
 
 import pandas as pd
 
-from babao.utils.enum import ActionEnum
+from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
 from babao.models.modelBase import ABCModel
 from babao.models.tree.extremaModel import ExtremaModel
 # import babao.models.models.tendency as tendency
@@ -32,10 +32,11 @@ class RootModel(ABCModel):
         pred_df = pd.DataFrame(
             (pred_df["buy"] - pred_df["sell"]).values, columns=["action"]
         )
-        return (
+        pred_df = (
             (pred_df < -MIN_PROBA).replace(True, ActionEnum.SELL)
             | (pred_df > MIN_PROBA).replace(True, ActionEnum.BUY)
         ).replace(False, ActionEnum.HODL.value)
+        return cryptoAndActionTotrade(CryptoEnum.XBT.value, pred_df)
 
     def getPlotData(self, since):
         """TODO"""
