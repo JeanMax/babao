@@ -108,10 +108,11 @@ class ABCInput(ABC):
         self.__updateLastRow(raw_data.iloc[-1])
         return True
 
-    def read(self, since=None, till=None):
+    def read(self, since=None):
         """
         TODO
         """
+        till = du.getTime()
         if self.__cache_data is not None:
             raw_data = self.__cache_data.loc[since:till]
         else:

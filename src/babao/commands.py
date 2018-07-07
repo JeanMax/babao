@@ -4,24 +4,11 @@ import os
 import time
 
 import babao.config as conf
-# import babao.inputs.ledger.ledgerManager as lm
+import babao.inputs.ledger.ledgerManager as lm
 import babao.models.modelManager as mm
 import babao.utils.date as du
 import babao.utils.log as log
 import babao.utils.signal as sig
-
-
-# import numpy as np
-
-# TRAIN_SET_LEN = 850  # TODO: config-var?
-# TEST_SET_LEN = 850  # TODO: config-var?
-# NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
-
-
-# def _getData():
-#     """Return the whole dataset splitted in two parts: (train, test)"""
-#     full_data = K[0].resample(K[0].read())
-#     return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
 
 
 def wetRun(unused_args):
@@ -62,42 +49,30 @@ def backtest(args):
 
     It will call the trained strategies on each test data point
     """
-    # big_fat_data = _getData()[1]
-    # mm.prepareModels(big_fat_data)
-    # big_fat_data_index = big_fat_data.index.values
-    # big_fat_data_prices = big_fat_data["close"].values
-    # del big_fat_data
+    start_time = time.time()
 
-    # start_time = time.time()
+    now = du.getTime(force=True)
+    epoch_to_now = now - du.EPOCH
+    t = du.EPOCH + epoch_to_now / 2
 
-    # # pylint: disable=consider-using-enumerate
-    # for i in range(len(big_fat_data_index)):
-    #     rootModel.analyse(
-    #         feature_index=i,
-    #         price=big_fat_data_prices[i],
-    #         timestamp=big_fat_data_index[i]
-    #     )
-    #     if sig.EXIT:
-    #         return
+    while t < now and not sig.EXIT:
+        t += du.secToNano(4 * 60 * 60)
+        du.setTime(t)
+        mm.predictModelsMaybeTrade(
+            since=du.nowMinus(weeks=1)
+            # TODO:  do not hardcode the lookback
+        )
 
-    # price = big_fat_data_prices[-1]
-    # score = lm.getGlobalBalanceInQuote()
+    score = lm.getGlobalBalanceInQuote()
     # hodl = price / big_fat_data_prices[0] * 100
-    # log.info(
-    #     "Backtesting done! Score: " + str(round(float(score)))
-    #     + "% vs HODL: " + str(round(hodl)) + "%"
-    # )
-    # log.debug(
-    #     "Backtesting took "
-    #     + str(round(time.time() - start_time, 3)) + "s"
-    # )
-
-    # while dunno:
-    #     du.setTime(TODO)
-    #     mm.predictModelsMaybeTrade(
-    #         since=du.nowMinus(weeks=1)
-    #         # TODO:  do not hardcode the lookback
-    #     )
+    log.info(
+        "Backtesting done! Score: " + str(round(float(score)))
+        # + "% vs HODL: " + str(round(hodl)) + "%"
+    )
+    log.debug(
+        "Backtesting took "
+        + str(round(time.time() - start_time, 3)) + "s"
+    )
 
     if args.graph:
         # TODO: exit if graph is closed
@@ -107,28 +82,16 @@ def backtest(args):
 
 def train(args):
     """Train the various (awesome) algorithms"""
-    pass
-    # train_data, test_data = _getData()
+    epoch_to_now = du.getTime(force=True) - du.EPOCH
+    till = du.EPOCH + epoch_to_now / 2
+    du.setTime(till)
+    mm.trainModels(since=du.EPOCH)
 
-    # splits_size = int(len(train_data) / TRAIN_SET_LEN)
-    # splits = np.array_split(train_data, splits_size)
+    if args.graph:
+        mm.plotModels(since=du.EPOCH)
 
-    # start = splits_size - NUMBER_OF_TRAIN_SETS
-    # if start < 0:
-    #     start = 0
-    # for i in range(start, splits_size):
-    #     log.debug(
-    #         "Using train set", i + 1, "/", splits_size,
-    #         "- set length:", len(splits[i])
-    #     )
+        du.setTime(None)
+        mm.plotModels(since=till)
 
-    #     mm.trainModels(since=TODO)
-
-    #     if args.graph:
-    #         mm.plotModels(since=splits[i])
-
-    # if args.graph:
-    #     mm.plotModels(since=test_data)
-
-    #     import matplotlib.pyplot as plt
-    #     plt.show()
+        import matplotlib.pyplot as plt
+        plt.show()

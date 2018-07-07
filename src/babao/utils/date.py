@@ -3,6 +3,7 @@
 import time
 import pandas as pd
 
+EPOCH = pd.Timestamp("2017-01-01").value
 NOW = None
 
 
@@ -12,9 +13,9 @@ def setTime(now):
     NOW = now
 
 
-def getTime():
+def getTime(force=False):
     """TODO"""
-    if NOW is not None:
+    if not force and NOW is not None:
         return NOW
     return secToNano(time.time())
 

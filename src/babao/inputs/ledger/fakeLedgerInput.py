@@ -26,7 +26,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def __init__(self, log_to_file=True):
         ABCLedgerInput.__init__(self)
         self.log_to_file = log_to_file
-        if self.last_row is not None:
+        if self.last_row is not None and log_to_file:
             self.balance = self.last_row["balance"]
             self.last_tx = self.last_row.name
         else:
@@ -158,6 +158,12 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
+        if self.verbose:
+            log.info(
+                "Deposit ", round(volume, 4),
+                "from", ledger.asset.name,
+                "to", self.asset.name,
+            )
         self.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
@@ -178,6 +184,12 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
+        if self.verbose:
+            log.info(
+                "Withdraw ", round(volume, 4),
+                "from", ledger.asset.name,
+                "to", self.asset.name,
+            )
         ledger.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,

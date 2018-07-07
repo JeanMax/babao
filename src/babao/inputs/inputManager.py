@@ -6,7 +6,7 @@ or is it a manager?
 from functools import partial
 
 
-def readInputs(input_list, since=None, till=None):
+def readInputs(input_list, since=None):
     """TODO"""
 
     def _renamer(prefix, s):
@@ -18,7 +18,7 @@ def readInputs(input_list, since=None, till=None):
         return s.replace(prefix + "-", "")
 
     # TODO: opt memory usage / lock once
-    data_list = [inp.read(since, till) for inp in input_list]
+    data_list = [inp.read(since) for inp in input_list]
 
     # TODO: ensure resample base is correct (use till, or?)
     for i, inp in enumerate(input_list):

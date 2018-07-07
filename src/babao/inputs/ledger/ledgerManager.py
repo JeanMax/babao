@@ -32,15 +32,13 @@ def initLedgers(simulate=True, log_to_file=True):
         [c.name for c in conf.CRYPTOS]
     ) + ")"
     ledgers = [
-        led.__dict__[k]() for k in led.__dict__ if re.match(pat, k)
+        led.__dict__[k](log_to_file) for k in led.__dict__ if re.match(pat, k)
     ]
 
     if simulate and sum([l.balance for l in ledgers]) == 0:
         ledgers[0].deposit(ledgers[0].__class__(log_to_file=False), 100)
-        for i, l in enumerate(ledgers):
-            l.log_to_file = log_to_file
-            if i != 0:
-                l.deposit(l.__class__(log_to_file=False), 0)
+        for l in ledgers[1:]:
+            l.deposit(l.__class__(log_to_file=False), 0)
 
     LEDGERS = {l.asset: l for l in ledgers}
     TRADES = {
@@ -65,6 +63,7 @@ def getGlobalBalanceInQuote():
 
 def getLastTx():
     """TODO"""
+    # TODO: this doesn't work in simulations
     return max((l.last_tx for l in LEDGERS.values()))
 
 
@@ -83,7 +82,7 @@ def _tooSoon(timestamp):
     last_tx = getLastTx()
     if last_tx > 0 \
        and timestamp - last_tx < du.secToNano(3 * conf.TIME_INTERVAL * 60):
-        if LEDGERS["crypto"].verbose:
+        if LEDGERS[conf.QUOTE].verbose:
             log.warning("Previous transaction was too soon, waiting")
         return True
     return False
@@ -100,7 +99,8 @@ def _canBuy():
     # if LAST_TX["type"] == "b":
     #     return False
     if LEDGERS[conf.QUOTE].balance < MIN_BAL:
-        log.warning("Not enough quote to buy (aka: You're broke :/)")
+        if LEDGERS[conf.QUOTE].verbose:
+            log.warning("Not enough quote to buy (aka: You're broke :/)")
         return False
     return True
 
@@ -118,7 +118,8 @@ def _canSell(crypto_enum):
         # TODO: this can be quite high actually
         # support.kraken.com/ \
         # hc/en-us/articles/205893708-What-is-the-minimum-order-size-
-        log.warning("Not enough crypto to sell")
+        if LEDGERS[conf.QUOTE].verbose:
+            log.warning("Not enough crypto to sell")
         return False
     return True
 

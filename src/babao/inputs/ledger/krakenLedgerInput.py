@@ -23,8 +23,9 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         """TODO"""
         pass
 
-    def __init__(self):
+    def __init__(self, log_to_file=True):
         super().__init__()
+        self.log_to_file = log_to_file  # TODO: move that to ABCLedgerInput
         self.balance = 0  # TODO
 
     def fetch(self):

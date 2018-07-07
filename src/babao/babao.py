@@ -26,6 +26,7 @@ from prwlock import RWLock
 import babao.arg as arg
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.lock as lock
 import babao.utils.log as log
@@ -64,14 +65,16 @@ def _init(args=None):
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
-    if args.func.__name__ not in ["train", "backtest"]:
+    if args.func.__name__ in ["train", "backtest"]:
+        du.setTime(du.EPOCH)
+    else:
         log.setLock(Lock())
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
     lm.initLedgers(
         simulate=args.func.__name__ != "wetRun",
-        log_to_file=args.func.__name__ != "train",
+        log_to_file=args.func.__name__ not in ["train", "backtest"]
     )
     RootModel()
     if args.graph:
