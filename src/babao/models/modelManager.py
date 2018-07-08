@@ -39,7 +39,6 @@ def predictModelsMaybeTrade(since):
     """
     TODO
     """
-    # TODO: break if inputs are out of sync
     rootModel = mb.MODELS[0]
     pred_df = rootModel.predict(since)
     trade_enum_val = pred_df.iat[-1, 0]

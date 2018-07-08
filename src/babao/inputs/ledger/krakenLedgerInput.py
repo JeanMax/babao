@@ -45,19 +45,22 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         res = self._doRequest("Ledgers", {
             "start": since, "asset": self.asset.name
         })
-        if res["count"] == 0:
+        if res is None:
+            self.up_to_date = False
             return None
-
-        if res["count"] > 50 and self.last_row is None:
-            # kraken api is *STOOPID*: if don't have the exact date of the
+        if res["count"] == 0:
+            self.up_to_date = True
+            return None
+        elif res["count"] > 50 and self.last_row is None:
+            # kraken api is *STOOPID*: if we don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!
-            self._sleep()
             res = self._doRequest("Ledgers", {
                 "ofs": res["count"] - 1, "asset": self.asset.name
             })  # first
 
         raw_ledger = pd.DataFrame(res["ledger"]).T
+        self.up_to_date = len(raw_ledger) != 50
         if raw_ledger.empty:
             return raw_ledger
 

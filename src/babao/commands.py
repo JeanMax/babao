@@ -6,6 +6,7 @@ import time
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
 import babao.inputs.inputManager as im
+import babao.inputs.inputBase as ib
 import babao.models.modelManager as mm
 import babao.utils.date as du
 import babao.utils.log as log
@@ -20,11 +21,10 @@ def wetRun(unused_args):
 def dryRun(unused_args):
     """Real-time bot simulation"""
     while not sig.EXIT:
-        im.fetchInputs()
-        mm.predictModelsMaybeTrade(
-            since=du.nowMinus(weeks=1)
-            # TODO:  do not hardcode the lookback
-        )
+        if im.fetchInputs():
+            mm.predictModelsMaybeTrade(
+                since=du.nowMinus(weeks=1)  # TODO: do not hardcode the lookback
+            )
 
 
 def fetch(unused_args):
@@ -35,13 +35,14 @@ def fetch(unused_args):
             "Database file already exists (" + conf.DB_FILE + ")."
         )
 
-    while not sig.EXIT:
-        im.fetchInputs()
-        # log.debug(
-        #     "Fetched data till "
-        #     + pd.to_datetime(K[0].last_row.name, unit="ns")
-        # )
-        # TODO
+    while not sig.EXIT and not im.fetchInputs():
+        last_fetch = min(
+            (i.last_row.name for i in ib.INPUTS if i.last_row is not None)
+        )
+        log.info("Fetched data till", du.to_datetime(last_fetch))
+
+    if not sig.EXIT:
+        log.info("Database up to date!")
 
 
 def backtest(args):

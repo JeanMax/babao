@@ -4,7 +4,7 @@ or is it a manager?
 """
 
 from multiprocessing.dummy import Pool as ThreadPool
-from functools import partial
+from functools import partial, reduce
 from typing import List, Union
 
 import babao.utils.file as fu
@@ -24,9 +24,9 @@ def fetchInputs():
         )
         # well educated people use to join & close pool
     fetched_data = POOL.map(lambda inp: inp.fetch(), ib.INPUTS)
-    # TODO: catch if inputs are out of sync (then you need to stop predictModels)
     for i, _unused in enumerate(fetched_data):
         ib.INPUTS[i].write(fetched_data[i])
+    return reduce(lambda acc, inp: acc & inp.up_to_date, ib.INPUTS, True)
 
 
 def readInputs(input_list: Union[List[ib.ABCInput], None] = None, since=None):

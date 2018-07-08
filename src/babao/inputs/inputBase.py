@@ -68,8 +68,9 @@ class ABCInput(ABC):
     def __init__(self):
         # TODO: msg, move to tests?
         # assert list(self.last_row.keys()) == self.__class__.raw_columns
-        self.last_row = None
+        self.up_to_date = True
         self.__cache_data = None
+        self.last_row = None
         last_row = fu.getLastRows(self.__class__.__name__, 1)
         if not last_row.empty:
             self.__updateLastRow(last_row.iloc[-1])

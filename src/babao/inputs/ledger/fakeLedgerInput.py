@@ -34,7 +34,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
             self.last_tx = 0
 
     def fetch(self):
-        pass  # we said fake
+        self.up_to_date = True  # we said fake
 
     def logTransaction(
             self, typ, volume, refid,

@@ -35,13 +35,16 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             "pair": self.__class__.pair,
             "since": since
         })
+        if res is None:
+            self.up_to_date = False
+            return None
 
         fresh_data = pd.DataFrame(
             res[self.__class__.pair],
             columns=[  # as returned by kraken api
                 "price", "volume", "time", "buy-sell", "market-limit", "misc"
             ],
-            dtype=float  # TODO: dtypes: object(2) (replace letters with int?)
+            dtype=float
         )
 
         if not fresh_data.empty:
@@ -49,6 +52,8 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
                 du.secToNano(fresh_data["time"].iloc[:-1]),
                 int(res["last"])
             )
+
+        self.up_to_date = len(fresh_data) != 1000
 
         del fresh_data["misc"]
         del fresh_data["market-limit"]  # TODO: this could be useful
