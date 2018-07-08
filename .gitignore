@@ -28,3 +28,6 @@ docs/
 __pycache__/
 *.so
 *~
+
+# don't tell emacs please
+.idea
