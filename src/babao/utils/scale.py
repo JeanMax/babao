@@ -11,10 +11,11 @@ class Scaler:
 
     def fit(self, arr):
         """Init scaler"""
-        # TODO: use a different scale for volume?
-        self.scale_min = min(arr.min())
-        self.scale_max = max(arr.max())
-        # this is a little optimistic about ´arr´ shape
+        self.scale_min = arr.min()
+        self.scale_max = arr.max()
+        if len(arr.shape) > 1:
+            self.scale_min = min(self.scale_min)
+            self.scale_max = max(self.scale_max)
 
     def scale(self, arr):
         """Scale features before train/predict"""

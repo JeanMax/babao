@@ -21,15 +21,23 @@ def getTime(force=False):
 
 
 def to_datetime(df):
-    """Convert the index of the given dataframe to datetime"""
+    """Convert the index of the given dataframe to datetime
+    TODO"""
 
-    df.index = pd.to_datetime(df.index, unit="ns")
+    if isinstance(df, pd.DataFrame):
+        df.index = pd.to_datetime(df.index, unit="ns")
+        return df
+    return pd.to_datetime(df, unit="ns")
 
 
 def to_timestamp(df):
-    """Convert the index of the given dataframe to nanoseconds"""
+    """Convert the index of the given dataframe to nanoseconds
+    TODO"""
 
-    df.index = df.index.view("int64")
+    if isinstance(df, pd.DataFrame):
+        df.index = df.index.view("int64")
+        return df
+    return df.value
 
 
 def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):

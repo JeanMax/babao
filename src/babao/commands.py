@@ -5,6 +5,7 @@ import time
 
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
+import babao.inputs.inputManager as im
 import babao.models.modelManager as mm
 import babao.utils.date as du
 import babao.utils.log as log
@@ -19,7 +20,7 @@ def wetRun(unused_args):
 def dryRun(unused_args):
     """Real-time bot simulation"""
     while not sig.EXIT:
-        mm.fetchDeps()
+        im.fetchInputs()
         mm.predictModelsMaybeTrade(
             since=du.nowMinus(weeks=1)
             # TODO:  do not hardcode the lookback
@@ -35,7 +36,7 @@ def fetch(unused_args):
         )
 
     while not sig.EXIT:
-        mm.fetchDeps()
+        im.fetchInputs()
         # log.debug(
         #     "Fetched data till "
         #     + pd.to_datetime(K[0].last_row.name, unit="ns")
@@ -55,7 +56,7 @@ def backtest(args):
     epoch_to_now = now - du.EPOCH
     t = du.EPOCH + epoch_to_now / 2
 
-    while t < now and not sig.EXIT:
+    while t < now and not lm.gameOver() and not sig.EXIT:
         t += du.secToNano(4 * 60 * 60)
         du.setTime(t)
         mm.predictModelsMaybeTrade(
@@ -74,6 +75,7 @@ def backtest(args):
         + str(round(time.time() - start_time, 3)) + "s"
     )
 
+    # TODO: fix graph
     if args.graph:
         # TODO: exit if graph is closed
         while not sig.EXIT:
@@ -85,13 +87,27 @@ def train(args):
     epoch_to_now = du.getTime(force=True) - du.EPOCH
     till = du.EPOCH + epoch_to_now / 2
     du.setTime(till)
+
+    log.debug(
+        "Train data: from", du.to_datetime(du.EPOCH),
+        "to", du.to_datetime(till)
+    )
     mm.trainModels(since=du.EPOCH)
 
     if args.graph:
+        log.debug("Plot models on train data")
         mm.plotModels(since=du.EPOCH)
 
+        log.debug("Plot models on test data")
         du.setTime(None)
+        log.debug(
+            "Test data: from", du.to_datetime(till),
+            "to", du.to_datetime(du.getTime())
+        )
         mm.plotModels(since=till)
 
+    log.debug("Job done!")
+
+    if args.graph:
         import matplotlib.pyplot as plt
         plt.show()

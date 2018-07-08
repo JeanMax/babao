@@ -12,6 +12,7 @@ import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.log as log
 
+INPUTS = []  # type: List[ABCInput]
 LAST_WRITE = 0  # TODO: this is a stupid idea, bugs incoming!
 
 
@@ -126,13 +127,13 @@ class ABCInput(ABC):
             self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
 
-    def cache(self, since=None, till=None, data=None):
+    def cache(self, since=None, data=None):
         """TODO"""
         if data is not None:
             self.__cache_data = data
         else:
             self.__cache_data = None
-            self.__cache_data = self.read(since, till)
+            self.__cache_data = self.read(since)
 
     def resample(self, raw_data):
         """

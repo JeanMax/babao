@@ -63,7 +63,6 @@ def getGlobalBalanceInQuote():
 
 def getLastTx():
     """TODO"""
-    # TODO: this doesn't work in simulations
     return max((l.last_tx for l in LEDGERS.values()))
 
 
@@ -100,7 +99,7 @@ def _canBuy():
     #     return False
     if LEDGERS[conf.QUOTE].balance < MIN_BAL:
         if LEDGERS[conf.QUOTE].verbose:
-            log.warning("Not enough quote to buy (aka: You're broke :/)")
+            log.warning("Not enough", conf.QUOTE.name, "to buy")
         return False
     return True
 
@@ -119,7 +118,7 @@ def _canSell(crypto_enum):
         # support.kraken.com/ \
         # hc/en-us/articles/205893708-What-is-the-minimum-order-size-
         if LEDGERS[conf.QUOTE].verbose:
-            log.warning("Not enough crypto to sell")
+            log.warning("Not enough", crypto_enum.name, "to sell")
         return False
     return True
 

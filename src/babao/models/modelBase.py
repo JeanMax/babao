@@ -1,21 +1,38 @@
 """TODO"""
 
 from abc import ABC, abstractmethod
-from typing import List, Union  # NOQA: F401
+from typing import List, Union
 
 import babao.inputs.ledger.ledgerManager as lm
 import babao.utils.log as log
-from babao.inputs.inputBase import ABCInput
+import babao.inputs.inputBase as ib
 
-# TODO: not sure if I prefer globals over class attributes...
-MODELS = None
-INPUTS = None
+MODELS = []  # type: List[ABCModel]
 
 
 def getVerbose():
     """Transform our verbose level to match keras one"""
-
     return int(log.VERBOSE / 2) if log.VERBOSE != 1 else 1
+
+
+def _getNodeFromList(node_class):
+    """TODO"""
+    if issubclass(node_class, ib.ABCInput):
+        node_list = ib.INPUTS
+    # elif issubclass(node_class, ABCModel):
+    else:  # we are all grown up here
+        node_list = MODELS
+    try:
+        return node_list[
+            [n.__class__ for n in node_list].index(node_class)
+        ]
+    except ValueError:
+        node = node_class()  # recursive horror
+        if node.__class__ not in [n.__class__ for n in node_list]:
+            node_list.append(node)
+            # TODO: sort the MODELS by priority order
+            return node
+        return _getNodeFromList(node_class)  # the try block will succeed
 
 
 class ABCModel(ABC):
@@ -27,7 +44,7 @@ class ABCModel(ABC):
 
     @property
     @abstractmethod
-    def dependencies(self) -> List[Union['ABCModel', ABCInput]]:
+    def dependencies(self) -> List[Union['ABCModel', ib.ABCInput]]:
         """TODO"""
         pass
 
@@ -43,57 +60,28 @@ class ABCModel(ABC):
         # assert type(that.inputs) == list
         # assert issubclass(that.inputs[0], Input)
         try:
-            self._load()
+            self.load()
         except OSError:
             log.warning("Couldn't load", self.__class__.__name__)
         self._initDeps()
 
     def _initDeps(self):
         """TODO"""
-
-        def getNodeFromList(node_class):
-            """TODO"""
-            if issubclass(node_class, ABCInput):
-                node_list = INPUTS
-            # elif issubclass(cls, ABCModel):
-            else:  # we are all grown up here
-                node_list = MODELS
-            try:
-                return node_list[[n.__class__ for n in node_list].index(cls)]
-            except ValueError:
-                node = node_class()  # recursive horror
-                if node.__class__ not in [n.__class__ for n in node_list]:
-                    node_list.append(node)
-                    # TODO: sort the MODELS by priority order
-                    return node
-                return getNodeFromList(cls)  # the try block will succeed
-
-        global MODELS
-        global INPUTS
-        if MODELS is None:
+        if not MODELS:
             # TODO: should we init lm here?
-            MODELS = [self]
-            INPUTS = list(lm.LEDGERS.values()) + list(lm.TRADES.values())
-        for index, cls in enumerate(self.dependencies):
-            self.dependencies[index] = getNodeFromList(cls)
+            MODELS.append(self)
+            ib.INPUTS.extend(lm.LEDGERS.values())
+            ib.INPUTS.extend(lm.TRADES.values())
+        for index, node_class in enumerate(self.dependencies):
+            self.dependencies[index] = _getNodeFromList(node_class)
 
     @abstractmethod
     def predict(self, since):
         """TODO"""
         raise NotImplementedError("TODO")
 
-    def train(self, since):
-        """TODO"""
-        if self.needTraining:
-            ret = self._train(since)
-            if ret:
-                self._save()
-                return ret
-            return ret
-        return False
-
     @abstractmethod
-    def _train(self, since):
+    def train(self, since):
         """TODO"""
         raise NotImplementedError("TODO")
 
@@ -103,12 +91,12 @@ class ABCModel(ABC):
         raise NotImplementedError("TODO")
 
     @abstractmethod
-    def _save(self):
+    def save(self):
         """TODO"""
         raise NotImplementedError("TODO")
 
     @abstractmethod
-    def _load(self):
+    def load(self):
         """TODO"""
         raise NotImplementedError("TODO")
 

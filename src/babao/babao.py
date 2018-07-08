@@ -62,9 +62,9 @@ def _init(args=None):
     args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
-
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
+
     if args.func.__name__ in ["train", "backtest"]:
         du.setTime(du.EPOCH)
     else:
@@ -72,14 +72,16 @@ def _init(args=None):
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
+
     lm.initLedgers(
         simulate=args.func.__name__ != "wetRun",
         log_to_file=args.func.__name__ not in ["train", "backtest"]
     )
     RootModel()
-    if args.graph:
+
+    if args.graph and args.func.__name__ != "train":
         _launchGraph()
-    sig.catchSignal()
+    # sig.catchSignal()
 
     return args
 

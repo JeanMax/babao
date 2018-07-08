@@ -1,6 +1,5 @@
 """In this model we'll use q-learning to optimize buy/sell actions"""
 
-import babao.models.modelHelper as modelHelper
 import numpy as np
 import pandas as pd
 

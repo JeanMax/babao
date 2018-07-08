@@ -42,23 +42,23 @@ class RootModel(ABCModel):
             last_pred, ActionEnum(round(last_pred))
         )
         pred_df = (
-            (pred_df < -MIN_PROBA).replace(True, ActionEnum.SELL.value)
-            + (pred_df > MIN_PROBA).replace(True, ActionEnum.BUY.value)
-        ).replace(False, ActionEnum.HODL.value)
+            (pred_df < -MIN_PROBA).astype(int).replace(1, ActionEnum.SELL.value)
+            + (pred_df > MIN_PROBA).astype(int).replace(1, ActionEnum.BUY.value)
+        ).replace(0, ActionEnum.HODL.value)
         return cryptoAndActionTotrade(CryptoEnum.XBT.value, pred_df)
 
     def getPlotData(self, since):
         """TODO"""
         return self.dependencies[0].getPlotData(since)
 
-    def _train(self, since):
+    def train(self, since):
         """TODO"""
         pass
 
-    def _save(self):
+    def save(self):
         """TODO"""
         pass
 
-    def _load(self):
+    def load(self):
         """TODO"""
         pass

@@ -4,7 +4,6 @@ then classify them as 0 (hold), 1 (sell), 2 (buy)
 using a lstm neural network (keras)
 """
 
-import babao.models.modelHelper as modelHelper
 import numpy as np
 import pandas as pd
 
