@@ -24,7 +24,7 @@ def resampleSerie(s):
     # TODO: would be nice to do the base init once for all features
     # (ensure sync and save some computing)
     # also don't convert date or do it in utils.date
-    base = pd.to_datetime(LAST_WRITE, unit="ns")
+    base = du.to_datetime(LAST_WRITE)
     base = (base.minute + (base.second + 1) / 60) % 60
     return s.resample(
         str(conf.TIME_INTERVAL) + "Min",
@@ -67,18 +67,16 @@ class ABCInput(ABC):
 
     def __init__(self):
         # TODO: msg, move to tests?
-        # assert list(self.last_row.keys()) == self.__class__.raw_columns
+        # assert list(self.current_row.keys()) == self.__class__.raw_columns
         self.up_to_date = True
         self.__cache_data = None
-        self.last_row = None
+        self.current_row = None
         last_row = fu.getLastRows(self.__class__.__name__, 1)
         if not last_row.empty:
-            self.__updateLastRow(last_row.iloc[-1])
+            self.updateCurrentRow(last_row.iloc[-1])
+            # TODO: remove read once cache implemented
         else:
-            log.warning(
-                "Couldn't read from database frame '"
-                + self.__class__.__name__ + "'"
-            )
+            log.warning("Database '" + self.__class__.__name__ + "' is emtpy")
 
     @abstractmethod
     def fetch(self):
@@ -107,14 +105,15 @@ class ABCInput(ABC):
                 + self.__class__.__name__ + "'"
             )
             return False
-        self.__updateLastRow(raw_data.iloc[-1])
+        self.updateCurrentRow(raw_data.iloc[-1])
         return True
 
-    def read(self, since=None):
+    def read(self, since=None, till=None):
         """
         TODO
         """
-        till = du.getTime()
+        if till is None or till > du.getTime():
+            till = du.NOW
         if self.__cache_data is not None:
             raw_data = self.__cache_data.loc[since:till]
         else:
@@ -124,8 +123,6 @@ class ABCInput(ABC):
             if till is not None:
                 where += " & index < %d" % till
             raw_data = fu.read(self.__class__.__name__, where=where)
-        if not raw_data.empty:
-            self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
 
     def cache(self, since=None, data=None):
@@ -153,12 +150,29 @@ class ABCInput(ABC):
         du.to_timestamp(resampled_data)
         return resampled_data
 
-    def __updateLastRow(self, last_row):
-        if self.last_row is not None and last_row.name < self.last_row.name:
-            return
-        self.last_row = last_row
+    def updateCurrentRow(self, current_row=None, timestamp=None):
+        """TODO"""
         global LAST_WRITE
-        LAST_WRITE = max(LAST_WRITE, last_row.name)
+        if timestamp is not None:
+            loosy_interval = du.secToNano(12 * 3600)
+            current_row = self.read(
+                since=timestamp - loosy_interval,
+                till=timestamp + loosy_interval
+                # assuming there is one row per day?
+            )
+            if not current_row.empty:
+                current_row = current_row.iloc[0]
+        if not current_row.empty:
+            self.current_row = current_row
+            if timestamp is not None:
+                LAST_WRITE = max(LAST_WRITE, current_row.name)
+            else:
+                LAST_WRITE = current_row.name  # time travel
+        # else:  # spammy
+        #     log.warning(
+        #         "Couldn't update current row for database  '"
+        #         + self.__class__.__name__ + "'"
+        #     )
 
     def _resample(self, raw_data):
         """

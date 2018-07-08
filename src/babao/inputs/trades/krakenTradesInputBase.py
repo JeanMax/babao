@@ -26,10 +26,10 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
 
     def fetch(self):
         """TODO"""
-        if self.last_row is None:
+        if self.current_row is None:
             since = "0"  # TODO: do we really need allllll the data?
         else:
-            since = str(self.last_row.name)
+            since = str(self.current_row.name)
 
         res = self._doRequest("Trades", {
             "pair": self.__class__.pair,

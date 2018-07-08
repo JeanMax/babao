@@ -4,7 +4,6 @@ Handle money related stuffs
 """
 
 import sys
-from abc import abstractmethod
 
 import pandas as pd
 
@@ -17,18 +16,12 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 class ABCFakeLedgerInput(ABCLedgerInput):
     """TODO"""
 
-    @property
-    @abstractmethod
-    def asset(self):
-        """TODO"""
-        pass
-
     def __init__(self, log_to_file=True):
         ABCLedgerInput.__init__(self)
         self.log_to_file = log_to_file
-        if self.last_row is not None and log_to_file:
-            self.balance = self.last_row["balance"]
-            self.last_tx = self.last_row.name
+        if self.current_row is not None and log_to_file:
+            self.balance = self.current_row["balance"]
+            self.last_tx = self.current_row.name
         else:
             self.balance = 0
             self.last_tx = 0

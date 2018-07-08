@@ -73,6 +73,8 @@ def _init(args=None):
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
 
+    if args.func.__name__ in ["train", "backtest"]:
+        du.setTime(du.EPOCH)
     lm.initLedgers(
         simulate=args.func.__name__ != "wetRun",
         log_to_file=args.func.__name__ not in ["train", "backtest"]

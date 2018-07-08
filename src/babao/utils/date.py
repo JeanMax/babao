@@ -40,6 +40,13 @@ def to_timestamp(df):
     return df.value
 
 
+def to_str(t):
+    """TODO"""
+    if isinstance(t, (int, float)):
+        t = to_datetime(t)
+    return t.strftime("%Y/%m/%d %H:%M:%S")
+
+
 def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
     """Return the current timestamp (nanoseconds) minus the given parameters"""
 
@@ -66,4 +73,4 @@ def secToNano(sec):
 
 def nanoToSec(nano):
     """Convert nanoseconds to seconds"""
-    return nano / 10**9
+    return int(nano / 10**9)

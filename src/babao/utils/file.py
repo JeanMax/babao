@@ -42,7 +42,6 @@ def write(frame, df):
         ret = False
     finally:
         if LOCK is not None:
-            # STORE.flush(fsync=True)
             LOCK.release()
     return ret
 

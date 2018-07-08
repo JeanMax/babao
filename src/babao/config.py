@@ -8,11 +8,11 @@ from babao.utils.enum import QuoteEnum, CryptoEnum
 # globad vars
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
-API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
-LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
+API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")  # TODO: move
+LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")  # TODO: move?
 LOG_DIR = os.path.join(CONFIG_DIR, "log")
 DATA_DIR = os.path.join(CONFIG_DIR, "data")
-DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")
+DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")  # TODO: move
 
 # TODO: don't
 MODEL_MACD_FILE = os.path.join(DATA_DIR, "macd.pkl")

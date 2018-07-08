@@ -7,6 +7,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial, reduce
 from typing import List, Union
 
+import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.log as log
 import babao.inputs.inputBase as ib
@@ -63,3 +64,10 @@ def readInputs(input_list: Union[List[ib.ABCInput], None] = None, since=None):
         )
 
     return df
+
+
+def timeTravel(timestamp):
+    """TODO"""
+    du.setTime(timestamp)
+    for i in ib.INPUTS:
+        i.updateCurrentRow(timestamp=timestamp)

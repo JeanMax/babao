@@ -46,8 +46,8 @@ def _getData():
         # TODO: catch missing frame errors
         return False
 
-    since = K.last_row.name - du.secToNano(
-        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60
+    since = K.current_row.name - du.secToNano(
+        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
     )
     DATA = im.readInputs(
         [K, lm.LEDGERS[conf.QUOTE], lm.LEDGERS[CryptoEnum.XBT]],
@@ -216,7 +216,7 @@ def _initGraph():
         _updateGraph,
         fargs=(lines,),
         # blit=True,  # bug?
-        interval=3000
+        interval=10000
     )
     plt.show()  # this is blocking!
 

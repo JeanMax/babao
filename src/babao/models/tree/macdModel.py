@@ -91,7 +91,8 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         if first_price is None:
             first_price = price
 
-        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))  # TODO: eheheh this won't work :o
+        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))
+        # TODO: eheheh this won't work: use timeTravel
         lm.buyOrSell(macd * -1, CryptoEnum.XBT)
 
         if lm.gameOver():

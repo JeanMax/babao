@@ -54,14 +54,15 @@ class ABCTradesInput(ib.ABCInput):
 
     def fillMissing(self, resampled_data):
         """Fill missing values in ´resampled_data´"""
+        resampled_data["count"].fillna(0, inplace=True)
         resampled_data["volume"].fillna(0, inplace=True)
         resampled_data["vwap"].replace(np.inf, np.nan, inplace=True)
 
         i = resampled_data.index[0]
         for col in ["vwap", "close"]:
             if np.isnan(resampled_data.loc[i, col]):
-                if self.last_row is not None:
-                    resampled_data.loc[i, col] = self.last_row[col]
+                if self.current_row is not None:
+                    resampled_data.loc[i, col] = self.current_row.price
                 else:
                     resampled_data.loc[i, col] = 0
             resampled_data[col].ffill(inplace=True)

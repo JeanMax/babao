@@ -20,6 +20,7 @@ def wetRun(unused_args):
 
 def dryRun(unused_args):
     """Real-time bot simulation"""
+
     while not sig.EXIT:
         if im.fetchInputs():
             mm.predictModelsMaybeTrade(
@@ -37,7 +38,7 @@ def fetch(unused_args):
 
     while not sig.EXIT and not im.fetchInputs():
         last_fetch = min(
-            (i.last_row.name for i in ib.INPUTS if i.last_row is not None)
+            (i.current_row.name for i in ib.INPUTS if i.current_row is not None)
         )
         log.info("Fetched data till", du.to_datetime(last_fetch))
 
@@ -51,15 +52,17 @@ def backtest(args):
 
     It will call the trained strategies on each test data point
     """
-    start_time = time.time()
-
     now = du.getTime(force=True)
     epoch_to_now = now - du.EPOCH
     t = du.EPOCH + epoch_to_now / 2
+    log.info(
+        "Test data: from", du.to_str(t),
+        "to", du.to_str(now)
+    )
 
     while t < now and not lm.gameOver() and not sig.EXIT:
         t += du.secToNano(4 * 60 * 60)
-        du.setTime(t)
+        im.timeTravel(t)
         mm.predictModelsMaybeTrade(
             since=du.nowMinus(weeks=1)
             # TODO:  do not hardcode the lookback
@@ -70,10 +73,7 @@ def backtest(args):
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
         # + "% vs HODL: " + str(round(hodl)) + "%"
-    )
-    log.debug(
-        "Backtesting took "
-        + str(round(time.time() - start_time, 3)) + "s"
+        # TODO
     )
 
     # TODO: fix graph
@@ -87,11 +87,11 @@ def train(args):
     """Train the various (awesome) algorithms"""
     epoch_to_now = du.getTime(force=True) - du.EPOCH
     till = du.EPOCH + epoch_to_now / 2
-    du.setTime(till)
+    im.timeTravel(till)
 
     log.debug(
-        "Train data: from", du.to_datetime(du.EPOCH),
-        "to", du.to_datetime(till)
+        "Train data: from", du.to_str(du.EPOCH),
+        "to", du.to_str(till)
     )
     mm.trainModels(since=du.EPOCH)
 
@@ -100,10 +100,10 @@ def train(args):
         mm.plotModels(since=du.EPOCH)
 
         log.debug("Plot models on test data")
-        du.setTime(None)
+        im.timeTravel(du.getTime(force=True))  # back to the future
         log.debug(
-            "Test data: from", du.to_datetime(till),
-            "to", du.to_datetime(du.getTime())
+            "Test data: from", du.to_str(till),
+            "to", du.to_str(du.getTime())
         )
         mm.plotModels(since=till)
 

@@ -51,7 +51,7 @@ def initLedgers(simulate=True, log_to_file=True):
 
 def getBalanceInQuote(crypto_enum):
     """TODO"""
-    return LEDGERS[crypto_enum].balance * TRADES[crypto_enum].last_row.price
+    return LEDGERS[crypto_enum].balance * TRADES[crypto_enum].current_row.price
 
 
 def getGlobalBalanceInQuote():
@@ -131,7 +131,7 @@ def buy(crypto_enum, volume):
     LEDGERS[conf.QUOTE].buy(
         LEDGERS[crypto_enum],
         volume,
-        TRADES[crypto_enum].last_row.price,
+        TRADES[crypto_enum].current_row.price,
         timestamp
     )
     return True
@@ -145,7 +145,7 @@ def sell(crypto_enum, volume):
     LEDGERS[conf.QUOTE].sell(
         LEDGERS[crypto_enum],
         volume,
-        TRADES[crypto_enum].last_row.price,
+        TRADES[crypto_enum].current_row.price,
         timestamp
     )
     return True

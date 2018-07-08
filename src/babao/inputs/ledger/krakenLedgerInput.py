@@ -4,7 +4,6 @@ Handle money related stuffs
 """
 
 import sys
-from abc import abstractmethod
 
 import pandas as pd
 
@@ -16,12 +15,6 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
     """TODO"""
-
-    @property
-    @abstractmethod
-    def asset(self):
-        """TODO"""
-        pass
 
     def __init__(self, log_to_file=True):
         super().__init__()
@@ -37,10 +30,10 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         Return a tuple (numberOfTransactionFetched, str(last_timestamp))
         """
 
-        if self.last_row is None:
+        if self.current_row is None:
             since = "0"
         else:
-            since = str(du.nanoToSec(self.last_row.name))
+            since = str(du.nanoToSec(self.current_row.name))
 
         res = self._doRequest("Ledgers", {
             "start": since, "asset": self.asset.name
@@ -51,7 +44,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         if res["count"] == 0:
             self.up_to_date = True
             return None
-        elif res["count"] > 50 and self.last_row is None:
+        elif res["count"] > 50 and self.current_row is None:
             # kraken api is *STOOPID*: if we don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!

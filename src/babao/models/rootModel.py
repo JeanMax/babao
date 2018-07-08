@@ -38,7 +38,7 @@ class RootModel(ABCModel):
         last_pred = pred_df.iat[-1, 0]
         log.debug(
             "rootModel prediction:",
-            pd.to_datetime(du.getTime(), unit="ns"),
+            du.to_str(du.getTime()),
             last_pred, ActionEnum(round(last_pred))
         )
         pred_df = (
