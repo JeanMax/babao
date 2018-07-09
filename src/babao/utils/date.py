@@ -20,7 +20,7 @@ def getTime(force=False):
     return secToNano(time.time())
 
 
-def to_datetime(df):
+def toDatetime(df):
     """Convert the index of the given dataframe to datetime
     TODO"""
 
@@ -30,7 +30,7 @@ def to_datetime(df):
     return pd.to_datetime(df, unit="ns")
 
 
-def to_timestamp(df):
+def toTimestamp(df):
     """Convert the index of the given dataframe to nanoseconds
     TODO"""
 
@@ -40,10 +40,10 @@ def to_timestamp(df):
     return df.value
 
 
-def to_str(t):
+def toStr(t):
     """TODO"""
     if isinstance(t, (int, float)):
-        t = to_datetime(t)
+        t = toDatetime(t)
     return t.strftime("%Y/%m/%d %H:%M:%S")
 
 

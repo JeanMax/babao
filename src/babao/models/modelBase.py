@@ -50,7 +50,7 @@ class ABCModel(ABC):
 
     @property
     @abstractmethod
-    def needTraining(self) -> bool:
+    def need_training(self) -> bool:
         """TODO"""
         pass
 
@@ -104,7 +104,7 @@ class ABCModel(ABC):
 # def plotModel(model, full_data):
 #     """Plot the given model"""
 
-#     y = unscale(model.FEATURES)  # be sure it has been scale_fit'ed
+#     y = unscale(model.FEATURES)  # be sure it has been scaleFit'ed
 #     # ndim should be 2/3, otherwise you deserve a crash
 #     if y.ndim == 3:  # keras formated
 #         y = y.reshape((y.shape[0], y.shape[2]))
@@ -133,6 +133,6 @@ class ABCModel(ABC):
 #     for col in plot_data.columns:
 #         if col not in ["vwap", "p-buy", "p-sell", "y-buy", "y-sell"]:
 #             del plot_data[col]
-#     du.to_datetime(plot_data)
+#     du.toDatetime(plot_data)
 #     plot_data.fillna(0, inplace=True)
 #     return plot_data

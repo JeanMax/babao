@@ -103,7 +103,7 @@ coverage:
 	coverage run --source=$(NAME) setup.py test
 	coveralls
 
-check: flake lint pyre mypy test
+check: lint flake pyre mypy test
 
 $(DOC_BUILD_DIR):
 	sphinx-apidoc --ext-coverage -H $(NAME) -A $(AUTHOR) -V $(VERSION) -F -o $(DOC_DIR) $(SRC_DIR)

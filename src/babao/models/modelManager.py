@@ -17,8 +17,8 @@ def plotModels(since):
     Plot all models
     TODO
     """
-    rootModel = mb.MODELS[0]
-    rootModel.getPlotData(since).plot(title="root")
+    root_model = mb.MODELS[0]
+    root_model.getPlotData(since).plot(title="root")
 
 
 def trainModels(since):
@@ -27,7 +27,7 @@ def trainModels(since):
     TODO
     """
     for model in mb.MODELS:
-        if model.needTraining:
+        if model.need_training:
             score = model.train(since)
             log.debug("Score:", score)
             if score:
@@ -39,8 +39,8 @@ def predictModelsMaybeTrade(since):
     """
     TODO
     """
-    rootModel = mb.MODELS[0]
-    pred_df = rootModel.predict(since)
+    root_model = mb.MODELS[0]
+    pred_df = root_model.predict(since)
     trade_enum_val = pred_df.iat[-1, 0]
     if not trade_enum_val:
         return False

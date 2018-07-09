@@ -24,7 +24,7 @@ def resampleSerie(s):
     # TODO: would be nice to do the base init once for all features
     # (ensure sync and save some computing)
     # also don't convert date or do it in utils.date
-    base = du.to_datetime(LAST_WRITE)
+    base = du.toDatetime(LAST_WRITE)
     base = (base.minute + (base.second + 1) / 60) % 60
     return s.resample(
         str(conf.TIME_INTERVAL) + "Min",
@@ -143,11 +143,11 @@ class ABCInput(ABC):
         """
         if raw_data.empty:
             return pd.DataFrame(columns=self.resampled_columns)
-        du.to_datetime(raw_data)
+        du.toDatetime(raw_data)
         resampled_data = self._resample(raw_data)
         resampled_data = self.fillMissing(resampled_data)
-        du.to_timestamp(raw_data)
-        du.to_timestamp(resampled_data)
+        du.toTimestamp(raw_data)
+        du.toTimestamp(resampled_data)
         return resampled_data
 
     def updateCurrentRow(self, current_row=None, timestamp=None):

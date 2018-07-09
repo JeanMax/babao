@@ -23,11 +23,11 @@ from babao.utils.enum import CryptoEnum
 K = None
 DATA = None
 INDICATORS_COLUMNS = [
-    "SMA_KrakenTradesXXBTZEURInput-vwap_9",
-    "SMA_KrakenTradesXXBTZEURInput-vwap_26",
-    "SMA_KrakenTradesXXBTZEURInput-vwap_77",
-    "SMA_KrakenTradesXXBTZEURInput-volume_26",
-    "SMA_KrakenTradesXXBTZEURInput-volume_77",
+    "sma_KrakenTradesXXBTZEURInput-vwap_9",
+    "sma_KrakenTradesXXBTZEURInput-vwap_26",
+    "sma_KrakenTradesXXBTZEURInput-vwap_77",
+    "sma_KrakenTradesXXBTZEURInput-volume_26",
+    "sma_KrakenTradesXXBTZEURInput-volume_77",
 ]  # TODO :o
 MAX_LOOK_BACK = 77
 
@@ -54,7 +54,7 @@ def _getData():
         since
     )
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
-    DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.MACD(
+    DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
         DATA["KrakenTradesXXBTZEURInput-vwap"],
         macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
     )
@@ -62,7 +62,7 @@ def _getData():
     DATA["bal"] = DATA["FakeLedgerEURInput-balance"] \
         + DATA["FakeLedgerXBTInput-balance"] \
         * DATA["KrakenTradesXXBTZEURInput-close"]
-    du.to_datetime(DATA)
+    du.toDatetime(DATA)
 
     return True
 

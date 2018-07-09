@@ -26,7 +26,7 @@ class RootModel(ABCModel):
     dependencies = [
         ExtremaModel,
     ]
-    needTraining = False
+    need_training = False
 
     def predict(self, since):
         """TODO"""
@@ -38,7 +38,7 @@ class RootModel(ABCModel):
         last_pred = pred_df.iat[-1, 0]
         log.debug(
             "rootModel prediction:",
-            du.to_str(du.getTime()),
+            du.toStr(du.getTime()),
             last_pred, ActionEnum(round(last_pred))
         )
         pred_df = (

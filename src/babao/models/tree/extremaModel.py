@@ -29,13 +29,13 @@ LOOKBACK = 47  # TODO: nice one
 Y_LABELS = ["buy", "hold", "sell"]
 
 
-def _getTradeData(krakenTradesInput, since):
+def _getTradeData(kraken_trades_input, since):
     """TODO"""
-    trade_data = krakenTradesInput.read(since=since)
-    trade_data = krakenTradesInput.resample(trade_data)
+    trade_data = kraken_trades_input.read(since=since)
+    trade_data = kraken_trades_input.resample(trade_data)
     trade_data = trade_data.loc[:, ["vwap", "volume"]]
-    trade_data["vwap"] = Scaler().scale_fit(trade_data["vwap"])
-    trade_data["volume"] = Scaler().scale_fit(trade_data["volume"])
+    trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
+    trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
     # TODO: save scalers
     return trade_data
 
@@ -43,8 +43,8 @@ def _getTradeData(krakenTradesInput, since):
 def _prepareFeatures(trade_data):
     """Prepare features for train/predict"""
     indic_data = indic.get(trade_data, [
-        "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
-        "SMA_volume_26", "SMA_volume_77",
+        "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
+        "sma_volume_26", "sma_volume_77",
     ]).dropna()
     return indic_data
 
@@ -71,7 +71,7 @@ class ExtremaModel(ABCModel):
     """TODO"""
 
     dependencies = [KrakenTradesXXBTZEURInput]
-    needTraining = True
+    need_training = True
 
     def predict(self, since):
         """TODO"""
@@ -110,7 +110,7 @@ class ExtremaModel(ABCModel):
         pred_df.index = plot_data.index
         plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
         plot_data["target"] = targets.values / 3
-        du.to_datetime(plot_data)
+        du.toDatetime(plot_data)
         return plot_data
 
     def save(self):

@@ -30,9 +30,9 @@ REQUIRED_COLUMNS = [
     # "open",
 ]
 INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77",
-    "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
-    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
+    "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
+    "sma_volume_9", "sma_volume_26", "sma_volume_77",
+    "macd_vwap_9_26_10", "macd_vwap_26_77_10"
 ]
 
 MIN_TRANSACTION_PERCENT = 5
@@ -80,7 +80,7 @@ def prepare(full_data, train_mode=False):
             del FEATURES[c]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS)
-    FEATURES = modelHelper.scale_fit(FEATURES)
+    FEATURES = modelHelper.scaleFit(FEATURES)
     FEATURES = _addLookbacks(FEATURES.dropna().values)
 
     global MAX_XP
@@ -223,7 +223,7 @@ def train():
 
     for e in range(EPOCHS):
         loss = 0.
-        rewardTotal = 0
+        reward_total = 0
         price = -42
         feature = None
         game_over = False
@@ -250,7 +250,7 @@ def train():
                     log.info("expected_reward", expected_reward)
 
             reward = _buyOrSell(action, price, i)
-            rewardTotal += reward
+            reward_total += reward
 
             _saveExperience([feature, action, reward, next_feature, game_over])
             inputs, targets = _getBatch()
@@ -267,7 +267,7 @@ def train():
         log.debug(
             "Epoch", str(e + 1) + "/" + str(EPOCHS),
             "- loss:", round(loss, 4),
-            "- rewardTotal:", round(rewardTotal, 4),
+            "- reward_total:", round(reward_total, 4),
             "- score:", int(score - hodl),
             "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
         )
@@ -296,22 +296,22 @@ def _mergeCategories(arr):
     return (df["sell"] - df["buy"]).values
 
 
-def predict(X=None):
+def predict(features=None):
     """
     Call predict on the current ´MODEL´
 
     Format the result as values between -1 (buy) and 1 (sell))
     """
 
-    # TODO: or just this? np.argmax(MODEL.predict(X))
-    if X is None:
-        X = FEATURES
+    # TODO: or just this? np.argmax(MODEL.predict(features))
+    if features is None:
+        features = FEATURES
 
-    if len(X) == 1:
-        X = np.array([X])
+    if len(features) == 1:
+        features = np.array([features])
 
     return _mergeCategories(MODEL.predict_proba(
-        np.reshape(X, (X.shape[0], X.shape[2])),
-        batch_size=X.shape[0],
+        np.reshape(features, (features.shape[0], features.shape[2])),
+        batch_size=features.shape[0],
         # verbose=modelHelper.getVerbose()
     ))

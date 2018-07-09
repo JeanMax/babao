@@ -40,7 +40,7 @@ def fetch(unused_args):
         last_fetch = min(
             (i.current_row.name for i in ib.INPUTS if i.current_row is not None)
         )
-        log.info("Fetched data till", du.to_datetime(last_fetch))
+        log.info("Fetched data till", du.toDatetime(last_fetch))
 
     if not sig.EXIT:
         log.info("Database up to date!")
@@ -56,8 +56,8 @@ def backtest(args):
     epoch_to_now = now - du.EPOCH
     t = du.EPOCH + epoch_to_now / 2
     log.info(
-        "Test data: from", du.to_str(t),
-        "to", du.to_str(now)
+        "Test data: from", du.toStr(t),
+        "to", du.toStr(now)
     )
 
     while t < now and not lm.gameOver() and not sig.EXIT:
@@ -90,8 +90,8 @@ def train(args):
     im.timeTravel(till)
 
     log.debug(
-        "Train data: from", du.to_str(du.EPOCH),
-        "to", du.to_str(till)
+        "Train data: from", du.toStr(du.EPOCH),
+        "to", du.toStr(till)
     )
     mm.trainModels(since=du.EPOCH)
 
@@ -102,8 +102,8 @@ def train(args):
         log.debug("Plot models on test data")
         im.timeTravel(du.getTime(force=True))  # back to the future
         log.debug(
-            "Test data: from", du.to_str(till),
-            "to", du.to_str(du.getTime())
+            "Test data: from", du.toStr(till),
+            "to", du.toStr(du.getTime())
         )
         mm.plotModels(since=till)
 

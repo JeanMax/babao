@@ -23,9 +23,9 @@ REQUIRED_COLUMNS = [
     # "close", "open",
 ]
 INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
-    # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
-    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
+    "sma_vwap_9", "sma_vwap_26", "sma_vwap_77", "sma_vwap_167",
+    # "sma_volume_9", "sma_volume_26", "sma_volume_77",
+    "macd_vwap_9_26_10", "macd_vwap_26_77_10"
 ]
 
 BATCH_SIZE = 1
@@ -63,7 +63,7 @@ def _prepareFeatures(full_data, lookback):
             del FEATURES[c]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = modelHelper.scale_fit(FEATURES)
+    FEATURES = modelHelper.scaleFit(FEATURES)
     FEATURES = _addLookbacks(FEATURES, lookback)
     FEATURES = _reshape(FEATURES.values)
 
@@ -205,21 +205,21 @@ def _mergeCategories(arr):
     return (df["sell"] - df["buy"]).values
 
 
-def predict(X=None):
+def predict(features=None):
     """
     Call predict on the current ´MODEL´
 
     Format the result as values between -1 (buy) and 1 (sell))
     """
 
-    if X is None:
-        X = FEATURES
+    if features is None:
+        features = FEATURES
 
-    if len(X) == 1:
-        X = np.array([X])
+    if len(features) == 1:
+        features = np.array([features])
 
     return _mergeCategories(MODEL.predict_proba(
-        X,
+        features,
         batch_size=BATCH_SIZE,
         # verbose=modelHelper.getVerbose()
     ))

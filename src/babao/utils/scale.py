@@ -31,7 +31,7 @@ class Scaler:
             + self.scale_min
         )
 
-    def scale_fit(self, arr):
+    def scaleFit(self, arr):
         """Scale n Fit"""
         self.fit(arr)
         return self.scale(arr)
