@@ -42,7 +42,7 @@ def toTimestamp(df):
 
 def toStr(t):
     """TODO"""
-    if isinstance(t, (int, float)):
+    if not isinstance(t, pd.Timestamp):
         t = toDatetime(t)
     return t.strftime("%Y/%m/%d %H:%M:%S")
 

@@ -9,6 +9,7 @@ import babao.inputs.inputManager as im
 import babao.inputs.inputBase as ib
 import babao.models.modelManager as mm
 import babao.utils.date as du
+import babao.utils.file as fu
 import babao.utils.log as log
 import babao.utils.signal as sig
 
@@ -20,7 +21,6 @@ def wetRun(unused_args):
 
 def dryRun(unused_args):
     """Real-time bot simulation"""
-
     while not sig.EXIT:
         if im.fetchInputs():
             mm.predictModelsMaybeTrade(
@@ -30,19 +30,15 @@ def dryRun(unused_args):
 
 def fetch(unused_args):
     """Fetch raw trade data since the beginning of times"""
-    if os.path.isfile(conf.DB_FILE):
-        # os.remove(conf.DB_FILE)  # TODO: warn user / create backup?
-        log.warning(
-            "Database file already exists (" + conf.DB_FILE + ")."
-        )
-
     while not sig.EXIT and not im.fetchInputs():
         last_fetch = min(
             (i.current_row.name for i in ib.INPUTS if i.current_row is not None)
         )
-        log.info("Fetched data till", du.toDatetime(last_fetch))
+        log.info("Fetched data till", du.toStr(last_fetch))
 
     if not sig.EXIT:
+        log.debug("Fetching done, optimizing database...")
+        fu.maintenance()
         log.info("Database up to date!")
 
 
