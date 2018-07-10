@@ -26,40 +26,52 @@ class QuoteEnum(Enum):
 
 class CryptoEnum(Enum):
     """TODO"""
-    ETC = -1
-    ETH = -2
-    LTC = -3
-    REP = -4
-    XBT = -5
-    XLM = -6
-    XMR = -7
-    XRP = -8
-    ZEC = -9
+    BCH = -1
+    DASH = -2
+    EOS = -3
+    GNO = -4
+    ETC = -5
+    ETH = -6
+    LTC = -7
+    REP = -8
+    XBT = -9
+    XLM = -10
+    XMR = -11
+    XRP = -12
+    ZEC = -13
 
 
 class TradeEnum(Enum):
     """TODO"""
     HODL = 0
 
-    BUY_ETC = 1
-    BUY_ETH = 2
-    BUY_LTC = 3
-    BUY_REP = 4
-    BUY_XBT = 5
-    BUY_XLM = 6
-    BUY_XMR = 7
-    BUY_XRP = 8
-    BUY_ZEC = 9
+    BUY_BCH = 1
+    BUY_DASH = 2
+    BUY_EOS = 3
+    BUY_GNO = 4
+    BUY_ETC = 5
+    BUY_ETH = 6
+    BUY_LTC = 7
+    BUY_REP = 8
+    BUY_XBT = 9
+    BUY_XLM = 10
+    BUY_XMR = 11
+    BUY_XRP = 12
+    BUY_ZEC = 13
 
-    SELL_ETC = -1
-    SELL_ETH = -2
-    SELL_LTC = -3
-    SELL_REP = -4
-    SELL_XBT = -5
-    SELL_XLM = -6
-    SELL_XMR = -7
-    SELL_XRP = -8
-    SELL_ZEC = -9
+    SELL_BCH = -1
+    SELL_DASH = -2
+    SELL_EOS = -3
+    SELL_GNO = -4
+    SELL_ETC = -5
+    SELL_ETH = -6
+    SELL_LTC = -7
+    SELL_REP = -8
+    SELL_XBT = -9
+    SELL_XLM = -10
+    SELL_XMR = -11
+    SELL_XRP = -12
+    SELL_ZEC = -13
 
 
 def floatToTrade(f):

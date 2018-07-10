@@ -89,6 +89,34 @@ class KrakenTradesXZECZCADInput(ABCKrakenTradesInput):
 
 # ###################################### EUR ################################# #
 
+class KrakenTradesBCHEURInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "BCHEUR"
+    quote = QuoteEnum.EUR
+    crypto = CryptoEnum.BCH
+
+
+class KrakenTradesDASHEURInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "DASHEUR"
+    quote = QuoteEnum.EUR
+    crypto = CryptoEnum.DASH
+
+
+class KrakenTradesEOSEURInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "EOSEUR"
+    quote = QuoteEnum.EUR
+    crypto = CryptoEnum.EOS
+
+
+class KrakenTradesGNOEURInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "GNOEUR"
+    quote = QuoteEnum.EUR
+    crypto = CryptoEnum.GNO
+
+
 class KrakenTradesXETCZEURInput(ABCKrakenTradesInput):
     """TODO"""
     pair = "XETCZEUR"
@@ -283,6 +311,34 @@ class KrakenTradesXZECZJPYInput(ABCKrakenTradesInput):
 
 
 # ###################################### USD ################################# #
+
+class KrakenTradesBCHUSDInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "BCHUSD"
+    quote = QuoteEnum.USD
+    crypto = CryptoEnum.BCH
+
+
+class KrakenTradesDASHUSDInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "DASHUSD"
+    quote = QuoteEnum.USD
+    crypto = CryptoEnum.DASH
+
+
+class KrakenTradesEOSUSDInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "EOSUSD"
+    quote = QuoteEnum.USD
+    crypto = CryptoEnum.EOS
+
+
+class KrakenTradesGNOUSDInput(ABCKrakenTradesInput):
+    """TODO"""
+    pair = "GNOUSD"
+    quote = QuoteEnum.USD
+    crypto = CryptoEnum.GNO
+
 
 class KrakenTradesXETCZUSDInput(ABCKrakenTradesInput):
     """TODO"""
