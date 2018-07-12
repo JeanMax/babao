@@ -13,10 +13,12 @@ this could be used for later indexing?
 """
 
 from abc import abstractmethod
+from typing import Union
+
 import pandas as pd
 
-from babao.inputs.inputBase import ABCInput
-import babao.inputs.inputHelper as ih
+from babao.inputs.inputBase import ABCInput, resampleSerie
+from babao.utils.enum import CryptoEnum, QuoteEnum
 
 
 class ABCLedgerInput(ABCInput):
@@ -31,23 +33,23 @@ class ABCLedgerInput(ABCInput):
 
     @property
     @abstractmethod
-    def asset(self):
+    def asset(self) -> Union[CryptoEnum, QuoteEnum]:
         """TODO"""
         pass
 
     def __init__(self):
-        super().__init__()
+        ABCInput.__init__(self)
         self.verbose = True
 
     def _resample(self, raw_data):
         """TODO"""
-        resampled_data = ih.resampleSerie(raw_data["balance"]).last()
+        resampled_data = resampleSerie(raw_data["balance"]).last()
         return pd.DataFrame(
             resampled_data,
             columns=self.__class__.resampled_columns
         )
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """TODO"""
         resampled_data["balance"].ffill(inplace=True)
         resampled_data["balance"].fillna(0, inplace=True)

@@ -3,13 +3,13 @@ TODO
 """
 
 from abc import abstractmethod
+
 import numpy as np
 
-from babao.inputs.inputBase import ABCInput
-import babao.inputs.inputHelper as ih
+import babao.inputs.inputBase as ib
 
 
-class ABCTradesInput(ABCInput):
+class ABCTradesInput(ib.ABCInput):
     """Base class for any kraken trades input"""
 
     raw_columns = [
@@ -39,12 +39,12 @@ class ABCTradesInput(ABCInput):
 
     def _resample(self, raw_data):
         """TODO"""
-        p = ih.resampleSerie(raw_data["price"])
+        p = ib.resampleSerie(raw_data["price"])
         resampled_data = p.ohlc()
 
         # tmp var for ordering
-        v = ih.resampleSerie(raw_data["volume"]).sum()
-        resampled_data["vwap"] = ih.resampleSerie(
+        v = ib.resampleSerie(raw_data["volume"]).sum()
+        resampled_data["vwap"] = ib.resampleSerie(
             raw_data["price"] * raw_data["volume"]
         ).sum() / v
         resampled_data["volume"] = v
@@ -52,16 +52,17 @@ class ABCTradesInput(ABCInput):
 
         return resampled_data
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """Fill missing values in ´resampled_data´"""
+        resampled_data["count"].fillna(0, inplace=True)
         resampled_data["volume"].fillna(0, inplace=True)
         resampled_data["vwap"].replace(np.inf, np.nan, inplace=True)
 
         i = resampled_data.index[0]
         for col in ["vwap", "close"]:
             if np.isnan(resampled_data.loc[i, col]):
-                if self.last_row is not None:
-                    resampled_data.loc[i, col] = self.last_row[col]
+                if self.current_row is not None:
+                    resampled_data.loc[i, col] = self.current_row.price
                 else:
                     resampled_data.loc[i, col] = 0
             resampled_data[col].ffill(inplace=True)

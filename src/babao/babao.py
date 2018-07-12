@@ -20,16 +20,18 @@ Why does this file exist, and why not put this in __main__?
 # import babao; args = babao.babao._init(["-vv", "d"]); args.func(args)
 
 from multiprocessing import Process, Lock
+
 from prwlock import RWLock
 
-import babao.utils.log as log
+import babao.arg as arg
+import babao.config as conf
+import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.lock as lock
-# import babao.utils.signal as sig
-import babao.config as conf
-import babao.parser as pars
-import babao.inputs.ledger.ledgerManager as lm
-import babao.strategy.modelManager as modelManager
+import babao.utils.log as log
+import babao.utils.signal as sig
+from babao.models.rootModel import RootModel
 
 
 def _launchGraph():
@@ -57,28 +59,31 @@ def _kthxbye():
 def _init(args=None):
     """Initialize config and parse argv"""
 
-    args = pars.parseArgv(args)
+    args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
-
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
-    if args.func.__name__ not in ["train", "backtest"]:
+
+    if args.func.__name__ in ["train", "backtest"]:
+        du.setTime(du.EPOCH)
+    else:
         log.setLock(Lock())
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
-    lm.initLedger(
+
+    if args.func.__name__ in ["train", "backtest"]:
+        du.setTime(du.EPOCH)
+    lm.initLedgers(
         simulate=args.func.__name__ != "wetRun",
-        log_to_file=args.func.__name__ != "train",
+        log_to_file=args.func.__name__ not in ["train", "backtest"]
     )
-    try:
-        modelManager.loadModels()
-    except FileNotFoundError:
-        log.warning("No model found.")
-    if args.graph:
+    RootModel()
+
+    if args.graph and args.func.__name__ != "train":
         _launchGraph()
-    # sig.catchSignal()
+    sig.catchSignal()
 
     return args
 

@@ -1,32 +1,33 @@
 """Data visualisation inside"""
 
-import sys
 import os
+import sys
 import traceback
-import matplotlib.pyplot as plt
+
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor
 
-import babao.utils.signal as sig
+import babao.config as conf
+import babao.inputs.inputManager as im
+import babao.inputs.ledger.ledgerManager as lm
+import babao.models.tree.macdModel as macd  # TODO: this is weird
 import babao.utils.date as du
 import babao.utils.file as fu
-import babao.utils.log as log
-import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.models.macd as macd  # TODO: this is weird
-import babao.inputs.ledger.ledgerManager as lm
-import babao.inputs.inputHelper as ih
-from babao.utils.enum import CryptoEnum
+import babao.utils.log as log
+import babao.utils.signal as sig
 from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.utils.enum import CryptoEnum
 
 K = None
 DATA = None
 INDICATORS_COLUMNS = [
-    "SMA_KrakenTradesXXBTZEURInput-vwap_9",
-    "SMA_KrakenTradesXXBTZEURInput-vwap_26",
-    "SMA_KrakenTradesXXBTZEURInput-vwap_77",
-    "SMA_KrakenTradesXXBTZEURInput-volume_26",
-    "SMA_KrakenTradesXXBTZEURInput-volume_77",
+    "sma_KrakenTradesXXBTZEURInput-vwap_9",
+    "sma_KrakenTradesXXBTZEURInput-vwap_26",
+    "sma_KrakenTradesXXBTZEURInput-vwap_77",
+    "sma_KrakenTradesXXBTZEURInput-volume_26",
+    "sma_KrakenTradesXXBTZEURInput-volume_77",
 ]  # TODO :o
 MAX_LOOK_BACK = 77
 
@@ -45,15 +46,15 @@ def _getData():
         # TODO: catch missing frame errors
         return False
 
-    since = K.last_row.name - du.secToNano(
-        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * 60 * 60
+    since = K.current_row.name - du.secToNano(
+        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
     )
-    DATA = ih.readInputs(
+    DATA = im.readInputs(
         [K, lm.LEDGERS[conf.QUOTE], lm.LEDGERS[CryptoEnum.XBT]],
         since
     )
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
-    DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.MACD(
+    DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
         DATA["KrakenTradesXXBTZEURInput-vwap"],
         macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
     )
@@ -61,7 +62,7 @@ def _getData():
     DATA["bal"] = DATA["FakeLedgerEURInput-balance"] \
         + DATA["FakeLedgerXBTInput-balance"] \
         * DATA["KrakenTradesXXBTZEURInput-close"]
-    du.to_datetime(DATA)
+    du.toDatetime(DATA)
 
     return True
 
@@ -81,8 +82,6 @@ def _updateGraph(unused_counter, lines):
 
 def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
-
-    _getData()
 
     fig = plt.figure()
     axes = {}
@@ -217,7 +216,7 @@ def _initGraph():
         _updateGraph,
         fargs=(lines,),
         # blit=True,  # bug?
-        interval=3000
+        interval=10000
     )
     plt.show()  # this is blocking!
 
@@ -232,8 +231,9 @@ def initGraph(log_lock, file_lock):
     fu.closeStore()
     sig.catchSignal()
     try:
+        _getData()
         _initGraph()
-    except:  # pylint: disable=bare-except
+    except Exception:  # pylint: disable=broad-except
         traceback.print_exc()
         log.error("Something's bjorked in your graph :/")
     sys.exit(0)  # we exit explicitly in the subprocess, to avoid double clean

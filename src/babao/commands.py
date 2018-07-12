@@ -1,108 +1,45 @@
 """Commands launched by parseArgv"""
 
-import time
 import os
-from multiprocessing.dummy import Pool as ThreadPool
-import numpy as np
-import pandas as pd
+import time
 
-
-import babao.utils.signal as sig
-import babao.utils.log as log
-import babao.utils.date as du
-import babao.utils.file as fu
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
-import babao.strategy.strategy as strat
-import babao.strategy.modelManager as modelManager
-
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXETCZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXETHZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXLTCZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXREPZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXLMZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXMRZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXRPZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXZECZEURInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZCADInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZGBPInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZJPYInput
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZUSDInput
-
-K = [
-    KrakenTradesXXBTZEURInput(),
-    KrakenTradesXETCZEURInput(),
-    KrakenTradesXETHZEURInput(),
-    KrakenTradesXLTCZEURInput(),
-    KrakenTradesXREPZEURInput(),
-    KrakenTradesXXLMZEURInput(),
-    KrakenTradesXXMRZEURInput(),
-    KrakenTradesXXRPZEURInput(),
-    KrakenTradesXZECZEURInput(),
-    KrakenTradesXXBTZCADInput(),
-    KrakenTradesXXBTZGBPInput(),
-    KrakenTradesXXBTZJPYInput(),
-    KrakenTradesXXBTZUSDInput(),
-]
-
-TRAIN_SET_LEN = 850  # TODO: config-var?
-TEST_SET_LEN = 850  # TODO: config-var?
-NUMBER_OF_TRAIN_SETS = 36  # TODO: config-var?
+import babao.inputs.inputManager as im
+import babao.inputs.inputBase as ib
+import babao.models.modelManager as mm
+import babao.utils.date as du
+import babao.utils.file as fu
+import babao.utils.log as log
+import babao.utils.signal as sig
 
 
-def _getData():
-    """Return the whole dataset splitted in two parts: (train, test)"""
-
-    full_data = K[0].resample(K[0].read())
-    return full_data[:-TEST_SET_LEN], full_data[-TEST_SET_LEN:]
-
-
-def wetRun(args):
+def wetRun(unused_args):
     """Dummy"""
     print("Sorry, this is not implemented yet :/")
 
 
-def dryRun(args):
+def dryRun(unused_args):
     """Real-time bot simulation"""
-
-    pool = ThreadPool(
-        initializer=lambda x, y: [log.setLock(x), fu.setLock(y)],
-        initargs=(log.LOCK, fu.LOCK)
-    )
     while not sig.EXIT:
-        fetched_data = pool.map(lambda inp: inp.fetch(), K)
-        for i, unused in enumerate(fetched_data):
-            K[i].write(fetched_data[i])
-
-        # TODO:  do not hardcode the lookback
-        fresh_data = K[0].resample(K[0].read(since=du.nowMinus(weeks=1)))
-        if not fresh_data.empty:
-            modelManager.prepareModels(fresh_data)
-            timestamp = fresh_data.index[-1]
-            price = fresh_data.at[timestamp, "close"]
-            strat.analyse(
-                feature_index=-1,  # there should be only one feature
-                price=price,
-                timestamp=timestamp
+        if im.fetchInputs():
+            mm.predictModelsMaybeTrade(
+                since=du.nowMinus(weeks=1)  # TODO: do not hardcode the lookback
             )
-    pool.close()
-    pool.join()
 
 
-def fetch(args):
+def fetch(unused_args):
     """Fetch raw trade data since the beginning of times"""
-
-    for f in [conf.DB_FILE]:
-        if os.path.isfile(f):
-            # os.remove(f)  # TODO: warn user / create backup?
-            log.warning("Database file already exists (" + f + ").")
-
-    while not sig.EXIT:
-        K[0].write(K[0].fetch())
-        log.debug(
-            "Fetched data till " + pd.to_datetime(K[0].last_row.name, unit="ns")
+    while not sig.EXIT and not im.fetchInputs():
+        last_fetch = min(
+            (i.current_row.name for i in ib.INPUTS if i.current_row is not None)
         )
+        log.info("Fetched data till", du.toStr(last_fetch))
+
+    if not sig.EXIT:
+        log.debug("Fetching done, optimizing database...")
+        fu.maintenance()
+        log.info("Database up to date!")
 
 
 def backtest(args):
@@ -111,37 +48,31 @@ def backtest(args):
 
     It will call the trained strategies on each test data point
     """
+    now = du.getTime(force=True)
+    epoch_to_now = now - du.EPOCH
+    t = du.EPOCH + epoch_to_now / 2
+    log.info(
+        "Test data: from", du.toStr(t),
+        "to", du.toStr(now)
+    )
 
-    big_fat_data = _getData()[1]
-    modelManager.prepareModels(big_fat_data)
-    big_fat_data_index = big_fat_data.index.values
-    big_fat_data_prices = big_fat_data["close"].values
-    del big_fat_data
-
-    start_time = time.time()
-
-    # pylint: disable=consider-using-enumerate
-    for i in range(len(big_fat_data_index)):
-        strat.analyse(
-            feature_index=i,
-            price=big_fat_data_prices[i],
-            timestamp=big_fat_data_index[i]
+    while t < now and not lm.gameOver() and not sig.EXIT:
+        t += du.secToNano(4 * 60 * 60)
+        im.timeTravel(t)
+        mm.predictModelsMaybeTrade(
+            since=du.nowMinus(weeks=1)
+            # TODO:  do not hardcode the lookback
         )
-        if sig.EXIT:
-            return
 
-    price = big_fat_data_prices[-1]
     score = lm.getGlobalBalanceInQuote()
-    hodl = price / big_fat_data_prices[0] * 100
+    # hodl = price / big_fat_data_prices[0] * 100
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
-        + "% vs HODL: " + str(round(hodl)) + "%"
-    )
-    log.debug(
-        "Backtesting took "
-        + str(round(time.time() - start_time, 3)) + "s"
+        # + "% vs HODL: " + str(round(hodl)) + "%"
+        # TODO
     )
 
+    # TODO: fix graph
     if args.graph:
         # TODO: exit if graph is closed
         while not sig.EXIT:
@@ -150,30 +81,30 @@ def backtest(args):
 
 def train(args):
     """Train the various (awesome) algorithms"""
+    epoch_to_now = du.getTime(force=True) - du.EPOCH
+    till = du.EPOCH + epoch_to_now / 2
+    im.timeTravel(till)
 
-    train_data, test_data = _getData()
-
-    splits_size = int(len(train_data) / TRAIN_SET_LEN)
-    splits = np.array_split(train_data, splits_size)
-
-    start = splits_size - NUMBER_OF_TRAIN_SETS
-    if start < 0:
-        start = 0
-    for i in range(start, splits_size):
-        log.debug(
-            "Using train set", i + 1, "/", splits_size,
-            "- set length:", len(splits[i])
-        )
-
-        modelManager.prepareModels(splits[i], train_mode=True)
-        modelManager.trainModels()
-
-        if args.graph:
-            modelManager.plotModels(splits[i])
+    log.debug(
+        "Train data: from", du.toStr(du.EPOCH),
+        "to", du.toStr(till)
+    )
+    mm.trainModels(since=du.EPOCH)
 
     if args.graph:
-        modelManager.prepareModels(test_data, train_mode=False)
-        modelManager.plotModels(test_data)
+        log.debug("Plot models on train data")
+        mm.plotModels(since=du.EPOCH)
 
+        log.debug("Plot models on test data")
+        im.timeTravel(du.getTime(force=True))  # back to the future
+        log.debug(
+            "Test data: from", du.toStr(till),
+            "to", du.toStr(du.getTime())
+        )
+        mm.plotModels(since=till)
+
+    log.debug("Job done!")
+
+    if args.graph:
         import matplotlib.pyplot as plt
         plt.show()

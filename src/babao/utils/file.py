@@ -15,10 +15,18 @@ def setLock(lock):
 def initStore(filename):
     """TODO"""
     global STORE
-    STORE = pd.HDFStore(filename)
-    # complevel=9, complib='blosc'
+    STORE = pd.HDFStore(filename)  # complevel=9, complib='blosc'
+
+
+def maintenance():
+    """TODO"""
     for k in STORE.keys():
-        STORE.create_table_index(k, optlevel=9, kind='full')  # sorry :D
+        df = STORE.get(k)
+        if not df.index.is_monotonic_increasing:
+            print(k, "is NOT sorted!!!!") # DEBUG
+            df.sort_index(inplace=True)
+            STORE.append(k, df, append=False)  # I *love* this argument
+        STORE.create_table_index(k, optlevel=9, kind='full')
 
 
 def closeStore():
@@ -42,7 +50,6 @@ def write(frame, df):
         ret = False
     finally:
         if LOCK is not None:
-            # STORE.flush(fsync=True)
             LOCK.release()
     return ret
 

@@ -3,13 +3,35 @@ TODO
 """
 
 from abc import ABC, abstractmethod
+from typing import List
+
 import pandas as pd
 
-import babao.utils.file as fu
+import babao.config as conf
 import babao.utils.date as du
+import babao.utils.file as fu
 import babao.utils.log as log
 
+INPUTS = []  # type: List[ABCInput]
 LAST_WRITE = 0  # TODO: this is a stupid idea, bugs incoming!
+
+
+def resampleSerie(s):
+    """
+    Call Serie.resample on s with preset parameters
+    (the serie's index must be datetime)
+    """
+    # TODO: would be nice to do the base init once for all features
+    # (ensure sync and save some computing)
+    # also don't convert date or do it in utils.date
+    base = du.toDatetime(LAST_WRITE)
+    base = (base.minute + (base.second + 1) / 60) % 60
+    return s.resample(
+        str(conf.TIME_INTERVAL) + "Min",
+        closed="right",
+        label="right",
+        base=base
+    )
 
 
 class ABCInput(ABC):
@@ -26,36 +48,35 @@ class ABCInput(ABC):
 
     And eventually: (if you want self.resample to works)
     * _resample : self -> DataFrame -> DataFrame
-    * _fillMissing : self -> DataFrame -> DataFrame
+    * fillMissing : self -> DataFrame -> DataFrame
 
     (cf. specific method doc-string in this class)
     """
 
     @property
     @abstractmethod
-    def raw_columns(self):
+    def raw_columns(self) -> List[str]:
         """TODO"""
         pass
 
     @property
     @abstractmethod
-    def resampled_columns(self):
+    def resampled_columns(self) -> List[str]:
         """TODO"""
         pass
 
     def __init__(self):
         # TODO: msg, move to tests?
-        # assert list(self.last_row.keys()) == self.__class__.raw_columns
-        self.last_row = None
+        # assert list(self.current_row.keys()) == self.__class__.raw_columns
+        self.up_to_date = True
         self.__cache_data = None
+        self.current_row = None
         last_row = fu.getLastRows(self.__class__.__name__, 1)
         if not last_row.empty:
-            self.__updateLastRow(last_row.iloc[-1])
+            self.updateCurrentRow(last_row.iloc[-1])
+            # TODO: remove read once cache implemented
         else:
-            log.warning(
-                "Couldn't read from database frame '"
-                + self.__class__.__name__ + "'"
-            )
+            log.warning("Database '" + self.__class__.__name__ + "' is emtpy")
 
     @abstractmethod
     def fetch(self):
@@ -84,13 +105,15 @@ class ABCInput(ABC):
                 + self.__class__.__name__ + "'"
             )
             return False
-        self.__updateLastRow(raw_data.iloc[-1])
+        self.updateCurrentRow(raw_data.iloc[-1])
         return True
 
     def read(self, since=None, till=None):
         """
         TODO
         """
+        if till is None or till > du.getTime():
+            till = du.NOW
         if self.__cache_data is not None:
             raw_data = self.__cache_data.loc[since:till]
         else:
@@ -100,17 +123,15 @@ class ABCInput(ABC):
             if till is not None:
                 where += " & index < %d" % till
             raw_data = fu.read(self.__class__.__name__, where=where)
-        if not raw_data.empty:
-            self.__updateLastRow(raw_data.iloc[-1])
         return raw_data
 
-    def cache(self, since=None, till=None, data=None):
+    def cache(self, since=None, data=None):
         """TODO"""
         if data is not None:
             self.__cache_data = data
         else:
             self.__cache_data = None
-            self.__cache_data = self.read(since, till)
+            self.__cache_data = self.read(since)
 
     def resample(self, raw_data):
         """
@@ -118,23 +139,40 @@ class ABCInput(ABC):
 
         add this to tests:
         assert list(raw_data.columns) == self.__class__.resampled_columns
-        assert isimplemented(_resample, _fillMissing)
+        assert isimplemented(_resample, fillMissing)
         """
         if raw_data.empty:
             return pd.DataFrame(columns=self.resampled_columns)
-        du.to_datetime(raw_data)
+        du.toDatetime(raw_data)
         resampled_data = self._resample(raw_data)
-        resampled_data = self._fillMissing(resampled_data)
-        du.to_timestamp(raw_data)
-        du.to_timestamp(resampled_data)
+        resampled_data = self.fillMissing(resampled_data)
+        du.toTimestamp(raw_data)
+        du.toTimestamp(resampled_data)
         return resampled_data
 
-    def __updateLastRow(self, last_row):
-        if self.last_row is not None and last_row.name < self.last_row.name:
-            return
-        self.last_row = last_row
+    def updateCurrentRow(self, current_row=None, timestamp=None):
+        """TODO"""
         global LAST_WRITE
-        LAST_WRITE = max(LAST_WRITE, last_row.name)
+        if timestamp is not None:
+            loosy_interval = du.secToNano(12 * 3600)
+            current_row = self.read(
+                since=timestamp - loosy_interval,
+                till=timestamp + loosy_interval
+                # assuming there is one row per day?
+            )
+            if not current_row.empty:
+                current_row = current_row.iloc[0]
+        if not current_row.empty:
+            self.current_row = current_row
+            if timestamp is not None:
+                LAST_WRITE = max(LAST_WRITE, current_row.name)
+            else:
+                LAST_WRITE = current_row.name  # time travel
+        # else:  # spammy
+        #     log.warning(
+        #         "Couldn't update current row for database  '"
+        #         + self.__class__.__name__ + "'"
+        #     )
 
     def _resample(self, raw_data):
         """
@@ -153,11 +191,11 @@ class ABCInput(ABC):
             % self.__class__.__name__
         )
 
-    def _fillMissing(self, resampled_data):
+    def fillMissing(self, resampled_data):
         """
         Fill missing values (np.nan/np.inf) in ´resampled_data´
         """
         raise NotImplementedError(
-            "Your Input class '%s' should implement a '_fillMissing' method :/"
+            "Your Input class '%s' should implement a 'fillMissing' method :/"
             % self.__class__.__name__
         )

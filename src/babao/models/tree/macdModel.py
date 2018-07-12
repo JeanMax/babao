@@ -1,19 +1,21 @@
 """
-Simple MACD based model,
+Simple macd based model,
 with a very elegant algorithm (aka: brute-force)
 """
 
 import pickle
+
 import numpy as np
 from sklearn.grid_search import ParameterGrid
 
-import babao.utils.log as log
-import babao.utils.date as du
 import babao.config as conf
-import babao.utils.indicators as indic
 import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.date as du
+import babao.utils.indicators as indic
+import babao.utils.log as log
 from babao.utils.enum import CryptoEnum
-# import babao.strategy.modelHelper as modelHelper
+
+# import babao.models.modelHelper as modelHelper
 
 MODEL = {"a": 46, "b": 75, "c": 22}
 FEATURES = None
@@ -47,9 +49,9 @@ def prepare(full_data, train_mode=False):
             del FEATURES_DF[c]
 
     # TODO: I'm not so sure about scaling
-    # FEATURES_DF = modelHelper.scale_fit(FEATURES_DF)
+    # FEATURES_DF = modelHelper.scaleFit(FEATURES_DF)
     if not train_mode:
-        FEATURES_DF["MACD"] = indic.MACD(
+        FEATURES_DF["macd"] = indic.macd(
             FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
         )
         FEATURES_DF.dropna(inplace=True)
@@ -59,7 +61,7 @@ def prepare(full_data, train_mode=False):
 
 
 def _play(look_back_a_delay, look_back_b_delay, signal_delay):
-    """Play an epoch with the given MACD parameters"""
+    """Play an epoch with the given macd parameters"""
 
     if log.VERBOSE >= 4:
         log.debug(
@@ -68,7 +70,7 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         )
 
     global FEATURES_DF
-    FEATURES_DF["MACD"] = indic.MACD(
+    FEATURES_DF["macd"] = indic.macd(
         FEATURES_DF["vwap"],
         look_back_a_delay,
         look_back_b_delay,
@@ -89,7 +91,8 @@ def _play(look_back_a_delay, look_back_b_delay, signal_delay):
         if first_price is None:
             first_price = price
 
-        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))  # TODO: eheheh this won't work :o
+        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))
+        # TODO: eheheh this won't work: use timeTravel
         lm.buyOrSell(macd * -1, CryptoEnum.XBT)
 
         if lm.gameOver():
@@ -166,17 +169,17 @@ def load():
             MODEL = pickle.load(f)
 
 
-def predict(X=None):
+def predict(features=None):
     """
     Call predict on the current ´MODEL´
 
     Format the result as values between -1 (buy) and 1 (sell))
     """
 
-    if X is None:
-        X = FEATURES
+    if features is None:
+        features = FEATURES
 
-    if len(X) == 1:
-        return X[0][1] * -1  # TODO
+    if len(features) == 1:
+        return features[0][1] * -1  # TODO
 
-    return np.delete(X, 0, 2).reshape(X.shape[0], ) * -1  # TODO
+    return np.delete(features, 0, 2).reshape(features.shape[0], ) * -1  # TODO

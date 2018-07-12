@@ -4,38 +4,32 @@ Handle money related stuffs
 """
 
 import sys
-from abc import abstractmethod
+
 import pandas as pd
 
 import babao.utils.date as du
 import babao.utils.log as log
-from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
+from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 
 class ABCFakeLedgerInput(ABCLedgerInput):
     """TODO"""
 
-    @property
-    @abstractmethod
-    def asset(self):
-        """TODO"""
-        pass
-
     def __init__(self, log_to_file=True):
-        super().__init__()
+        ABCLedgerInput.__init__(self)
         self.log_to_file = log_to_file
-        if self.last_row is not None:
-            self.balance = self.last_row["balance"]
-            self.last_tx = self.last_row.name
+        if self.current_row is not None and log_to_file:
+            self.balance = self.current_row["balance"]
+            self.last_tx = self.current_row.name
         else:
             self.balance = 0
             self.last_tx = 0
 
     def fetch(self):
-        pass  # we said fake
+        self.up_to_date = True  # we said fake
 
-    def __logTransaction(
+    def logTransaction(
             self, typ, volume, refid,
             fee=0, product=0, timestamp=None
     ):
@@ -98,14 +92,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
                 "@", int(price)
             )
 
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
             refid=refid,
             product=ledger.asset.value,
             timestamp=timestamp
         )
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
             refid=refid,
@@ -136,14 +130,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
                 "@", int(price)
             )
 
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.SELL.value,
             volume=-volume_spent,
             refid=refid,
             product=self.asset.value,
             timestamp=timestamp
         )
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.BUY.value,
             volume=volume_bought,
             refid=refid,
@@ -157,14 +151,20 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
-        self.__logTransaction(
+        if self.verbose:
+            log.info(
+                "Deposit ", round(volume, 4),
+                "from", ledger.asset.name,
+                "to", self.asset.name,
+            )
+        self.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
             refid=refid,
             product=ledger.asset.value,
             timestamp=timestamp
         )
-        ledger.__logTransaction(
+        ledger.logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
             refid=refid,
@@ -177,14 +177,20 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
-        ledger.__logTransaction(
+        if self.verbose:
+            log.info(
+                "Withdraw ", round(volume, 4),
+                "from", ledger.asset.name,
+                "to", self.asset.name,
+            )
+        ledger.logTransaction(
             typ=ActionEnum.WITHDRAW.value,
             volume=volume,
             refid=refid,
             product=self.asset.value,
             timestamp=timestamp
         )
-        self.__logTransaction(
+        self.logTransaction(
             typ=ActionEnum.DEPOSIT.value,
             volume=volume,
             refid=refid,

@@ -4,26 +4,21 @@ Handle money related stuffs
 """
 
 import sys
-from abc import abstractmethod
+
 import pandas as pd
 
 import babao.utils.date as du
-from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
+from babao.inputs.krakenInputBase import ABCKrakenInput
 from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
-from babao.inputs.krakenBase import ABCKrakenInput
+from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
     """TODO"""
 
-    @property
-    @abstractmethod
-    def asset(self):
-        """TODO"""
-        pass
-
-    def __init__(self):
+    def __init__(self, log_to_file=True):
         super().__init__()
+        self.log_to_file = log_to_file  # TODO: move that to ABCLedgerInput
         self.balance = 0  # TODO
 
     def fetch(self):
@@ -35,27 +30,30 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         Return a tuple (numberOfTransactionFetched, str(last_timestamp))
         """
 
-        if self.last_row is None:
+        if self.current_row is None:
             since = "0"
         else:
-            since = str(du.nanoToSec(self.last_row.name))
+            since = str(du.nanoToSec(self.current_row.name))
 
         res = self._doRequest("Ledgers", {
             "start": since, "asset": self.asset.name
         })
-        if res["count"] == 0:
+        if res is None:
+            self.up_to_date = False
             return None
-
-        if res["count"] > 50 and self.last_row is None:
-            # kraken api is *STOOPID*: if don't have the exact date of the
+        if res["count"] == 0:
+            self.up_to_date = True
+            return None
+        elif res["count"] > 50 and self.current_row is None:
+            # kraken api is *STOOPID*: if we don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!
-            self._sleep()
             res = self._doRequest("Ledgers", {
                 "ofs": res["count"] - 1, "asset": self.asset.name
             })  # first
 
         raw_ledger = pd.DataFrame(res["ledger"]).T
+        self.up_to_date = len(raw_ledger) != 50
         if raw_ledger.empty:
             return raw_ledger
 

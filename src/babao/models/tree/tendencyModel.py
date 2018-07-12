@@ -4,13 +4,12 @@ then classify them as 0 (hold), 1 (sell), 2 (buy)
 using a lstm neural network (keras)
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-import babao.utils.log as log
 import babao.config as conf
 import babao.utils.indicators as indic
-import babao.strategy.modelHelper as modelHelper
+import babao.utils.log as log
 
 MODEL = None
 FEATURES = None
@@ -24,9 +23,9 @@ REQUIRED_COLUMNS = [
     # "close", "open",
 ]
 INDICATORS_COLUMNS = [
-    "SMA_vwap_9", "SMA_vwap_26", "SMA_vwap_77", "SMA_vwap_167",
-    # "SMA_volume_9", "SMA_volume_26", "SMA_volume_77",
-    "MACD_vwap_9_26_10", "MACD_vwap_26_77_10"
+    "sma_vwap_9", "sma_vwap_26", "sma_vwap_77", "sma_vwap_167",
+    # "sma_volume_9", "sma_volume_26", "sma_volume_77",
+    "macd_vwap_9_26_10", "macd_vwap_26_77_10"
 ]
 
 BATCH_SIZE = 1
@@ -41,13 +40,13 @@ def _prepareFeatures(full_data, lookback):
     ´full_data´: cf. ´prepareModels´
     """
 
-    def _addLookbacks(df, lookback):
+    def _addLookbacks(df, look_back):
         """Add lookback(s) (shifted columns) to each df columns"""
 
-        for i in range(1, lookback + 1):
-            for c in df.columns:
-                if "lookback" not in c:
-                    df[c + "_lookback_" + str(i)] = df[c].shift(i)
+        for i in range(1, look_back + 1):
+            for col in df.columns:
+                if "lookback" not in col:
+                    df[col + "_lookback_" + str(i)] = df[col].shift(i)
         return df.dropna()
 
     def _reshape(arr):
@@ -64,7 +63,7 @@ def _prepareFeatures(full_data, lookback):
             del FEATURES[c]
 
     FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = modelHelper.scale_fit(FEATURES)
+    FEATURES = modelHelper.scaleFit(FEATURES)
     FEATURES = _addLookbacks(FEATURES, lookback)
     FEATURES = _reshape(FEATURES.values)
 
@@ -174,7 +173,7 @@ def train():
         batch_size=BATCH_SIZE,
         shuffle=False,
         verbose=modelHelper.getVerbose()
-    )   # TODO: make this interuptible
+    )
 
     # score = MODEL.evaluate(
     #     FEATURES, TARGETS,
@@ -206,21 +205,21 @@ def _mergeCategories(arr):
     return (df["sell"] - df["buy"]).values
 
 
-def predict(X=None):
+def predict(features=None):
     """
     Call predict on the current ´MODEL´
 
     Format the result as values between -1 (buy) and 1 (sell))
     """
 
-    if X is None:
-        X = FEATURES
+    if features is None:
+        features = FEATURES
 
-    if len(X) == 1:
-        X = np.array([X])
+    if len(features) == 1:
+        features = np.array([features])
 
     return _mergeCategories(MODEL.predict_proba(
-        X,
+        features,
         batch_size=BATCH_SIZE,
         # verbose=modelHelper.getVerbose()
     ))
