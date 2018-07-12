@@ -25,14 +25,22 @@ from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.models.modelBase import ABCModel
 from babao.utils.scale import Scaler
 
-LOOKBACK = 47  # TODO: nice one
+LOOKBACK = 6  # TODO: nice one
 Y_LABELS = ["buy", "hold", "sell"]
 
 
 def _getTradeData(kraken_trades_input, since):
     """TODO"""
     trade_data = kraken_trades_input.read(since=since)
+    log.debug(
+        "Read data from", du.toStr(trade_data.index[0]),
+        "to", du.toStr(trade_data.index[-1])
+    )
     trade_data = kraken_trades_input.resample(trade_data)
+    log.debug(
+        "Resampled data from", du.toStr(trade_data.index[0]),
+        "to", du.toStr(trade_data.index[-1])
+    )
     trade_data = trade_data.loc[:, ["vwap", "volume"]]
     trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
     trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
@@ -77,8 +85,9 @@ class ExtremaModel(ABCModel):
         """TODO"""
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data)
+        # TODO: scaling will be fucked up if there is not much data
         pred_df = pd.DataFrame(
-            self.knn.predict_proba(features),
+            self.model.predict_proba(features),
             columns=Y_LABELS
         )
         pred_df.index = trade_data[-len(pred_df):].index
@@ -93,8 +102,8 @@ class ExtremaModel(ABCModel):
         targets = targets[-len(features):]  # compensate features.dropna()
         features = features[LOOKBACK:-LOOKBACK]
         targets = targets[LOOKBACK:-LOOKBACK]
-        self.knn.fit(features, targets)
-        return self.knn.score(features, targets)
+        self.model.fit(features, targets)
+        return self.model.score(features, targets)
 
     def getPlotData(self, since):
         """TODO"""
@@ -103,7 +112,7 @@ class ExtremaModel(ABCModel):
         targets = _prepareTargets(trade_data, LOOKBACK)
         targets = targets[-len(features):]  # compensate features.dropna()
         pred_df = pd.DataFrame(
-            self.knn.predict_proba(features),
+            self.model.predict_proba(features),
             columns=Y_LABELS
         )
         plot_data = features.loc[:, ["vwap", "volume"]]
@@ -115,16 +124,16 @@ class ExtremaModel(ABCModel):
 
     def save(self):
         """TODO"""
-        joblib.dump(self.knn, conf.MODEL_EXTREMA_FILE)  # TODO: file
+        joblib.dump(self.model, conf.MODEL_EXTREMA_FILE)  # TODO: file
 
     # TODO: move to init?
     def load(self):
         """TODO"""
         try:
-            self.knn = joblib.load(conf.MODEL_EXTREMA_FILE)
+            self.model = joblib.load(conf.MODEL_EXTREMA_FILE)
         except OSError:
             # TODO: k
-            self.knn = neighbors.KNeighborsClassifier(
+            self.model = neighbors.KNeighborsClassifier(
                 n_neighbors=3,
                 weights="distance"
             )

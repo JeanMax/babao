@@ -2,7 +2,7 @@
 
 import os
 import sys
-import traceback
+# import traceback
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -17,10 +17,8 @@ import babao.utils.file as fu
 import babao.utils.indicators as indic
 import babao.utils.log as log
 import babao.utils.signal as sig
-from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.utils.enum import CryptoEnum
 
-K = None
 DATA = None
 INDICATORS_COLUMNS = [
     "sma_KrakenTradesXXBTZEURInput-vwap_9",
@@ -46,13 +44,16 @@ def _getData():
         # TODO: catch missing frame errors
         return False
 
-    since = K.current_row.name - du.secToNano(
+    inputs = [
+        lm.TRADES[CryptoEnum.XBT],
+        lm.LEDGERS[conf.QUOTE],
+        lm.LEDGERS[CryptoEnum.XBT]
+    ]
+    im.refreshInputs(inputs)
+    since = lm.TRADES[CryptoEnum.XBT].current_row.name - du.secToNano(
         (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
     )
-    DATA = im.readInputs(
-        [K, lm.LEDGERS[conf.QUOTE], lm.LEDGERS[CryptoEnum.XBT]],
-        since
-    )
+    DATA = im.readInputs(inputs, since)
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
         DATA["KrakenTradesXXBTZEURInput-vwap"],
@@ -216,7 +217,7 @@ def _initGraph():
         _updateGraph,
         fargs=(lines,),
         # blit=True,  # bug?
-        interval=10000
+        interval=5000
     )
     plt.show()  # this is blocking!
 
@@ -226,14 +227,14 @@ def initGraph(log_lock, file_lock):
 
     log.setLock(log_lock)
     fu.setLock(file_lock)
-    global K
-    K = KrakenTradesXXBTZEURInput()
     fu.closeStore()
     sig.catchSignal()
     try:
         _getData()
         _initGraph()
-    except Exception:  # pylint: disable=broad-except
-        traceback.print_exc()
-        log.error("Something's bjorked in your graph :/")
+    except Exception as e:
+        log.warning("Something's bjorked in your graph :/")
+        log.info("Try to run babao again with the env variable DEBUG_GRAPH set")
+        # traceback.print_exc()
+        raise e
     sys.exit(0)  # we exit explicitly in the subprocess, to avoid double clean

@@ -32,7 +32,6 @@ def maintenance():
 def closeStore():
     """TODO"""
     if STORE is not None and STORE.is_open:
-        STORE.flush(fsync=True)  # just being paranoid
         STORE.close()
 
 
@@ -63,6 +62,7 @@ def read(frame, where=None):
         LOCK.acquire_read()
     try:
         if not STORE.is_open:  # graph proc will close store, to avoid cache
+            STORE.flush(fsync=True)  # just being paranoid
             ret = pd.read_hdf(STORE.filename, frame, where=where)
         elif where is None:
             ret = STORE.get(frame)

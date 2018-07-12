@@ -1,6 +1,5 @@
 """Commands launched by parseArgv"""
 
-import os
 import time
 
 import babao.config as conf
@@ -24,12 +23,13 @@ def dryRun(unused_args):
     while not sig.EXIT:
         if im.fetchInputs():
             mm.predictModelsMaybeTrade(
-                since=du.nowMinus(weeks=1)  # TODO: do not hardcode the lookback
+                since=du.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
             )
 
 
 def fetch(unused_args):
     """Fetch raw trade data since the beginning of times"""
+    fu.maintenance()        # DEBUG
     while not sig.EXIT and not im.fetchInputs():
         last_fetch = min(
             (i.current_row.name for i in ib.INPUTS if i.current_row is not None)
@@ -49,19 +49,16 @@ def backtest(args):
     It will call the trained strategies on each test data point
     """
     now = du.getTime(force=True)
-    epoch_to_now = now - du.EPOCH
-    t = du.EPOCH + epoch_to_now / 2
+    t = du.getTime()
     log.info(
         "Test data: from", du.toStr(t),
         "to", du.toStr(now)
     )
-
     while t < now and not lm.gameOver() and not sig.EXIT:
-        t += du.secToNano(4 * 60 * 60)
+        t += du.secToNano(conf.TIME_INTERVAL * 60)  # TODO
         im.timeTravel(t)
         mm.predictModelsMaybeTrade(
-            since=du.nowMinus(weeks=1)
-            # TODO:  do not hardcode the lookback
+            since=du.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
         )
 
     score = lm.getGlobalBalanceInQuote()
@@ -81,13 +78,11 @@ def backtest(args):
 
 def train(args):
     """Train the various (awesome) algorithms"""
-    epoch_to_now = du.getTime(force=True) - du.EPOCH
-    till = du.EPOCH + epoch_to_now / 2
-    im.timeTravel(till)
+    im.timeTravel(ib.SPLIT_DATE)
 
     log.debug(
         "Train data: from", du.toStr(du.EPOCH),
-        "to", du.toStr(till)
+        "to", du.toStr(ib.SPLIT_DATE)
     )
     mm.trainModels(since=du.EPOCH)
 
@@ -98,10 +93,10 @@ def train(args):
         log.debug("Plot models on test data")
         im.timeTravel(du.getTime(force=True))  # back to the future
         log.debug(
-            "Test data: from", du.toStr(till),
+            "Test data: from", du.toStr(du.toStr(ib.SPLIT_DATE)),
             "to", du.toStr(du.getTime())
         )
-        mm.plotModels(since=till)
+        mm.plotModels(since=ib.SPLIT_DATE)
 
     log.debug("Job done!")
 

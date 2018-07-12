@@ -3,14 +3,16 @@
 import time
 import pandas as pd
 
-EPOCH = pd.Timestamp("2017-01-01").value
+# TODO: no hardcode: min(inputs.first_row)?
+
+EPOCH = pd.Timestamp("2017-06-27").value
 NOW = None
 
 
 def setTime(now):
     """TODO"""
     global NOW
-    NOW = now
+    NOW = int(now)
 
 
 def getTime(force=False):
@@ -42,6 +44,8 @@ def toTimestamp(df):
 
 def toStr(t):
     """TODO"""
+    if t is None:
+        return "None"
     if not isinstance(t, pd.Timestamp):
         t = toDatetime(t)
     return t.strftime("%Y/%m/%d %H:%M:%S")
@@ -66,9 +70,10 @@ def secToNano(sec):
     Convert seconds to nanoseconds
     Just trying to avoid float rounding...
     """
-    if isinstance(sec, (float, int)):
+    try:
         return int(sec * 1e6) * 1000
-    return (sec * 1e6).astype(int) * 1000
+    except TypeError:
+        return (sec * 1e6).astype(int) * 1000
 
 
 def nanoToSec(nano):

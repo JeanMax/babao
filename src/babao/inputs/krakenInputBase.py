@@ -35,7 +35,7 @@ class ABCKrakenInput(ABCInput):
 
     def __init__(self):
         ABCInput.__init__(self)
-        self.__tick = None
+        self._tick = None
         if API is None:
             _initAPI()
 
@@ -59,8 +59,8 @@ class ABCKrakenInput(ABCInput):
 
     def _sleep(self):
         """TODO"""
-        if self.__tick is not None:
-            delta = time.time() - self.__tick
+        if self._tick is not None:
+            delta = time.time() - self._tick
             log.debug(
                 "Request took " + str(round(delta, 3)) + "s ("
                 + self.__class__.__name__ + ")"
@@ -70,7 +70,7 @@ class ABCKrakenInput(ABCInput):
         delta = API_DELAY - delta
         if delta > 0:
             time.sleep(delta)
-        self.__tick = time.time()
+        self._tick = time.time()
 
     @abstractmethod
     def fetch(self):
