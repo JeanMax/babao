@@ -1,9 +1,7 @@
 """Commands launched by parseArgv"""
 
-import os
 import time
 
-import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
 import babao.inputs.inputManager as im
 import babao.inputs.inputBase as ib

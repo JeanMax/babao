@@ -55,7 +55,7 @@ else:
 
         install_requires=[
             # machine learning
-            'keras>=2.2.0',
+            'keras>=2.1.2',
             'tensorflow',  # >=1.8.0',
             # TODO: readthedocs prefers tensorflow-1.9.0rc1
             'scipy>=1.1.0',
@@ -65,7 +65,7 @@ else:
             # data handling
             'numpy>=1.14.5',
             'pandas>=0.23.1',
-            'tables>=3.4.4',
+            'tables>=3.4.2',
 
             # reader-writer lock
             'prwlock>=0.4.0',

@@ -70,38 +70,43 @@ def _prepareTargets(trade_data, lookback):
 class ExtremaModel(ABCModel):
     """TODO"""
 
-    dependencies = [KrakenTradesXXBTZEURInput]
+    dependencies_class = [KrakenTradesXXBTZEURInput]
     need_training = True
 
-    def predict(self, since):
+    def prepare(self, since, with_targets=False):
         """TODO"""
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data)
+        if not with_targets:
+            return features
+        targets = _prepareTargets(trade_data, LOOKBACK)
+        # compensate features.dropna()
+        targets = targets[-len(features):]
+        # remove un-label'd data
+        features = features[LOOKBACK:-LOOKBACK]
+        targets = targets[LOOKBACK:-LOOKBACK]
+        return features, targets
+
+    def predict(self, since):
+        """TODO"""
+        features = self.prepare(since)
         pred_df = pd.DataFrame(
             self.knn.predict_proba(features),
             columns=Y_LABELS
         )
-        pred_df.index = trade_data[-len(pred_df):].index
+        pred_df.index = features.index  # trade_data[-len(pred_df):] ???
         return pred_df
 
     def train(self, since):
         """TODO"""
         log.debug("Train extrema")
-        trade_data = _getTradeData(self.dependencies[0], since)
-        features = _prepareFeatures(trade_data)
-        targets = _prepareTargets(trade_data, LOOKBACK)
-        targets = targets[-len(features):]  # compensate features.dropna()
-        features = features[LOOKBACK:-LOOKBACK]
-        targets = targets[LOOKBACK:-LOOKBACK]
+        features, targets = self.prepare(since, with_targets=True)
         self.knn.fit(features, targets)
         return self.knn.score(features, targets)
 
-    def getPlotData(self, since):
+    def plot(self, since):
         """TODO"""
-        trade_data = _getTradeData(self.dependencies[0], since)
-        features = _prepareFeatures(trade_data)
-        targets = _prepareTargets(trade_data, LOOKBACK)
-        targets = targets[-len(features):]  # compensate features.dropna()
+        features, targets = self.prepare(since, with_targets=True)
         pred_df = pd.DataFrame(
             self.knn.predict_proba(features),
             columns=Y_LABELS
@@ -111,7 +116,7 @@ class ExtremaModel(ABCModel):
         plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
         plot_data["target"] = targets.values / 3
         du.toDatetime(plot_data)
-        return plot_data
+        plot_data.plot(title="Model Extrema")
 
     def save(self):
         """TODO"""

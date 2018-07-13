@@ -4,17 +4,22 @@ Buy/Sell strategy
 """
 
 import re
+from typing import Optional, Dict, Union, TYPE_CHECKING  # noqa: F401
 
 import babao.config as conf
 import babao.inputs.trades.krakenTradesInput as tra
 import babao.utils.date as du
 import babao.utils.log as log
-from babao.utils.enum import ActionEnum
+from babao.utils.enum import ActionEnum, CryptoEnum, QuoteEnum  # noqa: F401
 
 MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 
-LEDGERS = None
-TRADES = None  # TODO: all prices are going to be desync in simulation
+if TYPE_CHECKING:
+    from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput  # noqa: F401
+    ASSET_ENUM = Union["CryptoEnum", "QuoteEnum"]
+
+LEDGERS = None  # type: Optional[Dict[ASSET_ENUM, ABCLedgerInput]]
+TRADES = None  # type: Optional[Dict[CryptoEnum, ABCLedgerInput]]
 
 
 def initLedgers(simulate=True, log_to_file=True):

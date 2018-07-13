@@ -17,8 +17,9 @@ def plotModels(since):
     Plot all models
     TODO
     """
-    root_model = mb.MODELS[0]
-    root_model.getPlotData(since).plot(title="root")
+    for model in mb.MODELS:
+        if model.need_training:
+            model.plot(since)
 
 
 def trainModels(since):

@@ -91,7 +91,7 @@ lint:
 
 pyre:
     # TODO: debug cache, opt stubs import
-	$(PYRE) check 2>/dev/null | grep -v 'Undefined import \[21\]' || true
+	$(PYRE) check 2>/dev/null | grep -vE 'Undefined (import|attribute)' || true
 
 mypy:
 	$(MYPY)

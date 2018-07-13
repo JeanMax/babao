@@ -23,7 +23,7 @@ MIN_PROBA = 1e-2
 class RootModel(ABCModel):
     """TODO"""
 
-    dependencies = [
+    dependencies_class = [
         ExtremaModel,
     ]
     need_training = False
@@ -47,9 +47,9 @@ class RootModel(ABCModel):
         ).replace(0, ActionEnum.HODL.value)
         return cryptoAndActionTotrade(CryptoEnum.XBT.value, pred_df)
 
-    def getPlotData(self, since):
+    def plot(self, since):
         """TODO"""
-        return self.dependencies[0].getPlotData(since)
+        pass
 
     def train(self, since):
         """TODO"""

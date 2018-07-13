@@ -4,6 +4,7 @@ Handle money related stuffs
 """
 
 import sys
+from abc import abstractmethod
 
 import pandas as pd
 
@@ -15,6 +16,12 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 class ABCFakeLedgerInput(ABCLedgerInput):
     """TODO"""
+
+    @property
+    @abstractmethod
+    def asset(self):
+        """TODO: warning trap"""
+        pass
 
     def __init__(self, log_to_file=True):
         ABCLedgerInput.__init__(self)
