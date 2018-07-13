@@ -80,10 +80,8 @@ def _updateGraph(unused_counter, lines):
     return lines.values()
 
 
-def _initGraph():
-    """Wrapped to display errors (this is running in a separate process)"""
-
-    fig = plt.figure()
+def _createAxes():
+    """TODO"""
     axes = {}
     axes["KrakenTradesXXBTZEURInput-vwap"] = plt.subplot2grid(
         (8, 1), (0, 0), rowspan=5
@@ -97,7 +95,11 @@ def _initGraph():
     axes["bal"] = plt.subplot2grid(
         (8, 1), (7, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
     )
+    return axes
 
+
+def _createLines(axes):
+    """TODO"""
     lines = {}
     for key in axes:  # TODO: this is *really* ugly
         lines[key], = axes[key].plot(
@@ -146,6 +148,15 @@ def _initGraph():
                 color="g",
                 alpha=0.5
             )
+    return lines
+
+
+def _initGraph():
+    """Wrapped to display errors (this is running in a separate process)"""
+
+    fig = plt.figure()
+    axes = _createAxes()
+    lines = _createLines(axes)
 
     # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841
