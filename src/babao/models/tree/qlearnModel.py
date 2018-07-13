@@ -274,19 +274,19 @@ def train():
 
 
 def save():
-    """Save the ´MODEL´ to ´conf.MODEL_QLEARN_FILE´"""
+    """Save the ´MODEL´ to ´self.model_file´"""
 
     # TODO: save experiences?
-    MODEL.save(conf.MODEL_QLEARN_FILE)
+    MODEL.save(self.model_file)
 
 
 def load():
-    """Load the ´MODEL´ saved in ´conf.MODEL_QLEARN_FILE´"""
+    """Load the ´MODEL´ saved in ´self.model_file´"""
 
     global MODEL
     if MODEL is None:
         from keras.models import load_model  # lazy load...
-        MODEL = load_model(conf.MODEL_QLEARN_FILE)
+        MODEL = load_model(self.model_file)
 
 
 def _mergeCategories(arr):

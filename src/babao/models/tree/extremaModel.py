@@ -17,7 +17,6 @@ from sklearn import neighbors
 # from sklearn import neural_network
 # from sklearn import preprocessing
 
-import babao.config as conf
 import babao.utils.indicators as indic
 import babao.utils.log as log
 import babao.utils.date as du
@@ -80,39 +79,35 @@ class ExtremaModel(ABCModel):
         if not with_targets:
             return features
         targets = _prepareTargets(trade_data, LOOKBACK)
-        # compensate features.dropna()
-        targets = targets[-len(features):]
-        # remove un-label'd data
+        targets = targets[-len(features):]  # compensate features.dropna()
+        targets = targets[LOOKBACK:-LOOKBACK]  # remove un-label'd data
         features = features[LOOKBACK:-LOOKBACK]
-        targets = targets[LOOKBACK:-LOOKBACK]
         return features, targets
-
-    def predict(self, since):
-        """TODO"""
-        features = self.prepare(since)
-        pred_df = pd.DataFrame(
-            self.knn.predict_proba(features),
-            columns=Y_LABELS
-        )
-        pred_df.index = features.index  # trade_data[-len(pred_df):] ???
-        return pred_df
 
     def train(self, since):
         """TODO"""
         log.debug("Train extrema")
         features, targets = self.prepare(since, with_targets=True)
-        self.knn.fit(features, targets)
-        return self.knn.score(features, targets)
+        if self.model is None:
+            self.model = neighbors.KNeighborsClassifier(
+                n_neighbors=3,  # TODO: k
+                weights="distance"
+            )
+        self.model.fit(features, targets)
+        return self.model.score(features, targets)
+
+    def predict(self, since):
+        """TODO"""
+        features = self.prepare(since)
+        pred = self.model.predict_proba(features)
+        return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
 
     def plot(self, since):
         """TODO"""
         features, targets = self.prepare(since, with_targets=True)
-        pred_df = pd.DataFrame(
-            self.knn.predict_proba(features),
-            columns=Y_LABELS
-        )
+        pred = self.model.predict_proba(features)
+        pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
         plot_data = features.loc[:, ["vwap", "volume"]]
-        pred_df.index = plot_data.index
         plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
         plot_data["target"] = targets.values / 3
         du.toDatetime(plot_data)
@@ -120,16 +115,12 @@ class ExtremaModel(ABCModel):
 
     def save(self):
         """TODO"""
-        joblib.dump(self.knn, conf.MODEL_EXTREMA_FILE)  # TODO: file
+        joblib.dump(self.model, self.model_file)
 
     # TODO: move to init?
     def load(self):
         """TODO"""
         try:
-            self.knn = joblib.load(conf.MODEL_EXTREMA_FILE)
+            self.model = joblib.load(self.model_file)
         except OSError:
-            # TODO: k
-            self.knn = neighbors.KNeighborsClassifier(
-                n_neighbors=3,
-                weights="distance"
-            )
+            self.model = None

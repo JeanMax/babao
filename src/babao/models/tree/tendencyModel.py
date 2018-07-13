@@ -7,228 +7,204 @@ using a lstm neural network (keras)
 import numpy as np
 import pandas as pd
 
-import babao.config as conf
+from keras.models import Sequential, load_model
+from keras.layers import LSTM, Dense, Flatten
+from keras.utils.np_utils import to_categorical
+
 import babao.utils.indicators as indic
 import babao.utils.log as log
+import babao.utils.date as du
+from babao.utils.scale import Scaler
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+from babao.models.modelBase import ABCModel, getVerbose
 
-MODEL = None
-FEATURES = None
-TARGETS = None
 
-FEATURES_LOOKBACK = 0  # TODO
+FEATURES_LOOKBACK = 0  # TODO: nice one
+TARGETS_LOOKBACK = 47  # TODO: idem
+# (there is something to "_optimizeTargets" somewhere in the git history :o)
 
-REQUIRED_COLUMNS = [
-    "vwap",  # "volume",
-    # "high", "low",
-    # "close", "open",
-]
-INDICATORS_COLUMNS = [
-    "sma_vwap_9", "sma_vwap_26", "sma_vwap_77", "sma_vwap_167",
-    # "sma_volume_9", "sma_volume_26", "sma_volume_77",
-    "macd_vwap_9_26_10", "macd_vwap_26_77_10"
-]
+Y_LABELS = ["hold", "sell", "buy"]
 
-BATCH_SIZE = 1
 HIDDEN_SIZE = 32
+BATCH_SIZE = 1
 EPOCHS = 5
 
 
-def _prepareFeatures(full_data, lookback):
+def _getTradeData(kraken_trades_input, since):
+    """TODO"""
+    trade_data = kraken_trades_input.read(since=since)
+    trade_data = kraken_trades_input.resample(trade_data)
+    trade_data = trade_data.loc[:, ["vwap"]].copy()
+    trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
+    # trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
+    # TODO: save scalers
+    return trade_data
+
+
+def _addLookbacks(df, look_back):
+    """Add lookback(s) (shifted columns) to each df columns"""
+    for i in range(1, look_back + 1):
+        for col in df.columns:
+            if "lookback" not in col:
+                df[col + "_lookback_" + str(i)] = df[col].shift(i)
+    return df.dropna()
+
+
+def _reshape(arr):
+    """Reshape the features to be keras-proof"""
+    return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
+
+
+def _prepareFeatures(trade_data, lookback):
     """
-    Prepare features for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
+    Prepare features for training (copy) TODO
     """
-
-    def _addLookbacks(df, look_back):
-        """Add lookback(s) (shifted columns) to each df columns"""
-
-        for i in range(1, look_back + 1):
-            for col in df.columns:
-                if "lookback" not in col:
-                    df[col + "_lookback_" + str(i)] = df[col].shift(i)
-        return df.dropna()
-
-    def _reshape(arr):
-        """Reshape the features to be keras-proof"""
-
-        return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
-
-    global FEATURES
-    FEATURES = full_data.copy()
-
-    # TODO: same pattern in extrema.py
-    for c in FEATURES.columns:
-        if c not in REQUIRED_COLUMNS:
-            del FEATURES[c]
-
-    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS).dropna()
-    FEATURES = modelHelper.scaleFit(FEATURES)
-    FEATURES = _addLookbacks(FEATURES, lookback)
-    FEATURES = _reshape(FEATURES.values)
+    features = indic.get(trade_data.copy(), [
+        "sma_vwap_9", "sma_vwap_26", "sma_vwap_77", "sma_vwap_167",
+        # "sma_volume_9", "sma_volume_26", "sma_volume_77",
+        "macd_vwap_9_26_10", "macd_vwap_26_77_10"
+    ]).dropna()
+    features = _addLookbacks(features, lookback)
+    return features
+    # features = _reshape(features.values)  # TODO
 
 
-def _prepareTargets(full_data, lookback):
+def _prepareTargets(trade_data, lookback):
     """
     Prepare targets for training (copy)
     0 (nop), 1 (sell), 2 (buy)
-
-    ´full_data´: cf. ´prepareModels´
+    TODO
     """
-
-    global TARGETS
-    from keras.utils.np_utils import to_categorical  # lazy load...
-
-    rev = full_data["vwap"][::-1]
-    TARGETS = to_categorical(
-        (
-            (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
-            | (rev.rolling(lookback).max() == rev).astype(int)
-        ).replace(3, 0)
-    )[::-1]
+    rev = trade_data["vwap"][::-1]
+    rev_targets = (
+        (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
+        | (rev.rolling(lookback).max() == rev).astype(int)
+    ).replace(3, 0)
+    return rev_targets[::-1]
 
 
-def prepare(full_data, train_mode=False):
-    """
-    Prepare features and targets for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
-    """
-
-    _prepareFeatures(full_data, FEATURES_LOOKBACK)
-    if train_mode:
-        targets_lookback = 47  # _optimizeTargets(full_data)
-        _prepareTargets(full_data, targets_lookback)
-
-        global FEATURES
-        global TARGETS
-        FEATURES = FEATURES[:-targets_lookback]
-        TARGETS = TARGETS[FEATURES_LOOKBACK:-targets_lookback]
-        TARGETS = TARGETS[-len(FEATURES):]
-
-
-def _createModel():
-    """Seting up the model with keras"""
-
-    from keras.models import Sequential  # lazy load...
-    from keras.layers import LSTM, Dense  # lazy load...
-    global MODEL
-
-    MODEL = Sequential()
-    MODEL.add(
+def _createModel(features_shape):
+    """TODO"""
+    model = Sequential()
+    model.add(
         LSTM(
             HIDDEN_SIZE,
             input_shape=(
                 BATCH_SIZE,
-                FEATURES.shape[2]
+                features_shape[2]
             ),
             batch_input_shape=(
                 BATCH_SIZE,
-                FEATURES.shape[1],
-                FEATURES.shape[2]
+                features_shape[1],
+                features_shape[2]
             ),
             return_sequences=True,
             # stateful=True
         )
     )
-    # MODEL.add(
+    model.add(Flatten())  # TODO: workaround the batch/input shape is fucked up
+    # model.add(
     #     LSTM(
     #         HIDDEN_SIZE,
     #         return_sequences=True,
     #         # stateful=True
     #     )
     # )
-    # MODEL.add(
+    # model.add(
     #     LSTM(
     #         HIDDEN_SIZE,
     #         # stateful=True
     #     )
     # )
-    MODEL.add(
+    model.add(
         Dense(
-            3,
+            len(Y_LABELS),
             activation='softmax'
         )
     )
-
-    MODEL.compile(
+    model.compile(
         loss='categorical_crossentropy',
         optimizer='adam',
         metrics=['accuracy']
     )
+    return model
 
 
-def train():
-    """Fit the ´MODEL´"""
+class TendencyModel(ABCModel):
+    """TODO"""
 
-    log.debug("Train tendency")
+    dependencies_class = [KrakenTradesXXBTZEURInput]
+    need_training = True
 
-    if MODEL is None:
-        _createModel()
+    def prepare(self, since, with_targets=False):
+        """TODO"""
+        trade_data = _getTradeData(self.dependencies[0], since)
+        features = _prepareFeatures(trade_data, FEATURES_LOOKBACK)
+        if not with_targets:
+            return features
+        targets = _prepareTargets(trade_data, TARGETS_LOOKBACK)
+        features = features[:-TARGETS_LOOKBACK]  # remove un-label'd data
+        targets = targets[FEATURES_LOOKBACK:-TARGETS_LOOKBACK]
+        targets = targets[-len(features):]  # compensate features.dropna()
+        return features, targets
 
-    # this return the history... could be ploted or something
-    MODEL.fit(
-        FEATURES, TARGETS,
-        epochs=EPOCHS,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        verbose=modelHelper.getVerbose()
-    )
+    def train(self, since):
+        """TODO"""
+        log.debug("Train tendency")
+        features, targets = self.prepare(since, with_targets=True)
+        features = _reshape(features.values)
+        targets = to_categorical(targets.values)
+        if self.model is None:
+            self.model = _createModel(features.shape)
+        self.model.fit(
+            features, targets,
+            epochs=EPOCHS,
+            batch_size=BATCH_SIZE,
+            shuffle=False,
+            verbose=getVerbose()
+        )  # this return the history... could be ploted or something
+        return self.model.evaluate(
+            features, targets,
+            batch_size=BATCH_SIZE,
+            verbose=getVerbose()
+        )
 
-    # score = MODEL.evaluate(
-    #     FEATURES, TARGETS,
-    #     batch_size=BATCH_SIZE,
-    #     verbose=modelHelper.getVerbose()
-    # )
-    # log.debug("score:", score)
+    def predict(self, since):
+        """
+        Format the result as values between -1 (buy) and 1 (sell))
+        """
+        features = self.prepare(since)
+        features = _reshape(features.values)
+        if len(features) == 1:
+            features = np.array([features])
+        pred = self.model.predict_proba(
+            features,
+            batch_size=BATCH_SIZE,
+            # verbose=getVerbose()
+        )
+        return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
 
+    def plot(self, since):
+        """TODO"""
+        features, targets = self.prepare(since, with_targets=True)
+        pred = self.model.predict_proba(
+            _reshape(features.values),
+            batch_size=BATCH_SIZE
+        )
+        pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
+        plot_data = features.loc[:, ["vwap"]]
+        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
+        plot_data["target"] = targets.replace(2, -1).values / 3
+        du.toDatetime(plot_data)
+        plot_data.plot(title="Model Tendency")
 
-def save():
-    """Save the ´MODEL´ to ´conf.MODEL_TENDENCY_FILE´"""
+    def save(self):
+        """TODO"""
+        self.model.save(self.model_file)
 
-    MODEL.save(conf.MODEL_TENDENCY_FILE)
-
-
-def load():
-    """Load the ´MODEL´ saved in ´conf.MODEL_TENDENCY_FILE´"""
-
-    global MODEL
-    if MODEL is None:
-        from keras.models import load_model  # lazy load...
-        MODEL = load_model(conf.MODEL_TENDENCY_FILE)
-
-
-def _mergeCategories(arr):
-    """TODO: we could use a generic function for all models"""
-
-    df = pd.DataFrame(arr, columns=["hold", "sell", "buy"])
-    return (df["sell"] - df["buy"]).values
-
-
-def predict(features=None):
-    """
-    Call predict on the current ´MODEL´
-
-    Format the result as values between -1 (buy) and 1 (sell))
-    """
-
-    if features is None:
-        features = FEATURES
-
-    if len(features) == 1:
-        features = np.array([features])
-
-    return _mergeCategories(MODEL.predict_proba(
-        features,
-        batch_size=BATCH_SIZE,
-        # verbose=modelHelper.getVerbose()
-    ))
-
-
-def getMergedTargets():
-    """Return ´TARGETS´ in the same format than predict()"""
-
-    if TARGETS is None or len(TARGETS) != len(FEATURES):
-        return None
-
-    return _mergeCategories(TARGETS)
+    def load(self):
+        """TODO"""
+        try:
+            self.model = load_model(self.model_file)
+        except OSError:
+            self.model = None

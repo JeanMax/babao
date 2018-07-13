@@ -1,8 +1,10 @@
 """TODO"""
 
+import os
 from abc import ABC, abstractmethod
 from typing import List, Type, Optional, TypeVar, Union
 
+import babao.config as conf
 import babao.utils.log as log
 import babao.inputs.ledger.ledgerManager as lm
 import babao.inputs.inputBase as ib
@@ -77,6 +79,10 @@ class ABCModel(ABC):
         # that = self.__class__
         # assert type(that.inputs) == list
         # assert issubclass(that.inputs[0], Input)
+        self.model = None
+        self.model_file = os.path.join(
+            conf.DATA_DIR, self.__class__.__name__ + ".model"
+        )
         try:
             self.load()
         except OSError:

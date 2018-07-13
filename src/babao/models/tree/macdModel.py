@@ -154,18 +154,18 @@ def train():
 
 
 def save():
-    """Save the ´MODEL´ to ´conf.MODEL_MACD_FILE´"""
+    """Save the ´MODEL´ to ´self.model_file´"""
 
-    with open(conf.MODEL_MACD_FILE, "wb") as f:
+    with open(self.model_file, "wb") as f:
         pickle.dump(MODEL, f)
 
 
 def load():
-    """Load the ´MODEL´ saved in ´conf.MODEL_MACD_FILE´"""
+    """Load the ´MODEL´ saved in ´self.model_file´"""
 
     global MODEL
     if MODEL is None:
-        with open(conf.MODEL_MACD_FILE, "rb") as f:
+        with open(self.model_file, "rb") as f:
             MODEL = pickle.load(f)
 
 
