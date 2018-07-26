@@ -4,182 +4,190 @@ with a very elegant algorithm (aka: brute-force)
 """
 
 import pickle
-
 import numpy as np
-from sklearn.grid_search import ParameterGrid
+from sklearn.model_selection import ParameterGrid
 
 import babao.config as conf
+import babao.inputs.inputManager as im
 import babao.inputs.ledger.ledgerManager as lm
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 import babao.utils.date as du
 import babao.utils.indicators as indic
 import babao.utils.log as log
-from babao.utils.enum import CryptoEnum
+from babao.utils.scale import Scaler
+from babao.utils.enum import CryptoEnum, ActionEnum
+import babao.models.modelBase as mb
 
-# import babao.models.modelHelper as modelHelper
-
-MODEL = {"a": 46, "b": 75, "c": 22}
-FEATURES = None
-FEATURES_DF = None
-
-REQUIRED_COLUMNS = [
-    "vwap",  # "volume",
-    # "high", "low",
-    # "close", "open",
-]
+MIN_MACD = 1e-2
 
 
-def prepare(full_data, train_mode=False):
-    """
-    Prepare features and targets for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
-    """
-
-    def _reshape(arr):
-        """Reshape the features to be keras-proof"""
-
-        return np.reshape(arr, (arr.shape[0], 1, arr.shape[1]))
-
-    global FEATURES_DF
-    FEATURES_DF = full_data.copy()
-
-    # TODO: same pattern in extrema.py
-    for c in FEATURES_DF.columns:
-        if c not in REQUIRED_COLUMNS:
-            del FEATURES_DF[c]
-
-    # TODO: I'm not so sure about scaling
-    # FEATURES_DF = modelHelper.scaleFit(FEATURES_DF)
-    if not train_mode:
-        FEATURES_DF["macd"] = indic.macd(
-            FEATURES_DF["vwap"], MODEL["a"], MODEL["b"], MODEL["c"]
-        )
-        FEATURES_DF.dropna(inplace=True)
-
-    global FEATURES
-    FEATURES = _reshape(FEATURES_DF.values)
+def _getTradeData(kraken_trades_input, since):
+    """TODO"""
+    trade_data = kraken_trades_input.read(since=since)
+    trade_data = kraken_trades_input.resample(trade_data)
+    trade_data = trade_data.loc[:, ["vwap"]]
+    trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
+    # trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
+    # TODO: save scalers
+    return trade_data
 
 
-def _play(look_back_a_delay, look_back_b_delay, signal_delay):
-    """Play an epoch with the given macd parameters"""
-
-    if log.VERBOSE >= 4:
-        log.debug(
-            "Testing params:",
-            look_back_a_delay, look_back_b_delay, signal_delay
-        )
-
-    global FEATURES_DF
-    FEATURES_DF["macd"] = indic.macd(
-        FEATURES_DF["vwap"],
-        look_back_a_delay,
-        look_back_b_delay,
-        signal_delay
-    )
+def _resetLedgers():
+    """TODO"""
     lm.LEDGERS[CryptoEnum.XBT].balance = 0
     lm.LEDGERS[conf.QUOTE].balance = 100
-    # TODO: is there any more stuffs to reset in ledger(s)?
+    lm.LEDGERS[CryptoEnum.XBT].last_tx = 0
+    lm.LEDGERS[conf.QUOTE].last_tx = 0
 
-    first_price = None
-    price = None
-    for index, feature in enumerate(FEATURES_DF.values):
+
+def _play(features):
+    """Play an epoch with the given macd parameters"""
+
+    time_base = features.index[0]
+    now = time_base
+    for index, feature in enumerate(features.values):
         macd = feature[1]
         if np.isnan(macd):
             continue
-        # price = modelHelper.unscale(feature[0])
-        price = feature[0]
-        if first_price is None:
-            first_price = price
 
-        du.setTime(du.secToNano(index * conf.TIME_INTERVAL * 60))
-        # TODO: eheheh this won't work: use timeTravel
-        lm.buyOrSell(macd * -1, CryptoEnum.XBT)
+        now += du.secToNano(index * conf.TIME_INTERVAL * 60)
+        im.timeTravel(now)
+        if macd < -MIN_MACD:
+            lm.buyOrSell(ActionEnum.SELL, CryptoEnum.XBT)
+        elif macd > MIN_MACD:
+            lm.buyOrSell(ActionEnum.BUY, CryptoEnum.XBT)
 
         if lm.gameOver():
-            if log.VERBOSE >= 4:
-                log.warning("game over:", index, "/", len(FEATURES_DF))
+            # if log.VERBOSE >= 4:
+            log.warning("game over:", index, "/", len(features))
             return -42
 
     score = lm.getGlobalBalanceInQuote()
-    hodl = price / first_price * 100
+    hodl = features["vwap"].iat[index] / features["vwap"].iat[0] * 100
 
-    if log.VERBOSE >= 4:
-        log.debug(
-            "score:", int(score - hodl),
-            "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
-        )
+    # if log.VERBOSE >= 4:
+    log.debug(
+        "score:", int(score - hodl),
+        "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
+    )
 
     return score  # - hodl
 
 
-def train():
-    """Fit the ´MODEL´"""
+def _playLoop(features, param_grid):
+    """TODO"""
+    now = du.getTime()
+    param_grid_len = len(param_grid)
 
-    log.debug("Train macd")
-
-    # TODO: move these?
-    lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
-    lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
-
-    global MODEL
-    param_grid = list(ParameterGrid({
-        "a": range(9, 100, 1),
-        "b": range(25, 200, 1),
-        "c": range(10, 30, 1),
-        # 'a': [MODEL['a']], 'b': [MODEL['b']], 'c': [MODEL['c']],
-        "score": [-42]
-    }))
-
-    grid_len = len(param_grid)
     for i, param in enumerate(param_grid):
-        if param["a"] >= param["b"]:
+        if param["fast_delay"] >= param["slow_delay"]:
             continue
 
-        param["score"] = _play(param["a"], param["b"], param["c"])
+        features["macd"] = indic.macd(
+            features["vwap"],
+            param["fast_delay"], param["slow_delay"], param["signal_delay"]
+        )
+        # if log.VERBOSE >= 4:
+        log.debug(
+            "Testing params:", param["fast_delay"],
+            param["slow_delay"], param["signal_delay"]
+        )
 
-        percent = i / grid_len * 100
+        _resetLedgers()
+        param["score"] = _play(features)
+
+        percent = i / param_grid_len * 100
         if i and not bool(percent % 1):
             log.debug(
                 str(int(percent)) + "% done",
-                "- best yet:", sorted(param_grid, key=lambda k: k['score'])[-1]
+                "- best yet:",
+                sorted(param_grid, key=lambda k: k["score"])[-1]
             )
 
-    param_grid = sorted(param_grid, key=lambda k: k['score'])
-    log.debug("Top Ten:")
-    for i in range(len(param_grid[-10:]), 0, -1):
-        log.debug(param_grid[-i])
-
-    MODEL = param_grid[-1]
-    del MODEL["score"]
+    im.timeTravel(now)
+    return sorted(param_grid, key=lambda k: k["score"])
 
 
-def save():
-    """Save the ´MODEL´ to ´self.model_file´"""
+class MacdModel(mb.ABCModel):
+    """TODO"""
 
-    with open(self.model_file, "wb") as f:
-        pickle.dump(MODEL, f)
+    dependencies_class = [KrakenTradesXXBTZEURInput]
+    need_training = True
 
+    def prepare(self, since, with_macd=False):
+        """TODO"""
+        trade_data = _getTradeData(self.dependencies[0], since)
+        if with_macd:
+            trade_data["macd"] = indic.macd(
+                trade_data["vwap"],
+                self.model["fast_delay"],
+                self.model["slow_delay"],
+                self.model["signal_delay"]
+            )
+            trade_data.dropna(inplace=True)
+        return trade_data
 
-def load():
-    """Load the ´MODEL´ saved in ´self.model_file´"""
+    def train(self, since):
+        """TODO"""
+        log.debug("Train macd")
+        features = self.prepare(since)
+        lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
+        lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
 
-    global MODEL
-    if MODEL is None:
-        with open(self.model_file, "rb") as f:
-            MODEL = pickle.load(f)
+        param_grid = list(ParameterGrid({
+            # "fast_delay": range(9, 100, 1),
+            # "slow_delay": range(25, 200, 1),
+            # "signal_delay": range(10, 30, 1),
+            "fast_delay": [9],
+            "slow_delay": [26],
+            "signal_delay": [10],
+            "score": [-42]
+        }))
 
+        sorted_param_grid = _playLoop(features, param_grid)
+        log.debug("Top Ten:")
+        for i in range(len(sorted_param_grid[-10:]), 0, -1):
+            log.debug(sorted_param_grid[-i])
 
-def predict(features=None):
-    """
-    Call predict on the current ´MODEL´
+        self.model = sorted_param_grid[-1]
+        score = self.model["score"]
+        del self.model["score"]
+        return score
 
-    Format the result as values between -1 (buy) and 1 (sell))
-    """
+    def predict(self, since):
+        """
+        Format the result as values between -1 (buy) and 1 (sell))
+        """
+        features = self.prepare(since, with_macd=True)
+        macd = features["macd"]
+        features["buy"] = (macd > MIN_MACD).astype(int)
+        features["sell"] = (macd < -MIN_MACD).astype(int)
+        features["hold"] = (features["buy"] + features["sell"] == 0).astype(int)
+        pred_df = features.loc[:, ["hold", "sell", "buy"]]
+        return pred_df
 
-    if features is None:
-        features = FEATURES
+    def plot(self, since):
+        """TODO"""
+        plot_data = self.prepare(since, with_macd=True)
+        pred_df = self.predict(since)
+        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
+        plot_data = plot_data.loc[:, ["vwap", "predict"]]
+        du.toDatetime(plot_data)
+        plot_data.plot(title="Model Macd")
 
-    if len(features) == 1:
-        return features[0][1] * -1  # TODO
+    def save(self):
+        """TODO"""
+        with open(self.model_file, "wb") as f:
+            pickle.dump(self.model, f)
 
-    return np.delete(features, 0, 2).reshape(features.shape[0], ) * -1  # TODO
+    def load(self):
+        """TODO"""
+        try:
+            with open(self.model_file, "rb") as f:
+                self.model = pickle.load(f)
+        except OSError:
+            self.model = {
+                "fast_delay": 46,
+                "slow_delay": 75,
+                "signal_delay": 22
+            }

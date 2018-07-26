@@ -88,11 +88,6 @@ class ExtremaModel(ABCModel):
         """TODO"""
         log.debug("Train extrema")
         features, targets = self.prepare(since, with_targets=True)
-        if self.model is None:
-            self.model = neighbors.KNeighborsClassifier(
-                n_neighbors=3,  # TODO: k
-                weights="distance"
-            )
         self.model.fit(features, targets)
         return self.model.score(features, targets)
 
@@ -123,4 +118,7 @@ class ExtremaModel(ABCModel):
         try:
             self.model = joblib.load(self.model_file)
         except OSError:
-            self.model = None
+            self.model = neighbors.KNeighborsClassifier(
+                n_neighbors=3,  # TODO: k
+                weights="distance"
+            )

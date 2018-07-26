@@ -123,7 +123,7 @@ commit: reinstall check fclean
 	git commit
 
 todo:
-	grep -rin todo . | grep -vE '^(Binary file|\./Makefile|\./TODO.md|\./\.travis\.yml.* make todo)'
+	grep -rin todo . | grep -vE '^(Binary file|\./\.git|\./Makefile|\./TODO.md|\./\.travis\.yml.* make todo)'
 	grep -iHn todo ./Makefile | head -n -$(shell grep -A1000 'todo:' Makefile | grep -ic todo)
 	cat TODO.md
 

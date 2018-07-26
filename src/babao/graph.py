@@ -11,7 +11,6 @@ from matplotlib.widgets import MultiCursor
 import babao.config as conf
 import babao.inputs.inputManager as im
 import babao.inputs.ledger.ledgerManager as lm
-import babao.models.tree.macdModel as macd  # TODO: this is weird
 import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.indicators as indic
@@ -56,7 +55,8 @@ def _getData():
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
         DATA["KrakenTradesXXBTZEURInput-vwap"],
-        macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
+        46, 75, 22,
+        True
     )
     DATA = DATA.dropna()
     DATA["bal"] = DATA["FakeLedgerEURInput-balance"] \

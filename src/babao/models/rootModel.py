@@ -12,11 +12,9 @@ import babao.utils.date as du
 from babao.models.modelBase import ABCModel
 from babao.models.tree.extremaModel import ExtremaModel
 from babao.models.tree.tendencyModel import TendencyModel
+from babao.models.tree.macdModel import MacdModel
+# from babao.models.tree.qlearnModel import QlearnModel
 from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
-
-# import babao.models.models.tendency as tendency
-# import babao.models.models.qlearn as qlearn
-# import babao.models.tree.macdModel as macd
 
 MIN_PROBA = 1e-2
 
@@ -25,8 +23,10 @@ class RootModel(ABCModel):
     """TODO"""
 
     dependencies_class = [
-        TendencyModel,
-        ExtremaModel,
+        # ExtremaModel,
+        # TendencyModel,
+        MacdModel,
+        # QlearnModel,
     ]
     need_training = False
 

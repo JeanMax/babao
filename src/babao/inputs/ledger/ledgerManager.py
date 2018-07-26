@@ -119,7 +119,7 @@ def _canSell(crypto_enum):
     # if LAST_TX["type"] == "s":
     #     return False
     if getBalanceInQuote(crypto_enum) < MIN_BAL:
-        # TODO: this can be quite high actually
+        # this can be quite high actually
         # support.kraken.com/ \
         # hc/en-us/articles/205893708-What-is-the-minimum-order-size-
         if LEDGERS[conf.QUOTE].verbose:

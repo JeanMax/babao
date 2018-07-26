@@ -56,8 +56,8 @@ else:
         install_requires=[
             # machine learning
             'keras>=2.1.2',
-            'tensorflow',  # >=1.8.0',
-            # TODO: readthedocs prefers tensorflow-1.9.0rc1
+            # 'tensorflow',  # >=1.8.0', readthedocs prefers tensorflow-1.9.0rc1
+            'theano>=1.0.2',
             'scipy>=1.1.0',
             'scikit-learn>=0.19.1',
             'joblib>=0.11',  # just for saving scikit models...
