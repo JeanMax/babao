@@ -4,6 +4,7 @@ Handle money related stuffs
 """
 
 import sys
+from abc import abstractmethod
 
 import pandas as pd
 
@@ -15,6 +16,12 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 class ABCFakeLedgerInput(ABCLedgerInput):
     """TODO"""
+
+    @property
+    @abstractmethod
+    def asset(self):
+        """TODO: warning trap"""
+        pass
 
     def __init__(self, log_to_file=True):
         ABCLedgerInput.__init__(self)
@@ -64,7 +71,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         ).fillna(0)
 
         for c in df.columns:
-            if c == "type" or c == "product":
+            if c in ["type", "product"]:
                 df[c] = df[c].astype(int)
             else:
                 df[c] = df[c].astype(float)

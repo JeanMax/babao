@@ -11,7 +11,6 @@ from matplotlib.widgets import MultiCursor
 import babao.config as conf
 import babao.inputs.inputManager as im
 import babao.inputs.ledger.ledgerManager as lm
-import babao.models.tree.macdModel as macd  # TODO: this is weird
 import babao.utils.date as du
 import babao.utils.file as fu
 import babao.utils.indicators as indic
@@ -56,7 +55,8 @@ def _getData():
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
         DATA["KrakenTradesXXBTZEURInput-vwap"],
-        macd.MODEL["a"], macd.MODEL["b"], macd.MODEL["c"], True
+        46, 75, 22,
+        True
     )
     DATA = DATA.dropna()
     DATA["bal"] = DATA["FakeLedgerEURInput-balance"] \
@@ -80,10 +80,8 @@ def _updateGraph(unused_counter, lines):
     return lines.values()
 
 
-def _initGraph():
-    """Wrapped to display errors (this is running in a separate process)"""
-
-    fig = plt.figure()
+def _createAxes():
+    """TODO"""
     axes = {}
     axes["KrakenTradesXXBTZEURInput-vwap"] = plt.subplot2grid(
         (8, 1), (0, 0), rowspan=5
@@ -97,7 +95,11 @@ def _initGraph():
     axes["bal"] = plt.subplot2grid(
         (8, 1), (7, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
     )
+    return axes
 
+
+def _createLines(axes):
+    """TODO"""
     lines = {}
     for key in axes:  # TODO: this is *really* ugly
         lines[key], = axes[key].plot(
@@ -146,6 +148,15 @@ def _initGraph():
                 color="g",
                 alpha=0.5
             )
+    return lines
+
+
+def _initGraph():
+    """Wrapped to display errors (this is running in a separate process)"""
+
+    fig = plt.figure()
+    axes = _createAxes()
+    lines = _createLines(axes)
 
     # the assignation is needed to avoid garbage collection...
     unused_cursor = MultiCursor(  # NOQA: F841

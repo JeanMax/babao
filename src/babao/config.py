@@ -14,12 +14,6 @@ LOG_DIR = os.path.join(CONFIG_DIR, "log")
 DATA_DIR = os.path.join(CONFIG_DIR, "data")
 DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")  # TODO: move
 
-# TODO: don't
-MODEL_MACD_FILE = os.path.join(DATA_DIR, "macd.pkl")
-MODEL_EXTREMA_FILE = os.path.join(DATA_DIR, "extrema.pkl")
-MODEL_TENDENCY_FILE = os.path.join(DATA_DIR, "tendency.h5")
-MODEL_QLEARN_FILE = os.path.join(DATA_DIR, "qlearn.h5")
-
 # config vars
 QUOTE = None
 CRYPTOS = None

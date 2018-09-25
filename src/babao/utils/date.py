@@ -1,6 +1,7 @@
 """Some utils functions for date handling"""
 
 import time
+import numpy as np
 import pandas as pd
 
 EPOCH = pd.Timestamp("2017-01-01").value
@@ -66,7 +67,8 @@ def secToNano(sec):
     Convert seconds to nanoseconds
     Just trying to avoid float rounding...
     """
-    if isinstance(sec, (float, int)):
+    # pylint bug: https://github.com/PyCQA/pylint/issues/2140
+    if isinstance(sec, (float, int, np.floating, np.integer)):  # noqa: E1101
         return int(sec * 1e6) * 1000
     return (sec * 1e6).astype(int) * 1000
 

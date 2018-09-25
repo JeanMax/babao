@@ -68,8 +68,8 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
             fresh_data.index = fresh_data["time"]
 
         del fresh_data["misc"]
-        del fresh_data["market-limit"]  # TODO: this could be useful
-        del fresh_data["buy-sell"]  # TODO: this could be useful
+        del fresh_data["market-limit"]  # this could be useful
+        del fresh_data["buy-sell"]  # idem
         del fresh_data["time"]
 
         self.up_to_date = len(fresh_data) != 1000

@@ -83,7 +83,8 @@ def _init(args=None):
 
     if args.graph and args.func.__name__ != "train":
         _launchGraph()
-    sig.catchSignal()
+    if args.func.__name__ != "train":
+        sig.catchSignal()
 
     return args
 
