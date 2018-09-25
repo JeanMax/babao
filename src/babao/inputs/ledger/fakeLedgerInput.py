@@ -71,7 +71,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         ).fillna(0)
 
         for c in df.columns:
-            if c == "type" or c == "product":
+            if c in ["type", "product"]:
                 df[c] = df[c].astype(int)
             else:
                 df[c] = df[c].astype(float)

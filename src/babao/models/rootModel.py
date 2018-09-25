@@ -31,7 +31,7 @@ class RootModel(ABCModel):
     def predict(self, since):
         """TODO"""
 
-        for model in self.dependencies:  # debug loop
+        for model in self.dependencies:  # de-bug loop
             pred_df = model.predict(since)
             pred_df = pd.DataFrame(
                 (pred_df["buy"] - pred_df["sell"]).values, columns=["action"]

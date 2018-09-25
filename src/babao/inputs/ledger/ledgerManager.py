@@ -16,9 +16,9 @@ MIN_BAL = 50  # maximum drawdown  # TODO: this should be a percent of... hmm
 
 if TYPE_CHECKING:
     from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput  # noqa: F401
-    ASSET_ENUM = Union["CryptoEnum", "QuoteEnum"]
+    AssetEnum = Union["CryptoEnum", "QuoteEnum"]
 
-LEDGERS = None  # type: Optional[Dict[ASSET_ENUM, ABCLedgerInput]]
+LEDGERS = None  # type: Optional[Dict[AssetEnum, ABCLedgerInput]]
 TRADES = None  # type: Optional[Dict[CryptoEnum, ABCLedgerInput]]
 
 
@@ -167,7 +167,7 @@ def buyOrSell(action_enum, crypto_enum, volume=None):
         if volume is None:
             volume = LEDGERS[conf.QUOTE].balance
         return buy(crypto_enum, volume)
-    elif action_enum == ActionEnum.SELL:
+    if action_enum == ActionEnum.SELL:
         if volume is None:
             volume = LEDGERS[crypto_enum].balance
         return sell(crypto_enum, volume)
