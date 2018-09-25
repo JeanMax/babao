@@ -3,37 +3,27 @@
 import numpy as np
 import pandas as pd
 
+from keras.models import Sequential, load_model
+from keras.layers import Dense
+from keras.optimizers import sgd
+
 import babao.config as conf
 import babao.inputs.ledger.ledgerManager as lm
 import babao.utils.indicators as indic
 import babao.utils.log as log
+import babao.utils.date as du
 from babao.utils.enum import CryptoEnum
+from babao.utils.scale import Scaler
+from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
+import babao.models.modelBase as mb
 
-MODEL = None
-FEATURES = None
 PREV_PRICE = None
 
 BUY = 0
 SELL = 1
-NUM_ACTIONS = 2  # [buy, sell]
+NUM_ACTIONS = 3  # [buy, hold, sell]
 
-XP = []
-MAX_XP = 10000
-
-FEATURES_LOOKBACK = 48  # TODO
-
-REQUIRED_COLUMNS = [
-    "close",
-    "vwap",
-    "volume",
-    # "high", "low",
-    # "open",
-]
-INDICATORS_COLUMNS = [
-    "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
-    "sma_volume_9", "sma_volume_26", "sma_volume_77",
-    "macd_vwap_9_26_10", "macd_vwap_26_77_10"
-]
+FEATURES_LOOKBACK = 48
 
 MIN_TRANSACTION_PERCENT = 5
 
@@ -43,53 +33,21 @@ GAMMA = 0.9  # discount (1: long-term reward; 0: current-reward)
 
 BATCH_SIZE = 1
 HIDDEN_SIZE = 64
-EPOCHS = 200
+EPOCHS = 2
 
 
-def prepare(full_data, train_mode=False):
+def _prepareFeatures(trade_data):
     """
-    Prepare features and targets for training (copy)
-
-    ´full_data´: cf. ´prepareModels´
+    Prepare features for training (copy) TODO
     """
-
-    def _addLookbacks(arr):
-        """
-        Add lookback(s) (shifted columns) to each df columns
-        Reshape the features to be keras-proof
-        """
-
-        res = None
-        for i in range(len(arr) - FEATURES_LOOKBACK):
-            if res is None:
-                res = np.array([arr[i:i + FEATURES_LOOKBACK]])
-            else:
-                res = np.append(
-                    res,
-                    np.array([arr[i: i + FEATURES_LOOKBACK]]),
-                    axis=0
-                )
-        return res
-
-    global FEATURES
-    FEATURES = full_data.copy()
-
-    # TODO: same pattern in extrema.py
-    for c in FEATURES.columns:
-        if c not in REQUIRED_COLUMNS:
-            del FEATURES[c]
-
-    FEATURES = indic.get(FEATURES, INDICATORS_COLUMNS)
-    FEATURES = modelHelper.scaleFit(FEATURES)
-    FEATURES = _addLookbacks(FEATURES.dropna().values)
-
-    global MAX_XP
-    MAX_XP = FEATURES.shape[0] * NUM_ACTIONS * FEATURES.shape[2]
-
-    train_mode = train_mode  # unused...
+    features = indic.get(trade_data.copy(), [
+        "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
+        "sma_volume_9", "sma_volume_26", "sma_volume_77",
+        "macd_vwap_9_26_10", "macd_vwap_26_77_10"
+    ]).dropna()
+    return features
 
 
-# TODO: use lm.buyOrSell instead
 def _buyOrSell(action, price, index):
     """
     Apply the given action (if possible)
@@ -139,154 +97,34 @@ def _buyOrSell(action, price, index):
     return reward
 
 
-def _saveExperience(xp):
-    """Save experiences < s, a, r, s’ > we make during gameplay"""
-
-    global XP
-    XP.append(xp)
-    XP = XP[-MAX_XP:]
-
-
-def _getBatch():
-    """
-    Get a random experience to train on
-
-    We add the target using this pretty formula:
-    (1 - alpha) * Q(s, a)  +  alpha * reward  +  gamma * max_a'Q(s', a')
-    """
-
-    feature, action, reward, next_feature, game_over = XP[
-        np.random.randint(0, len(XP), BATCH_SIZE)[0]
-    ]
-
-    target = MODEL.predict(
-        feature,
-        batch_size=BATCH_SIZE,
-        # verbose=modelHelper.getVerbose()
-    )  # * (1 - ALPHA)
-
-    target[0][action] = reward  # * ALPHA
-    if not game_over:
-        target[0][action] += GAMMA * np.max(MODEL.predict(
-            next_feature,
-            batch_size=BATCH_SIZE,
-            # verbose=modelHelper.getVerbose()
-        )[0])
-
-    return feature, target
-
-
-def _createModel():
+def _createModel(features_shape):
     """Seting up the model with keras"""
-
-    from keras.models import Sequential  # lazy load...
-    from keras.layers import Dense  # lazy load...
-    from keras.optimizers import sgd  # lazy load...
-    global MODEL
-
-    MODEL = Sequential()
-    MODEL.add(
+    model = Sequential()
+    model.add(
         Dense(
             HIDDEN_SIZE,
-            input_shape=(FEATURES.shape[2], ),
+            input_shape=(features_shape[2], ),
             activation='relu'
         )
     )
-    MODEL.add(
+    model.add(
         Dense(
             HIDDEN_SIZE,
             activation='relu'
         )
     )
-    MODEL.add(
+    model.add(
         Dense(
             NUM_ACTIONS,
-            # activation="sigmoid"
+            activation="sigmoid"
         )
     )
 
-    MODEL.compile(
+    model.compile(
         sgd(lr=.1),
         loss="mse"
     )
-
-
-def train():
-    """Train"""
-
-    if MODEL is None:
-        _createModel()
-
-    # TODO: move these?
-    lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
-    lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
-
-    for e in range(EPOCHS):
-        loss = 0.
-        reward_total = 0
-        price = -42
-        feature = None
-        game_over = False
-        lm.LEDGERS[CryptoEnum.XBT].balance = 0
-        lm.LEDGERS[conf.QUOTE].balance = 100
-
-        for i, next_feature in enumerate(FEATURES):
-            if feature is None:
-                feature = next_feature
-                continue
-
-            price = modelHelper.unscale(feature[-1][0])
-            game_over = lm.gameOver()
-            if np.random.rand() <= EPSILON - (e + 1) / EPOCHS * EPSILON:
-                action = np.random.randint(0, NUM_ACTIONS, 1)[0]
-            else:
-                expected_reward = MODEL.predict(
-                    feature,
-                    batch_size=BATCH_SIZE,
-                    # verbose=modelHelper.getVerbose()
-                )[0]
-                action = np.argmax(expected_reward)
-                if log.VERBOSE >= 4:
-                    log.info("expected_reward", expected_reward)
-
-            reward = _buyOrSell(action, price, i)
-            reward_total += reward
-
-            _saveExperience([feature, action, reward, next_feature, game_over])
-            inputs, targets = _getBatch()
-            loss += MODEL.train_on_batch(inputs, targets)
-
-            feature = next_feature
-            if game_over:
-                if log.VERBOSE >= 4:
-                    log.warning("game over:", i, "/", len(FEATURES))
-                break
-
-        score = lm.getGlobalBalanceInQuote()
-        hodl = price / modelHelper.unscale(FEATURES[0][-1][0]) * 100
-        log.debug(
-            "Epoch", str(e + 1) + "/" + str(EPOCHS),
-            "- loss:", round(loss, 4),
-            "- reward_total:", round(reward_total, 4),
-            "- score:", int(score - hodl),
-            "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
-        )
-
-
-def save():
-    """Save the ´MODEL´ to ´self.model_file´"""
-
-    # TODO: save experiences?
-    MODEL.save(self.model_file)
-
-
-def load():
-    """Load the ´MODEL´ saved in ´self.model_file´"""
-
-    global MODEL
-    if MODEL is None:
-        from keras.models import load_model  # lazy load...
-        MODEL = load_model(self.model_file)
+    return model
 
 
 def _mergeCategories(arr):
@@ -296,22 +134,169 @@ def _mergeCategories(arr):
     return (df["sell"] - df["buy"]).values
 
 
-def predict(features=None):
-    """
-    Call predict on the current ´MODEL´
+class QlearnModel(mb.ABCModel):
+    """TODO"""
 
-    Format the result as values between -1 (buy) and 1 (sell))
-    """
+    dependencies_class = [KrakenTradesXXBTZEURInput]
+    need_training = True
 
-    # TODO: or just this? np.argmax(MODEL.predict(features))
-    if features is None:
-        features = FEATURES
+    def _saveExperience(self, xp):
+        """Save experiences < s, a, r, s’ > we make during gameplay"""
+        self.xp.append(xp)
+        self.xp = self.xp[-self.max_xp:]
 
-    if len(features) == 1:
-        features = np.array([features])
+    def _getBatch(self):
+        """
+        Get a random experience to train on
 
-    return _mergeCategories(MODEL.predict_proba(
-        np.reshape(features, (features.shape[0], features.shape[2])),
-        batch_size=features.shape[0],
-        # verbose=modelHelper.getVerbose()
-    ))
+        We add the target using this pretty formula:
+        (1 - alpha) * Q(s, a)  +  alpha * reward  +  gamma * max_a'Q(s', a')
+        """
+
+        feature, action, reward, next_feature, game_over = self.xp[
+            np.random.randint(0, len(self.xp), BATCH_SIZE)[0]
+        ]
+
+        target = self.model.predict(
+            feature,
+            batch_size=BATCH_SIZE,
+            # verbose=mb.getVerbose()
+        )  # * (1 - ALPHA)
+
+        target[0][action] = reward  # * ALPHA
+        if not game_over:
+            target[0][action] += GAMMA * np.max(self.model.predict(
+                next_feature,
+                batch_size=BATCH_SIZE,
+                # verbose=mb.getVerbose()
+            )[0])
+
+        return feature, target
+
+    def _getTradeData(self, kraken_trades_input, since):
+        """TODO"""
+        trade_data = kraken_trades_input.read(since=since)
+        trade_data = kraken_trades_input.resample(trade_data)
+        cols = ["close", "vwap", "volume"]
+        trade_data = trade_data.loc[:, cols]
+        cols.pop(-1)  # volume
+        self.price_scaler = Scaler()
+        self.volume_scaler = Scaler()
+        trade_data.loc[:, cols] = self.price_scaler.scaleFit(
+            trade_data.loc[:, cols]
+        )
+        trade_data["volume"] = self.volume_scaler.scaleFit(
+            trade_data["volume"]
+        )
+        return trade_data
+
+    def prepare(self, since):
+        """TODO"""
+        trade_data = self._getTradeData(self.dependencies[0], since)
+        features = _prepareFeatures(trade_data)
+        features = mb.addLookbacks3d(
+            features.dropna().values, FEATURES_LOOKBACK
+        )
+        return features
+
+    def train(self, since):
+        """TODO"""
+        log.debug("Train qlearn")
+        lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
+        lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
+
+        features = self.prepare(since)
+        self.xp = []
+        self.max_xp = features.shape[0] * NUM_ACTIONS * features.shape[2]
+
+        if self.model is None:
+            self.model = _createModel(features.shape)
+
+        for e in range(EPOCHS):
+            loss = 0.
+            reward_total = 0
+            price = -42
+            feature = None
+            game_over = False
+            lm.LEDGERS[CryptoEnum.XBT].balance = 0
+            lm.LEDGERS[conf.QUOTE].balance = 100
+
+            for i, next_feature in enumerate(features):
+                if feature is None:
+                    feature = next_feature
+                    continue
+
+                price = self.price_scaler.unscale(feature[-1][0])
+                game_over = lm.gameOver()
+                if np.random.rand() <= EPSILON - (e + 1) / EPOCHS * EPSILON:
+                    action = np.random.randint(0, NUM_ACTIONS, 1)[0]
+                else:
+                    expected_reward = self.model.predict(
+                        feature,
+                        batch_size=BATCH_SIZE,
+                        # verbose=mb.getVerbose()
+                    )[0]
+                    action = np.argmax(expected_reward)
+                    if log.VERBOSE >= 4:
+                        log.info("expected_reward", expected_reward)
+
+                reward = _buyOrSell(action, price, i)
+                reward_total += reward
+
+                self._saveExperience(
+                    [feature, action, reward, next_feature, game_over]
+                )
+                inputs, targets = self._getBatch()
+                loss += self.model.train_on_batch(inputs, targets)
+
+                feature = next_feature
+                if game_over:
+                    if log.VERBOSE >= 4:
+                        log.warning("game over:", i, "/", len(features))
+                    break
+
+            score = lm.getGlobalBalanceInQuote()
+            hodl = price / self.price_scaler.unscale(features[0][-1][0]) * 100
+            log.debug(
+                "Epoch", str(e + 1) + "/" + str(EPOCHS),
+                "- loss:", round(loss, 4),
+                "- reward_total:", round(reward_total, 4),
+                "- score:", int(score - hodl),
+                "(" + str(int(score)) + "-" + str(int(hodl)) + ")"
+            )
+        return score
+
+    def predict(self, since):
+        """
+        Format the result as values between -1 (buy) and 1 (sell))
+        """
+        features = self.prepare(since)
+
+        # TODO: or just this? np.argmax(self.model.predict(features))
+        if len(features) == 1:
+            features = np.array([features])
+        return _mergeCategories(self.model.predict_proba(
+            np.reshape(features, (features.shape[0], features.shape[2])),
+            batch_size=features.shape[0],
+            # verbose=mb.getVerbose()
+        ))
+
+    def plot(self, since):
+        """TODO"""
+        plot_data = self.prepare(since)
+        pred_df = self.predict(since)
+        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
+        plot_data = plot_data.loc[:, ["vwap", "predict"]]
+        du.toDatetime(plot_data)
+        plot_data.plot(title="Model Qlearn")
+
+    def save(self):
+        """TODO"""
+        self.model.save(self.model_file)
+
+    def load(self):
+        """TODO"""
+        try:
+            self.model = load_model(self.model_file)
+        except OSError:
+            self.model = None

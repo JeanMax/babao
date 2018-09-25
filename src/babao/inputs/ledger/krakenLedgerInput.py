@@ -44,7 +44,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         if res["count"] == 0:
             self.up_to_date = True
             return None
-        elif res["count"] > 50 and self.current_row is None:
+        if res["count"] > 50 and self.current_row is None:
             # kraken api is *STOOPID*: if we don't have the exact date of the
             # first transaction, we can't fetch the ledger data starting from
             # the begining... so we'll need a couple extra requests, sorry!

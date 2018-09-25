@@ -26,7 +26,8 @@ Y_LABELS = ["hold", "sell", "buy"]
 
 HIDDEN_SIZE = 32
 BATCH_SIZE = 1
-EPOCHS = 5
+EPOCHS = 10
+
 MIN_PROBA = 0.1  # TODO
 
 
@@ -34,9 +35,11 @@ def _getTradeData(kraken_trades_input, since):
     """TODO"""
     trade_data = kraken_trades_input.read(since=since)
     trade_data = kraken_trades_input.resample(trade_data)
-    trade_data = trade_data.loc[:, ["vwap"]]
-    trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
-    # trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
+    cols = ["open", "high", "low", "close", "vwap", "volume"]
+    trade_data = trade_data.loc[:, cols]
+    cols.pop(-1)  # volume
+    trade_data.loc[:, cols] = Scaler().scaleFit(trade_data.loc[:, cols])
+    trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
     # TODO: save scalers
     return trade_data
 
@@ -46,13 +49,12 @@ def _prepareFeatures(trade_data, lookback):
     Prepare features for training (copy) TODO
     """
     features = indic.get(trade_data.copy(), [
-        "sma_vwap_9", "sma_vwap_26", "sma_vwap_77", "sma_vwap_167",
-        # "sma_volume_9", "sma_volume_26", "sma_volume_77",
+        "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
+        "sma_volume_9", "sma_volume_26", "sma_volume_77",
         "macd_vwap_9_26_10", "macd_vwap_26_77_10"
     ]).dropna()
-    features = mb._addLookbacks(features, lookback)
+    features = mb.addLookbacks(features, lookback)
     return features
-    # features = _reshape(features.values)  # TODO
 
 
 def _prepareTargets(trade_data, lookback):
@@ -61,12 +63,23 @@ def _prepareTargets(trade_data, lookback):
     0 (nop), 1 (sell), 2 (buy)
     TODO
     """
-    rev = trade_data["vwap"][::-1]
-    rev_targets = (
-        (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
-        | (rev.rolling(lookback).max() == rev).astype(int)
-    ).replace(3, 0)
-    return rev_targets[::-1]
+    # rev = trade_data["vwap"][::-1]
+    # rev_targets = (
+    #     (rev.rolling(lookback).min() == rev).astype(int).replace(1, 2)
+    #     | (rev.rolling(lookback).max() == rev).astype(int)
+    # ).replace(3, 0)
+    # return rev_targets[::-1]
+    prices = trade_data["vwap"]
+    rev_prices = prices[::-1]
+    return (
+        (  # min forward & backward
+            (prices.rolling(lookback).min() == prices)
+            & ((rev_prices.rolling(lookback).min() == rev_prices)[::-1])
+        ).astype(int).replace(1, 2)  # minima set to 2
+    ) | (  # max forward & backward
+        (prices.rolling(lookback).max() == prices)
+        & ((rev_prices.rolling(lookback).max() == rev_prices)[::-1])
+    ).astype(int).values  # maxima set to +1
 
 
 def _createModel(features_shape):
@@ -161,11 +174,11 @@ class TendencyModel(mb.ABCModel):
         Format the result as values between -1 (buy) and 1 (sell))
         """
         features = self.prepare(since)
-        features = mb.reshape(features.values)
-        if len(features) == 1:
-            features = np.array([features])
+        reshaped_features = mb.reshape(features.values)
+        if len(reshaped_features) == 1:
+            reshaped_features = np.array([reshaped_features])
         pred = self.model.predict_proba(
-            features,
+            reshaped_features,
             batch_size=BATCH_SIZE,
             # verbose=mb.getVerbose()
         )
@@ -215,7 +228,6 @@ class TendencyModel(mb.ABCModel):
         # log.info(score_table)
         # TODO: save best proba
         return score_table[-1][1]
-
 
     def save(self):
         """TODO"""

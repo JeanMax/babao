@@ -45,6 +45,7 @@ def _play(features):
 
     time_base = features.index[0]
     now = time_base
+    index = 0  # in case len(features) == 0
     for index, feature in enumerate(features.values):
         macd = feature[1]
         if np.isnan(macd):
@@ -135,12 +136,12 @@ class MacdModel(mb.ABCModel):
         lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
 
         param_grid = list(ParameterGrid({
-            # "fast_delay": range(9, 100, 1),
-            # "slow_delay": range(25, 200, 1),
-            # "signal_delay": range(10, 30, 1),
-            "fast_delay": [9],
-            "slow_delay": [26],
-            "signal_delay": [10],
+            "fast_delay": range(9, 100, 1),
+            "slow_delay": range(25, 200, 1),
+            "signal_delay": range(10, 30, 1),
+            # "fast_delay": [9],
+            # "slow_delay": [26],
+            # "signal_delay": [10],
             "score": [-42]
         }))
 

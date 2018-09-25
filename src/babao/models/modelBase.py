@@ -15,6 +15,8 @@ MODELS = []  # type: List[ABCModel]
 
 NODE = TypeVar("NODE", "ABCModel", ib.ABCInput)
 
+os.environ['KERAS_BACKEND'] = 'theano'
+
 
 def getVerbose() -> int:
     """Transform our verbose level to match keras one"""
@@ -33,6 +35,25 @@ def addLookbacks(df, look_back):
             if "lookback" not in col:
                 df[col + "_lookback_" + str(i)] = df[col].shift(i)
     return df.dropna()
+
+
+def addLookbacks3d(arr, look_back):
+    """
+    Add lookback(s) (shifted columns) to each df columns
+    Reshape the features to be keras-proof (3d)
+    """
+
+    res = None
+    for i in range(len(arr) - look_back):
+        if res is None:
+            res = np.array([arr[i:i + look_back]])
+        else:
+            res = np.append(
+                res,
+                np.array([arr[i: i + look_back]]),
+                axis=0
+            )
+    return res[look_back:]  # dropna
 
 
 class ABCModel(ABC):

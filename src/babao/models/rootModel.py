@@ -13,7 +13,7 @@ from babao.models.modelBase import ABCModel
 from babao.models.tree.extremaModel import ExtremaModel
 from babao.models.tree.tendencyModel import TendencyModel
 from babao.models.tree.macdModel import MacdModel
-# from babao.models.tree.qlearnModel import QlearnModel
+from babao.models.tree.qlearnModel import QlearnModel
 from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
 
 MIN_PROBA = 1e-2
@@ -25,8 +25,8 @@ class RootModel(ABCModel):
     dependencies_class = [
         # ExtremaModel,
         # TendencyModel,
-        MacdModel,
-        # QlearnModel,
+        # MacdModel,
+        QlearnModel,
     ]
     need_training = False
 
