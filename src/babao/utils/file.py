@@ -23,7 +23,7 @@ def maintenance():
     for k in STORE.keys():
         df = STORE.get(k)
         if not df.index.is_monotonic_increasing:
-            print(k, "is NOT sorted!!!!") # DEBUG
+            # print(k, "is NOT sorted!!!!") # DEBUG
             df.sort_index(inplace=True)
             STORE.append(k, df, append=False)  # I *love* this argument
         STORE.create_table_index(k, optlevel=9, kind='full')

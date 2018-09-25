@@ -94,7 +94,8 @@ def _init(args=None):
 
     if args.graph and conf.CURRENT_COMMAND != "train":
         _launchGraph()
-    sig.catchSignal()
+    if args.func.__name__ != "train":
+        sig.catchSignal()
 
     return args
 

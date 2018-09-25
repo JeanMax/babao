@@ -17,7 +17,6 @@ from sklearn import neighbors
 # from sklearn import neural_network
 # from sklearn import preprocessing
 
-import babao.config as conf
 import babao.utils.indicators as indic
 import babao.utils.log as log
 import babao.utils.date as du
@@ -78,61 +77,55 @@ def _prepareTargets(trade_data, lookback):
 class ExtremaModel(ABCModel):
     """TODO"""
 
-    dependencies = [KrakenTradesXXBTZEURInput]
+    dependencies_class = [KrakenTradesXXBTZEURInput]
     need_training = True
 
-    def predict(self, since):
+    def prepare(self, since, with_targets=False):
         """TODO"""
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data)
-        # TODO: scaling will be fucked up if there is not much data
-        pred_df = pd.DataFrame(
-            self.model.predict_proba(features),
-            columns=Y_LABELS
-        )
-        pred_df.index = trade_data[-len(pred_df):].index
-        return pred_df
+        if not with_targets:
+            return features
+        targets = _prepareTargets(trade_data, LOOKBACK)
+        targets = targets[-len(features):]  # compensate features.dropna()
+        targets = targets[LOOKBACK:-LOOKBACK]  # remove un-label'd data
+        features = features[LOOKBACK:-LOOKBACK]
+        return features, targets
 
     def train(self, since):
         """TODO"""
         log.debug("Train extrema")
-        trade_data = _getTradeData(self.dependencies[0], since)
-        features = _prepareFeatures(trade_data)
-        targets = _prepareTargets(trade_data, LOOKBACK)
-        targets = targets[-len(features):]  # compensate features.dropna()
-        features = features[LOOKBACK:-LOOKBACK]
-        targets = targets[LOOKBACK:-LOOKBACK]
+        features, targets = self.prepare(since, with_targets=True)
         self.model.fit(features, targets)
         return self.model.score(features, targets)
 
-    def getPlotData(self, since):
+    def predict(self, since):
         """TODO"""
-        trade_data = _getTradeData(self.dependencies[0], since)
-        features = _prepareFeatures(trade_data)
-        targets = _prepareTargets(trade_data, LOOKBACK)
-        targets = targets[-len(features):]  # compensate features.dropna()
-        pred_df = pd.DataFrame(
-            self.model.predict_proba(features),
-            columns=Y_LABELS
-        )
+        features = self.prepare(since)
+        pred = self.model.predict_proba(features)
+        return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
+
+    def plot(self, since):
+        """TODO"""
+        features, targets = self.prepare(since, with_targets=True)
+        pred = self.model.predict_proba(features)
+        pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
         plot_data = features.loc[:, ["vwap", "volume"]]
-        pred_df.index = plot_data.index
         plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
         plot_data["target"] = targets.values / 3
         du.toDatetime(plot_data)
-        return plot_data
+        plot_data.plot(title="Model Extrema")
 
     def save(self):
         """TODO"""
-        joblib.dump(self.model, conf.MODEL_EXTREMA_FILE)  # TODO: file
+        joblib.dump(self.model, self.model_file)
 
     # TODO: move to init?
     def load(self):
         """TODO"""
         try:
-            self.model = joblib.load(conf.MODEL_EXTREMA_FILE)
+            self.model = joblib.load(self.model_file)
         except OSError:
-            # TODO: k
             self.model = neighbors.KNeighborsClassifier(
                 n_neighbors=3,
                 weights="distance"

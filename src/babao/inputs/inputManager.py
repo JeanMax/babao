@@ -5,7 +5,7 @@ or is it a manager?
 
 from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial, reduce
-from typing import List, Union
+from typing import List, Optional, Union
 
 import babao.utils.date as du
 import babao.utils.file as fu
@@ -38,7 +38,7 @@ def fetchInputs():
     return reduce(lambda acc, inp: acc & inp.up_to_date, ib.INPUTS, True)
 
 
-def readInputs(input_list: Union[List[ib.ABCInput], None] = None, since=None):
+def readInputs(input_list: Optional[List[ib.ABCInput]] = None, since=None):
     """TODO"""
 
     def _renamer(prefix, s):
