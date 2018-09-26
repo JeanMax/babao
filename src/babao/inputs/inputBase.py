@@ -93,8 +93,6 @@ class ABCInput(ABC):
 
     def write(self, raw_data):
         """TODO"""
-        # if "Ledger" not in self.__class__.__name__: # DEBUG
-            # from ipdb import set_trace; set_trace() # DEBUG
         if raw_data is None or raw_data.empty:
             return None
         if not fu.write(self.__class__.__name__, raw_data):
@@ -145,7 +143,8 @@ class ABCInput(ABC):
                 ]
         else:
             log.debug(
-                "Caching data from", du.toStr(since), "to", du.toStr(till)
+                "Caching data from", du.toStr(since), "to", du.toStr(till),
+                "(" + self.__class__.__name__ + ")"
             )
             self._cache_data = self._readFromFile(since, till)
         if not self._cache_data.empty:

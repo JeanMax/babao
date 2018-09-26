@@ -29,7 +29,6 @@ def dryRun(unused_args):
 
 def fetch(unused_args):
     """Fetch raw trade data since the beginning of times"""
-    fu.maintenance()        # DEBUG
     while not sig.EXIT and not im.fetchInputs():
         last_fetch = min(
             (i.current_row.name for i in ib.INPUTS if i.current_row is not None)

@@ -93,6 +93,7 @@ def _init(args=None):
     RootModel()
 
     if args.graph and conf.CURRENT_COMMAND != "train":
+        fu.closeStore()
         _launchGraph()
     if args.func.__name__ != "train":
         sig.catchSignal()

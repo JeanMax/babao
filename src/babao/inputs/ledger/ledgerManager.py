@@ -40,7 +40,8 @@ def initLedgers(simulate=True, log_to_file=True):
         led.__dict__[k](log_to_file) for k in led.__dict__ if re.match(pat, k)
     ]
 
-    if simulate and sum([l.balance for l in ledgers]) == 0:
+    if conf.CURRENT_COMMAND != "fetch" and simulate \
+       and sum([l.balance for l in ledgers]) == 0:
         ledgers[0].deposit(ledgers[0].__class__(log_to_file=False), 100)
         for l in ledgers[1:]:
             l.deposit(l.__class__(log_to_file=False), 0)
