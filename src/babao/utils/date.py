@@ -13,7 +13,10 @@ NOW = None
 def setTime(now):
     """TODO"""
     global NOW
-    NOW = int(now)
+    if now is None:
+        NOW = None
+    else:
+        NOW = int(now)
 
 
 def getTime(force=False):

@@ -84,7 +84,12 @@ class ABCInput(ABC):
         elif conf.CURRENT_COMMAND == "backtest":
             self.cache(since=SPLIT_DATE, till=du.getTime(force=True))
         else:  # real-time
-            self.cache(since=du.nowMinus(days=CACHE_REAL_TIME_LOOKBACK_DAYS))
+            last_entry = fu.getLastRows(self.__class__.__name__, 1)
+            if not last_entry.empty:
+                du.setTime(last_entry.index[0])
+            since = du.nowMinus(days=CACHE_REAL_TIME_LOOKBACK_DAYS)
+            du.setTime(None)
+            self.cache(since=since)
 
     def write(self, raw_data):
         """TODO"""
@@ -147,7 +152,7 @@ class ABCInput(ABC):
             self.updateCurrentRow(self._cache_data.iloc[-1])
         else:
             log.warning("Database '" + self.__class__.__name__ + "' is emtpy")
-            self._cache_data = pd.DataFrame(columns=self.resampled_columns)
+            self._cache_data = pd.DataFrame(columns=self.raw_columns)
 
     def refreshCache(self):
         """TODO"""
