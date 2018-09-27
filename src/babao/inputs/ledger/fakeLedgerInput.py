@@ -160,7 +160,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         refid = str(du.nowMinus(0))
         if self.verbose:
             log.info(
-                "Deposit ", round(volume, 4),
+                "Deposit", round(volume, 4),
                 "from", ledger.asset.name,
                 "to", self.asset.name,
             )
@@ -186,7 +186,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         refid = str(du.nowMinus(0))
         if self.verbose:
             log.info(
-                "Withdraw ", round(volume, 4),
+                "Withdraw", round(volume, 4),
                 "from", ledger.asset.name,
                 "to", self.asset.name,
             )

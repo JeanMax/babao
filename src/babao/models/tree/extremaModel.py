@@ -24,14 +24,22 @@ from babao.inputs.trades.krakenTradesInput import KrakenTradesXXBTZEURInput
 from babao.models.modelBase import ABCModel
 from babao.utils.scale import Scaler
 
-LOOKBACK = 47  # TODO: nice one
+LOOKBACK = 6  # TODO: nice one
 Y_LABELS = ["buy", "hold", "sell"]
 
 
 def _getTradeData(kraken_trades_input, since):
     """TODO"""
     trade_data = kraken_trades_input.read(since=since)
+    log.debug(
+        "Read data from", du.toStr(trade_data.index[0]),
+        "to", du.toStr(trade_data.index[-1])
+    )
     trade_data = kraken_trades_input.resample(trade_data)
+    log.debug(
+        "Resampled data from", du.toStr(trade_data.index[0]),
+        "to", du.toStr(trade_data.index[-1])
+    )
     trade_data = trade_data.loc[:, ["vwap", "volume"]]
     trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
     trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
@@ -119,6 +127,6 @@ class ExtremaModel(ABCModel):
             self.model = joblib.load(self.model_file)
         except OSError:
             self.model = neighbors.KNeighborsClassifier(
-                n_neighbors=3,  # TODO: k
+                n_neighbors=3,
                 weights="distance"
             )

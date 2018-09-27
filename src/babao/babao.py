@@ -19,12 +19,14 @@ Why does this file exist, and why not put this in __main__?
 # from ipdb import set_trace; set_trace()
 # import babao; args = babao.babao._init(["-vv", "d"]); args.func(args)
 
+import os
 from multiprocessing import Process, Lock
 
 from prwlock import RWLock
 
 import babao.arg as arg
 import babao.config as conf
+import babao.inputs.inputBase as ib
 import babao.inputs.ledger.ledgerManager as lm
 import babao.utils.date as du
 import babao.utils.file as fu
@@ -40,13 +42,16 @@ def _launchGraph():
     # we import here, so matplotlib can stay an optional dependency
     import babao.graph as graph
 
-    p = Process(
-        target=graph.initGraph,
-        args=(log.LOCK, fu.LOCK),
-        name="babao-graph",
-        daemon=True  # so we don't have to terminate it
-    )
-    p.start()
+    if os.environ.get("DEBUG_GRAPH"):
+        graph.initGraph(log.LOCK, fu.LOCK)  # no fork
+    else:
+        p = Process(
+            target=graph.initGraph,
+            args=(log.LOCK, fu.LOCK),
+            name="babao-graph",
+            daemon=True  # so we don't have to terminate it
+        )
+        p.start()
 
 
 def _kthxbye():
@@ -62,26 +67,33 @@ def _init(args=None):
     args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
+    real_time = conf.CURRENT_COMMAND not in ["train", "backtest"]
+
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
-
-    if args.func.__name__ in ["train", "backtest"]:
-        du.setTime(du.EPOCH)
-    else:
+    if real_time:
         log.setLock(Lock())
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
 
-    if args.func.__name__ in ["train", "backtest"]:
-        du.setTime(du.EPOCH)
+    if conf.CURRENT_COMMAND == "train":
+        du.setTime(
+            du.EPOCH + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
+        )
+    elif conf.CURRENT_COMMAND == "backtest":
+        du.setTime(
+            ib.SPLIT_DATE + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
+        )
+
     lm.initLedgers(
-        simulate=args.func.__name__ != "wetRun",
-        log_to_file=args.func.__name__ not in ["train", "backtest"]
+        simulate=conf.CURRENT_COMMAND != "wetRun",
+        log_to_file=real_time
     )
     RootModel()
 
-    if args.graph and args.func.__name__ != "train":
+    if args.graph and conf.CURRENT_COMMAND != "train":
+        fu.closeStore()
         _launchGraph()
     if args.func.__name__ != "train":
         sig.catchSignal()

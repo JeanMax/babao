@@ -18,22 +18,24 @@ def initStore(filename):
     STORE = pd.HDFStore(filename)  # complevel=9, complib='blosc'
 
 
-def maintenance():
-    """TODO"""
-    for k in STORE.keys():
-        df = STORE.get(k)
-        if not df.index.is_monotonic_increasing:
-            # print(k, "is NOT sorted!!!!") # DEBUG
-            df.sort_index(inplace=True)
-            STORE.append(k, df, append=False)  # I *love* this argument
-        STORE.create_table_index(k, optlevel=9, kind='full')
-
-
 def closeStore():
     """TODO"""
     if STORE is not None and STORE.is_open:
-        STORE.flush(fsync=True)  # just being paranoid
         STORE.close()
+
+
+def maintenance():
+    """TODO"""
+    if STORE is None or not STORE.is_open:
+        for k in STORE.keys():
+            # <DEBUG
+            df = STORE.get(k)
+            if not df.index.is_monotonic_increasing:
+                print(k, "is NOT sorted!!!! Database fucked up :/")
+                df.sort_index(inplace=True)
+                STORE.append(k, df, append=False)  # I *love* this argument
+            # DEBUG>
+            STORE.create_table_index(k, optlevel=9, kind='full')
 
 
 def write(frame, df):
@@ -45,7 +47,11 @@ def write(frame, df):
     if LOCK is not None:
         LOCK.acquire_write()
     try:
-        STORE.append(frame, df)
+        if not STORE.is_open:
+            with pd.HDFStore(STORE.filename) as store:
+                store.append(frame, df)
+        else:
+            STORE.append(frame, df)
     except RuntimeError:  # HDF5ExtError
         ret = False
     finally:
@@ -81,8 +87,13 @@ def getLastRows(frame, nrows):
     if LOCK is not None:
         LOCK.acquire_read()
     try:
-        frame_len = STORE.get_storer(frame).nrows
-        ret = STORE.select(frame, start=frame_len - nrows)
+        if not STORE.is_open:
+            with pd.HDFStore(STORE.filename) as store:
+                frame_len = store.get_storer(frame).nrows
+                ret = store.select(frame, start=frame_len - nrows)
+        else:
+            frame_len = STORE.get_storer(frame).nrows
+            ret = STORE.select(frame, start=frame_len - nrows)
     except (KeyError, FileNotFoundError, AttributeError):
         ret = pd.DataFrame()
     finally:

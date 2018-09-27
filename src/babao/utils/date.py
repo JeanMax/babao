@@ -4,14 +4,19 @@ import time
 import numpy as np
 import pandas as pd
 
-EPOCH = pd.Timestamp("2017-01-01").value
+# TODO: no hardcode: min(inputs.first_row)?
+
+EPOCH = pd.Timestamp("2017-06-27").value
 NOW = None
 
 
 def setTime(now):
     """TODO"""
     global NOW
-    NOW = now
+    if now is None:
+        NOW = None
+    else:
+        NOW = int(now)
 
 
 def getTime(force=False):
@@ -43,6 +48,8 @@ def toTimestamp(df):
 
 def toStr(t):
     """TODO"""
+    if t is None:
+        return "None"
     if not isinstance(t, pd.Timestamp):
         t = toDatetime(t)
     return t.strftime("%Y/%m/%d %H:%M:%S")

@@ -16,12 +16,14 @@ DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")  # TODO: move
 
 # config vars
 QUOTE = None
-CRYPTOS = None
+CRYPTOS = None  # TODO: infere from models
 TIME_INTERVAL = None
 MAX_GRAPH_POINTS = None
 
+CURRENT_COMMAND = None
 
-def readConfigFile(unused_cmd_name="unamed"):
+
+def readConfigFile(cmd_name="dry-run"):
     """Read config file and initialize file/dir paths"""
 
     # TODO: find a better way to handle config
@@ -29,7 +31,9 @@ def readConfigFile(unused_cmd_name="unamed"):
     global CRYPTOS
     global TIME_INTERVAL
     global MAX_GRAPH_POINTS
+    global CURRENT_COMMAND
 
+    CURRENT_COMMAND = cmd_name
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
 
