@@ -51,7 +51,7 @@ before_install:
 install:
   - make
   - make install_test
-  - linux make install_graph
+  - make install_graph
 
 script:
   - babao
