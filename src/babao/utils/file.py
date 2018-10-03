@@ -30,7 +30,7 @@ def maintenance():
 
     Create table index for each table, and make sure everything is sorted.
     """
-    if STORE is None or not STORE.is_open:
+    if STORE is not None and STORE.is_open:
         for k in STORE.keys():
             df = STORE.get(k)
             if not df.index.is_monotonic_increasing:

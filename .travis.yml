@@ -6,6 +6,7 @@ os: linux
 python:
   - 3.5
   - 3.6
+  - 3.7
 
 matrix:
   include:
@@ -15,6 +16,9 @@ matrix:
   - os: osx
     language: generic
     env: PYTHON=3.6.3
+  - os: osx
+    language: generic
+    env: PYTHON=3.7.0
 
 addons:
   apt:
