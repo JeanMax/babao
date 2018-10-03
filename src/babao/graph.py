@@ -82,7 +82,7 @@ def _updateGraph(unused_counter, lines):
 
 
 def _createAxes():
-    """TODO"""
+    """Create the different axes we'll need to draw in"""
     axes = {}
     axes["KrakenTradesXXBTZEURInput-vwap"] = plt.subplot2grid(
         (8, 1), (0, 0), rowspan=5
@@ -100,7 +100,7 @@ def _createAxes():
 
 
 def _createLines(axes):
-    """TODO"""
+    """Draw desired lines with matplotlib"""
     lines = {}
     for key in axes:  # TODO: this is *really* ugly
         lines[key], = axes[key].plot(

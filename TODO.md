@@ -8,3 +8,4 @@
 * pip package
 * refactor graph: one page per crypto, one page for all at once, one menu page
 * add type hints
+* update README.md and CONTRIBUTING.md

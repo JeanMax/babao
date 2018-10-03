@@ -7,41 +7,45 @@ STORE = None
 
 
 def setLock(lock):
-    """TODO"""
+    """Store the given ´lock´ object for later use in database processing"""
     global LOCK
     LOCK = lock
 
 
 def initStore(filename):
-    """TODO"""
+    """Open the hdf database from ´filename´"""
     global STORE
     STORE = pd.HDFStore(filename)  # complevel=9, complib='blosc'
 
 
 def closeStore():
-    """TODO"""
+    """Close the hdf database"""
     if STORE is not None and STORE.is_open:
         STORE.close()
 
 
 def maintenance():
-    """TODO"""
+    """
+    Maintenance routine on the hdf database
+
+    Create table index for each table, and make sure everything is sorted.
+    """
     if STORE is None or not STORE.is_open:
         for k in STORE.keys():
-            # <DEBUG
             df = STORE.get(k)
             if not df.index.is_monotonic_increasing:
                 print(k, "is NOT sorted!!!! Database fucked up :/")
                 df.sort_index(inplace=True)
                 STORE.append(k, df, append=False)  # I *love* this argument
-            # DEBUG>
             STORE.create_table_index(k, optlevel=9, kind='full')
 
 
 def write(frame, df):
     """
-    Write a frame from the hdf database
-    TODO
+    Append the given ´df´ dataframe to the ´frame´ entry (key)
+    in the hdf database
+
+    Thread Safe!
     """
     ret = True
     if LOCK is not None:
@@ -62,8 +66,10 @@ def write(frame, df):
 
 def read(frame, where=None):
     """
-    Read a frame from the hdf database
-    TODO
+    Read a ´frame´ (key) from the hdf database
+
+    ´where´ can be use to specify search criteria.
+    Thread Safe!
     """
     if LOCK is not None:
         LOCK.acquire_read()
@@ -83,7 +89,10 @@ def read(frame, where=None):
 
 
 def getLastRows(frame, nrows):
-    """Return ´nrows´ rows from ´filename´ as a DataFrame"""
+    """
+    Return ´nrows´ rows from a ´frame´ (key) in the hdf database
+    as a DataFrame
+    """
     if LOCK is not None:
         LOCK.acquire_read()
     try:

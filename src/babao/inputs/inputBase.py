@@ -1,6 +1,4 @@
-"""
-TODO
-"""
+"""Base class for any input"""
 
 from abc import ABC, abstractmethod
 from typing import List
@@ -44,19 +42,17 @@ def resampleSerie(s):
 
 class ABCInput(ABC):
     """
-    TODO
     Base class for any input
-
-    Public attr:
-    * write : self -> Bool
-    * read : self -> int -> DataFrame
 
     Your subclass should at least implement:
     * fetch : self -> DataFrame
+    * raw_columns : List[str]
+
 
     And eventually: (if you want self.resample to works)
     * _resample : self -> DataFrame -> DataFrame
     * fillMissing : self -> DataFrame -> DataFrame
+    * resampled_columns : List[str]
 
     (cf. specific method doc-string in this class)
     """
@@ -64,18 +60,19 @@ class ABCInput(ABC):
     @property
     @abstractmethod
     def raw_columns(self) -> List[str]:
-        """TODO"""
+        """
+        The columns names of your raw data
+        (as fetched and stored in database)
+        """
         pass
 
     @property
     @abstractmethod
     def resampled_columns(self) -> List[str]:
-        """TODO"""
+        """The columns names of your resampled data (from raw data)"""
         pass
 
     def __init__(self):
-        # TODO: msg, move to tests?
-        # assert list(self.current_row.keys()) == self.__class__.raw_columns
         self.up_to_date = True
         self.current_row = None
         self._cache_data = None
@@ -92,7 +89,7 @@ class ABCInput(ABC):
             self.cache(since=since)
 
     def write(self, raw_data):
-        """TODO"""
+        """Write the given raw_data to the database, and cache it if needed"""
         if raw_data is None or raw_data.empty:
             return None
         if not fu.write(self.__class__.__name__, raw_data):
@@ -105,13 +102,13 @@ class ABCInput(ABC):
         return True
 
     def _readFromCache(self, since=None, till=None):
-        """TODO"""
+        """Read data in cache from ´since´ to ´till´"""
         if self._cache_data.empty:
             return self._cache_data
         return self._cache_data.loc[since:till]
 
     def _readFromFile(self, since=None, till=None):
-        """TODO"""
+        """Read data in database from ´since´ to ´till´"""
         where = None
         if since is not None:
             where = "index > %d" % since
@@ -120,7 +117,7 @@ class ABCInput(ABC):
         return fu.read(self.__class__.__name__, where=where)
 
     def read(self, since=None, till=None):
-        """TODO"""
+        """Read data in database or cache from ´since´ to ´till´"""
         if since is None:
             since = du.EPOCH
         now = du.getTime()
@@ -131,7 +128,12 @@ class ABCInput(ABC):
         return self._readFromFile(since, till)
 
     def cache(self, fresh_data=None, since=None, till=None):
-        """TODO"""
+        """
+        Save some data to cache
+
+        If ´fresh_data´ is given, append it to cache,
+        otherwise read in database from ´since´ to ´till´ and cache it
+        """
         if fresh_data is not None:
             self._cache_data = self._cache_data.append(
                 fresh_data
@@ -154,7 +156,7 @@ class ABCInput(ABC):
             self._cache_data = pd.DataFrame(columns=self.raw_columns)
 
     def refreshCache(self):
-        """TODO"""
+        """Make sure the cache is up to date"""
         if self._cache_data.empty:
             since = None
         else:
@@ -165,11 +167,9 @@ class ABCInput(ABC):
 
     def resample(self, raw_data):
         """
-        TODO
+        Return the DataFrame ´raw_data´ as a continuous time-serie
 
-        add this to tests:
-        assert list(raw_data.columns) == self.__class__.resampled_columns
-        assert isimplemented(_resample, fillMissing)
+        This is a wrapper around _resample and fillMissing
         """
         if raw_data.empty:
             return pd.DataFrame(columns=self.resampled_columns)
@@ -181,7 +181,7 @@ class ABCInput(ABC):
         return resampled_data
 
     def updateCurrentRow(self, current_row=None, timestamp=None):
-        """TODO"""
+        """Update the property self.current_row, useful for time travel"""
         global LAST_WRITE
         if timestamp is not None:  # time travel
             if "Ledger" in self.__class__.__name__:
@@ -229,8 +229,6 @@ class ABCInput(ABC):
 
         You should use the helper function ´resampleSerie´ on the desired
         columns of your discrete ´raw_data´ to generate continuous data.
-
-        TODO
         """
         raise NotImplementedError(
             "Your Input class '%s' should implement a '_resample' method :/"

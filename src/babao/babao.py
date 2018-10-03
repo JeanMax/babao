@@ -55,7 +55,7 @@ def _launchGraph():
 
 
 def _kthxbye():
-    """KTHXBYE"""
+    """Cleanup routine"""
 
     fu.closeStore()
     lock.tryUnlock(conf.LOCK_FILE)

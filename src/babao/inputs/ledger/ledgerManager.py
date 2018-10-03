@@ -1,6 +1,6 @@
 """
-TODO
-Buy/Sell strategy
+Manage all the ledgers and give some utils functions to check balance
+or buy/sell
 """
 
 import re
@@ -23,7 +23,10 @@ TRADES = None  # type: Optional[Dict[CryptoEnum, ABCLedgerInput]]
 
 
 def initLedgers(simulate=True, log_to_file=True):
-    """TODO"""
+    """
+    Instantiate all the ledgers and corresponding trade-inputs needed
+    by conf.CRYPTOS / conf.QUOTE
+    """
     global LEDGERS
     global TRADES
 
@@ -56,19 +59,19 @@ def initLedgers(simulate=True, log_to_file=True):
 
 
 def getBalanceInQuote(crypto_enum):
-    """TODO"""
+    """Convert to quote the balance of the LEDGERS[crypto_enum]"""
     return LEDGERS[crypto_enum].balance * TRADES[crypto_enum].current_row.price
 
 
 def getGlobalBalanceInQuote():
-    """TODO"""
+    """Sum and convert to quote the balance of all your LEDGERS"""
     return sum(
         (getBalanceInQuote(c) for c in TRADES)
     ) + LEDGERS[conf.QUOTE].balance
 
 
 def getLastTx():
-    """TODO"""
+    """Return the timestamp of the last transaction in all LEDGERS"""
     return max((l.last_tx for l in LEDGERS.values()))
 
 
@@ -95,7 +98,6 @@ def _tooSoon(timestamp):
 
 def _canBuy():
     """
-    TODO
     Check if you can buy crypto
 
     This is based on your balance and your current position.
@@ -130,7 +132,7 @@ def _canSell(crypto_enum):
 
 
 def buy(crypto_enum, volume):
-    """TODO"""
+    """Buy the given ´volume´ of ´crypto_enum´"""
     timestamp = du.getTime()
     if not _canBuy() or _tooSoon(timestamp):  # I can english tho
         return False
@@ -144,7 +146,7 @@ def buy(crypto_enum, volume):
 
 
 def sell(crypto_enum, volume):
-    """TODO"""
+    """Sell the given ´volume´ of ´crypto_enum´"""
     timestamp = du.getTime()
     if not _canSell(crypto_enum) or _tooSoon(timestamp):
         return False
@@ -159,10 +161,10 @@ def sell(crypto_enum, volume):
 
 def buyOrSell(action_enum, crypto_enum, volume=None):
     """
-    Decide wether to buy or sell based on the given ´target´
+    Decide wether to buy or sell (or not) ´volume´ the ´crypto_enum´
+    based on the given ´action_enum´
 
     It will consider the current ´ledger.BALANCE´, and evenutally update it.
-    TODO
     """
     if action_enum == ActionEnum.BUY:
         if volume is None:

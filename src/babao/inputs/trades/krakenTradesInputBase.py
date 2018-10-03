@@ -1,5 +1,5 @@
 """
-TODO
+Module containing base class for any kraken trades input
 """
 
 from abc import abstractmethod
@@ -25,7 +25,6 @@ class ABCKrakenTradesInput(ABCTradesInput, ABCKrakenInput):
         pass
 
     def fetch(self):
-        """TODO"""
         if self.current_row is None:
             since = 0  # TODO: do we really need allllll the data? du.EPOCH
         else:

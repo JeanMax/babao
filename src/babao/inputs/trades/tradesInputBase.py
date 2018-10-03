@@ -1,5 +1,5 @@
 """
-TODO
+Module containing base class for any trades input
 """
 
 from abc import abstractmethod
@@ -10,7 +10,7 @@ import babao.inputs.inputBase as ib
 
 
 class ABCTradesInput(ib.ABCInput):
-    """Base class for any kraken trades input"""
+    """Base class for any trades input"""
 
     raw_columns = [
         "price", "volume"
@@ -38,7 +38,6 @@ class ABCTradesInput(ib.ABCInput):
         pass
 
     def _resample(self, raw_data):
-        """TODO"""
         p = ib.resampleSerie(raw_data["price"])
         resampled_data = p.ohlc()
 
@@ -53,7 +52,6 @@ class ABCTradesInput(ib.ABCInput):
         return resampled_data
 
     def fillMissing(self, resampled_data):
-        """Fill missing values in ´resampled_data´"""
         resampled_data["count"].fillna(0, inplace=True)
         resampled_data["volume"].fillna(0, inplace=True)
         resampled_data["vwap"].replace(np.inf, np.nan, inplace=True)

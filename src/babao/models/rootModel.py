@@ -1,8 +1,5 @@
 """
-TODO
-Buy/Sell strategy
-
-This whole shit is temporary, don't worry
+Root Model, base of the models tree
 """
 
 import pandas as pd
@@ -19,7 +16,11 @@ MIN_PROBA = 1e-2
 
 
 class RootModel(ABCModel):
-    """TODO"""
+    """
+    Root Model, base of the models tree
+
+    Not modeling much, but handle the call of the dependencies predictions
+    """
 
     dependencies_class = [
         ExtremaModel,
@@ -29,7 +30,7 @@ class RootModel(ABCModel):
     need_training = False
 
     def predict(self, since):
-        """TODO"""
+        """Call predict on the dependencies, then somehow merge the results"""
 
         for model in self.dependencies:  # de-bug loop
             pred_df = model.predict(since)
@@ -50,17 +51,13 @@ class RootModel(ABCModel):
         return cryptoAndActionTotrade(CryptoEnum.XBT.value, pred_df)
 
     def plot(self, since):
-        """TODO"""
         pass
 
     def train(self, since):
-        """TODO"""
         pass
 
     def save(self):
-        """TODO"""
         pass
 
     def load(self):
-        """TODO"""
         pass

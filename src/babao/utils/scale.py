@@ -1,10 +1,10 @@
 """
-TODO
+Scaler
 """
 
 
 class Scaler:
-    """TODO"""
+    """Basic min/max scaler"""
     def __init__(self):
         self.scale_min = 0
         self.scale_max = 100000

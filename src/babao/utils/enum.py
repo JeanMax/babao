@@ -1,12 +1,12 @@
 """
-TODO
+Enums describing positions and assets.
 """
 
 from enum import Enum
 
 
 class ActionEnum(Enum):
-    """TODO"""
+    """Enum describing a transaction action"""
     HODL = 0
     BUY = 1
     SELL = -1
@@ -16,7 +16,7 @@ class ActionEnum(Enum):
 
 
 class QuoteEnum(Enum):
-    """TODO"""
+    """Enum describing a quote asset"""
     CAD = 1
     EUR = 2
     GBP = 3
@@ -25,7 +25,7 @@ class QuoteEnum(Enum):
 
 
 class CryptoEnum(Enum):
-    """TODO"""
+    """Enum describing a crypto asset"""
     BCH = -1
     DASH = -2
     EOS = -3
@@ -42,7 +42,7 @@ class CryptoEnum(Enum):
 
 
 class TradeEnum(Enum):
-    """TODO"""
+    """Enum describing a transaction on a given asset"""
     HODL = 0
 
     BUY_BCH = 1
@@ -75,20 +75,20 @@ class TradeEnum(Enum):
 
 
 def floatToTrade(f):
-    """TODO"""
+    """Round a float value to the nearest trade enum"""
     return round(f)  # TODO: round to HODL if too outside MIN_PROBA
 
 
 def cryptoAndActionTotrade(crypto_enum_val, action_enum_val):
-    """TODO"""
+    """Convert a crypto enum and an action enum to the matching trade enum"""
     return crypto_enum_val * action_enum_val * -1
 
 
 def tradeToAction(trade_enum_val):
-    """TODO"""
+    """Extract an action enum from a trade enum"""
     return trade_enum_val / abs(trade_enum_val)
 
 
 def tradeToCrypto(trade_enum_val):
-    """TODO"""
+    """Extract a crypto enum from a trade enum"""
     return abs(trade_enum_val) * -1

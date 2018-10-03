@@ -22,18 +22,24 @@ MIN_MACD = 1e-2
 
 
 def _getTradeData(kraken_trades_input, since):
-    """TODO"""
+    """
+    Read the necessary data from inputs, and start feature preparation
+
+    It is important to keep the the returned data constant, as it is shared
+    across the different models
+    """
     trade_data = kraken_trades_input.read(since=since)
     trade_data = kraken_trades_input.resample(trade_data)
     trade_data = trade_data.loc[:, ["vwap"]]
     trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
-    # trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
-    # TODO: save scalers
     return trade_data
 
 
 def _resetLedgers():
-    """TODO"""
+    """
+    Re-init the ledger to default assets amounts,
+    so a new simulation can be launched
+    """
     lm.LEDGERS[CryptoEnum.XBT].balance = 0
     lm.LEDGERS[conf.QUOTE].balance = 100
     lm.LEDGERS[CryptoEnum.XBT].last_tx = 0
@@ -76,7 +82,7 @@ def _play(features):
 
 
 def _playLoop(features, param_grid):
-    """TODO"""
+    """Loop through the different macd paramaters to tests"""
     now = du.getTime()
     param_grid_len = len(param_grid)
 
@@ -110,13 +116,16 @@ def _playLoop(features, param_grid):
 
 
 class MacdModel(mb.ABCModel):
-    """TODO"""
+    """Simple macd based model"""
 
     dependencies_class = [KrakenTradesXXBTZEURInput]
     need_training = True
 
-    def prepare(self, since, with_macd=False):
-        """TODO"""
+    def _prepare(self, since, with_macd=False):
+        """
+        Prepare features and eventually macd (if ´with_macd´ is True)
+        from the given ´since´ timestamp
+        """
         trade_data = _getTradeData(self.dependencies[0], since)
         if with_macd:
             trade_data["macd"] = indic.macd(
@@ -129,9 +138,8 @@ class MacdModel(mb.ABCModel):
         return trade_data
 
     def train(self, since):
-        """TODO"""
         log.debug("Train macd")
-        features = self.prepare(since)
+        features = self._prepare(since)
         lm.LEDGERS[CryptoEnum.XBT].verbose = log.VERBOSE >= 4
         lm.LEDGERS[conf.QUOTE].verbose = log.VERBOSE >= 4
 
@@ -156,10 +164,7 @@ class MacdModel(mb.ABCModel):
         return score
 
     def predict(self, since):
-        """
-        Format the result as values between -1 (buy) and 1 (sell))
-        """
-        features = self.prepare(since, with_macd=True)
+        features = self._prepare(since, with_macd=True)
         macd = features["macd"]
         features["buy"] = (macd > MIN_MACD).astype(int)
         features["sell"] = (macd < -MIN_MACD).astype(int)
@@ -168,8 +173,7 @@ class MacdModel(mb.ABCModel):
         return pred_df
 
     def plot(self, since):
-        """TODO"""
-        plot_data = self.prepare(since, with_macd=True)
+        plot_data = self._prepare(since, with_macd=True)
         pred_df = self.predict(since)
         plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
         plot_data = plot_data.loc[:, ["vwap", "predict"]]
@@ -177,12 +181,10 @@ class MacdModel(mb.ABCModel):
         plot_data.plot(title="Model Macd")
 
     def save(self):
-        """TODO"""
         with open(self.model_file, "wb") as f:
             pickle.dump(self.model, f)
 
     def load(self):
-        """TODO"""
         try:
             with open(self.model_file, "rb") as f:
                 self.model = pickle.load(f)

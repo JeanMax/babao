@@ -19,7 +19,7 @@ LOCK = None
 
 
 def setLock(lock):
-    """TODO"""
+    """Store the given ´lock´ object for later use in logging"""
     global LOCK
     LOCK = lock
 
