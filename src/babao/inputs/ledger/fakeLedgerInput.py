@@ -37,13 +37,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def logTransaction(
             self, typ, volume, refid,
             fee=0, product=0, timestamp=None
-    ):
+    ):  # pylint: disable=R0913
         """
         Log transaction in database
         if ´timestamp´ is not given, the current time will be used
 
         This should'nt be used outside of this class
         """
+        # TODO: remove some args
 
         if timestamp is None:
             timestamp = du.nowMinus(0)

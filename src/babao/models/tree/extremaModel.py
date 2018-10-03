@@ -65,6 +65,7 @@ def _prepareTargets(trade_data, lookback):
     """
     prices = trade_data["vwap"]
     rev_prices = prices[::-1]
+
     return (
         (  # min forward & backward
             (prices.rolling(lookback).min() == prices)
