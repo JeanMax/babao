@@ -6,7 +6,7 @@ import sys
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-from matplotlib.widgets import MultiCursor
+from matplotlib.widgets import MultiCursor, Button
 
 import babao.config as conf
 import babao.inputs.inputManager as im
@@ -29,6 +29,25 @@ INDICATORS_COLUMNS = [
 MAX_LOOK_BACK = 77
 
 
+class Index(object):
+    def __init__(self, top_axe):
+        self.top_axe = top_axe
+        self.ind = 0
+        self._update()
+
+    def next(self, event):
+        self.ind = (self.ind + 1) % len(conf.CRYPTOS)
+        self._update()
+
+    def prev(self, event):
+        self.ind = (self.ind - 1) % len(conf.CRYPTOS)
+        self._update()
+
+    def _update(self):
+        self.top_axe.set_title(conf.CRYPTOS[self.ind].name)
+        plt.draw()
+
+
 def _getData():
     """
     Initialize ´DATA´ global
@@ -40,7 +59,6 @@ def _getData():
 
     if not os.path.isfile(conf.DB_FILE):
         log.warning("Data files not found... Is it your first time around?")
-        # TODO: catch missing frame errors
         return False
 
     inputs = [
@@ -96,6 +114,8 @@ def _createAxes():
     axes["bal"] = plt.subplot2grid(
         (8, 1), (7, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
     )
+
+    axes["KrakenTradesXXBTZEURInput-vwap"].set_title("zboub")
     return axes
 
 
@@ -191,10 +211,10 @@ def _initGraph():
     axes["macd"].set_ylim(bottom=-y_max, top=y_max)
     axes["bal"].set_ylim(bottom=0, top=200)
 
-    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylabel("XBT")
-    axes["KrakenTradesXXBTZEURInput-volume"].set_ylabel("EUR")
+    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylabel(conf.QUOTE.name)
+    axes["KrakenTradesXXBTZEURInput-volume"].set_ylabel("Crypto")
     axes["macd"].set_ylabel("%")
-    axes["bal"].set_ylabel("XBT")
+    axes["bal"].set_ylabel(conf.QUOTE.name)
 
     for key in axes:
         axes[key].grid(True)
@@ -221,6 +241,14 @@ def _initGraph():
         # )  # TODO: save this, then give it to the update fun
 
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
+
+    callback = Index(axes["KrakenTradesXXBTZEURInput-vwap"])
+    axprev = plt.axes([0.13, 0.974, 0.1, 0.025])
+    axnext = plt.axes([0.75, 0.974, 0.1, 0.025])
+    bnext = Button(axnext, 'next', color='0.5', hovercolor='0.9')
+    bprev = Button(axprev, 'prev', color='0.5', hovercolor='0.9')
+    bnext.on_clicked(callback.next)
+    bprev.on_clicked(callback.prev)
 
     # the assignations are needed to avoid garbage collection...
     unused_animation = animation.FuncAnimation(  # NOQA: F841
