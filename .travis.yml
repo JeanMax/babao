@@ -1,24 +1,24 @@
 language: python
 sudo: required
 dist: trusty
-os: linux
 
-python:
-  - 3.5
-  - 3.6
-  # - 3.7  # not implemented yet on travis :/
 
 matrix:
   include:
+  - os: linux
+    python: 3.5
+
+  - os: linux
+    python: 3.6
+
   - os: osx
     language: generic
-    env: PYTHON=3.5.5
+    python: 3.5
+
   - os: osx
     language: generic
-    env: PYTHON=3.6.3
-  # - os: osx
-  #   language: generic
-  #   env: PYTHON=3.7.0
+    python: 3.6
+
 
 addons:
   apt:
@@ -35,13 +35,7 @@ before_install:
   - osx brew install gcc
   - osx brew install hdf5
   - osx brew install lzo
-  - osx brew outdated pyenv || brew upgrade pyenv
-  - osx brew install pyenv-virtualenv
-  - osx pyenv install $PYTHON
-  - osx export PYENV_VERSION=$PYTHON
-  - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
-  - osx pyenv virtualenv venv
-  - osx . /Users/travis/.pyenv/versions/$PYTHON/envs/venv/bin/activate
+
   - python --version
   - python -m pip install -U pip
   - python -m easy_install -U setuptools
