@@ -32,8 +32,8 @@ MAX_LOOK_BACK = 77
 
 
 class Index(object):
-    def __init__(self, top_axe):
-        self.top_axe = top_axe
+    def __init__(self, axes):
+        self.axes = axes
         self.ind = 0
         self._update()
 
@@ -46,7 +46,20 @@ class Index(object):
         self._update()
 
     def _update(self):
-        self.top_axe.set_title(conf.CRYPTOS[self.ind].name)
+        _getData()
+        self.axes["vwap"].set_title(conf.CRYPTOS[self.ind].name)
+        y_min = DATA["vwap"].min()
+        y_max = DATA["vwap"].max()
+        space = (y_max - y_min) * 0.05  # 5% space up and down
+        self.axes["vwap"].set_ylim(
+            bottom=y_min - space, top=y_max + space
+        )
+        y_max = DATA["volume"].max()
+        space = y_max * 0.05
+        self.axes["volume"].set_ylim(bottom=0, top=y_max - space)
+        y_max = max(DATA["signal_line"].max(), DATA["signal_line"].min() * -1)
+        self.axes["macd"].set_ylim(bottom=-y_max, top=y_max)
+        self.axes["total-balance"].set_ylim(bottom=0, top=200)
         plt.draw()
 
 
@@ -103,7 +116,8 @@ def _getData():
         True
     )
     DATA = DATA.dropna()
-    DATA["bal"] = DATA["quote-balance"] + DATA["crypto-balance"] * DATA["close"]
+    DATA["total-balance"] = DATA["quote-balance"] \
+        + DATA["crypto-balance"] * DATA["close"]
     du.toDatetime(DATA)
 
     return True
@@ -134,7 +148,7 @@ def _createAxes():
     axes["macd"] = plt.subplot2grid(
         (8, 1), (6, 0), sharex=axes["vwap"]
     )
-    axes["bal"] = plt.subplot2grid(
+    axes["total-balance"] = plt.subplot2grid(
         (8, 1), (7, 0), sharex=axes["vwap"]
     )
     return axes
@@ -153,7 +167,7 @@ def _createLines(axes):
             alpha=0.5
         )
         plt.setp(axes[key].get_xticklabels(), visible=False)
-        if key == "bal":
+        if key == "total-balance":
             col = "quote-balance"
             lines[col], = axes[key].plot(
                 DATA.index,
@@ -210,10 +224,10 @@ def _initGraph():
         horizOn=True
     )  # TODO: redraw me!
 
-    plt.setp(axes["bal"].get_xticklabels(), visible=True)
-    for label in axes["bal"].xaxis.get_ticklabels():
+    plt.setp(axes["total-balance"].get_xticklabels(), visible=True)
+    for label in axes["total-balance"].xaxis.get_ticklabels():
         label.set_rotation(45)
-    adf = axes["bal"].xaxis.get_major_formatter()
+    adf = axes["total-balance"].xaxis.get_major_formatter()
     adf.scaled[1. / 86400] = "%d/%m/%y %H:%M"
     adf.scaled[1. / 1440] = "%d/%m/%y %H:%M"
     adf.scaled[1. / 24] = "%d/%m/%y %H:%M"
@@ -221,21 +235,10 @@ def _initGraph():
     adf.scaled[30.] = "%d/%m/%y"
     adf.scaled[365.] = "%d/%m/%y"
 
-    y_min = DATA["vwap"].min()
-    y_max = DATA["vwap"].max()
-    space = (y_max - y_min) * 0.05  # 5% space up and down
-    axes["vwap"].set_ylim(
-        bottom=y_min - space, top=y_max + space
-    )
-    axes["volume"].set_ylim(bottom=0)
-    y_max = max(DATA["macd"].max(), DATA["macd"].min() * -1)
-    axes["macd"].set_ylim(bottom=-y_max, top=y_max)
-    axes["bal"].set_ylim(bottom=0, top=200)
-
-    axes["vwap"].set_ylabel(conf.QUOTE.name)
-    axes["volume"].set_ylabel("Crypto")
-    axes["macd"].set_ylabel("%")
-    axes["bal"].set_ylabel(conf.QUOTE.name)
+    axes["vwap"].set_ylabel("PRICE")
+    axes["volume"].set_ylabel("VOL")
+    axes["macd"].set_ylabel("MACD")
+    axes["total-balance"].set_ylabel("BAL")
 
     for key in axes:
         axes[key].grid(True)
@@ -264,7 +267,7 @@ def _initGraph():
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
 
     global INDEX
-    INDEX = Index(axes["vwap"])
+    INDEX = Index(axes)
     axprev = plt.axes([0.13, 0.974, 0.1, 0.025])
     axnext = plt.axes([0.75, 0.974, 0.1, 0.025])
     bnext = Button(axnext, 'next', color='0.5', hovercolor='0.9')
