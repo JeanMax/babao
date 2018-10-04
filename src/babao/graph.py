@@ -31,21 +31,25 @@ INDICATORS_COLUMNS = [
 MAX_LOOK_BACK = 77
 
 
-class Index(object):
+class Index():
+    """Class keeping track of the current crypto to display"""
     def __init__(self, axes):
         self.axes = axes
         self.ind = 0
         self._update()
 
-    def next(self, event):
+    def next(self, unused_event):
+        """Show the next crypto"""
         self.ind = (self.ind + 1) % len(conf.CRYPTOS)
         self._update()
 
-    def prev(self, event):
+    def prev(self, unused_event):
+        """Show the previous crypto"""
         self.ind = (self.ind - 1) % len(conf.CRYPTOS)
         self._update()
 
     def _update(self):
+        """Update graph data and zoom after a next/prev click"""
         _getData()
         self.axes["vwap"].set_title(conf.CRYPTOS[self.ind].name)
         y_min = DATA["vwap"].min()
