@@ -1,17 +1,20 @@
-"""Some utils functions for date handling"""
+"""Some utils functions for date handling and time traveling"""
 
 import time
 import numpy as np
 import pandas as pd
 
 # TODO: no hardcode: min(inputs.first_row)?
-
 EPOCH = pd.Timestamp("2017-06-27").value
 NOW = None
 
 
 def setTime(now):
-    """TODO"""
+    """
+    Set time to the given ´now´ nanoseconds
+
+    Used for time traveling purpose
+    """
     global NOW
     if now is None:
         NOW = None
@@ -20,15 +23,23 @@ def setTime(now):
 
 
 def getTime(force=False):
-    """TODO"""
+    """
+    Return the current time in nanoseconds
+
+    Used for time traveling purpose, so this might be a date in the past
+    matching the current simulation state, unless ´force´ is set to True.
+    """
     if not force and NOW is not None:
         return NOW
     return secToNano(time.time())
 
 
 def toDatetime(df):
-    """Convert the index of the given dataframe to datetime
-    TODO"""
+    """
+    Convert the index of the given dataframe to datetime
+
+    Also works directly on a dataframe index.
+    """
 
     if isinstance(df, pd.DataFrame):
         df.index = pd.to_datetime(df.index, unit="ns")
@@ -37,8 +48,11 @@ def toDatetime(df):
 
 
 def toTimestamp(df):
-    """Convert the index of the given dataframe to nanoseconds
-    TODO"""
+    """
+    Convert the index of the given dataframe to nanoseconds
+
+    Also works directly on a dataframe index.
+    """
 
     if isinstance(df, pd.DataFrame):
         df.index = df.index.view("int64")
@@ -47,7 +61,11 @@ def toTimestamp(df):
 
 
 def toStr(t):
-    """TODO"""
+    """
+    Return the string representation of timestamp
+
+    ´t´ can be a nanoseconds timestamp, or a panda datetime object.
+    """
     if t is None:
         return "None"
     if not isinstance(t, pd.Timestamp):
@@ -56,7 +74,11 @@ def toStr(t):
 
 
 def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
-    """Return the current timestamp (nanoseconds) minus the given parameters"""
+    """
+    Return the current timestamp (nanoseconds) minus the given parameters
+
+    This will take into account time traveling tricks.
+    """
 
     seconds = (
         minutes * 60

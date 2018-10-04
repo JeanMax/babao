@@ -1,6 +1,5 @@
 """
-TODO
-or is it a manager?
+Common interface to inputs to call methods on all of them at once
 """
 
 from multiprocessing.dummy import Pool as ThreadPool
@@ -16,7 +15,10 @@ POOL = None
 
 
 def refreshInputs(input_list: Union[List[ib.ABCInput], None] = None):
-    """TODO"""
+    """
+    Make sure the cache is up to date on the given inputs
+    (or all the INPUTS)
+    """
     if input_list is None:
         input_list = ib.INPUTS
     for inp in ib.INPUTS:
@@ -24,7 +26,11 @@ def refreshInputs(input_list: Union[List[ib.ABCInput], None] = None):
 
 
 def fetchInputs():
-    """TODO"""
+    """
+    Fetch all the INPUTS in a pool thread
+
+    The raw data resulting is then wrote to database.
+    """
     global POOL
     if POOL is None:
         POOL = ThreadPool(
@@ -39,14 +45,22 @@ def fetchInputs():
 
 
 def readInputs(input_list: Optional[List[ib.ABCInput]] = None, since=None):
-    """TODO"""
+    """
+    Read all INPUTS from ´since´ and resample them with matching time base
+
+    The return is one dataframe containing all concatened columns (so they will
+    be renamed with the input name as prefix
+    """
 
     def _renamer(prefix, s):
-        """TODO"""
+        """
+        Rename a column to avoid name collisions
+        (add input name as prefix)
+        """
         return prefix + "-" + s
 
     def _restorer(prefix, s):
-        """TODO"""
+        """Restore the original name of a column (remove prefix)"""
         return s.replace(prefix + "-", "")
 
     if input_list is None:
@@ -76,7 +90,7 @@ def readInputs(input_list: Optional[List[ib.ABCInput]] = None, since=None):
 
 
 def timeTravel(timestamp):
-    """TODO"""
+    """Travel to the specified timestamp, for simulation purposes"""
     du.setTime(timestamp)
     for i in ib.INPUTS:
         i.updateCurrentRow(timestamp=timestamp)

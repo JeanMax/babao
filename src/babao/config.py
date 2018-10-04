@@ -24,7 +24,7 @@ CURRENT_COMMAND = None
 
 
 def readConfigFile(cmd_name="dry-run"):
-    """Read config file and initialize file/dir paths"""
+    """Read config file and initialize global config variables"""
 
     # TODO: find a better way to handle config
     global QUOTE

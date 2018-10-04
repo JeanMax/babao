@@ -1,6 +1,5 @@
 """
-TODO
-Handle money related stuffs
+Handle logging in database all our transactions
 
 TODO:
 It is really not obvious how you're gonna link the transaction across
@@ -22,7 +21,7 @@ from babao.utils.enum import CryptoEnum, QuoteEnum
 
 
 class ABCLedgerInput(ABCInput):
-    """TODO"""
+    """Base class for any ledger"""
 
     raw_columns = [
         "volume", "balance", "fee", "refid", "type", "product"
@@ -34,7 +33,10 @@ class ABCLedgerInput(ABCInput):
     @property
     @abstractmethod
     def asset(self) -> Union[CryptoEnum, QuoteEnum]:
-        """TODO"""
+        """
+        Overide this method with the desired CryptoEnum / QuoteEnum
+        ex: self.asset = CryptoEnum.XBT
+        """
         pass
 
     def __init__(self):
@@ -42,7 +44,6 @@ class ABCLedgerInput(ABCInput):
         self.verbose = True
 
     def _resample(self, raw_data):
-        """TODO"""
         resampled_data = resampleSerie(raw_data["balance"]).last()
         return pd.DataFrame(
             resampled_data,
@@ -50,27 +51,36 @@ class ABCLedgerInput(ABCInput):
         )
 
     def fillMissing(self, resampled_data):
-        """TODO"""
         resampled_data["balance"].ffill(inplace=True)
         resampled_data["balance"].fillna(0, inplace=True)
         return resampled_data
 
     @abstractmethod
     def buy(self, ledger, volume_spent, price, timestamp=None):
-        """TODO"""
+        """
+        Buy with the current ledger asset the asset of the given ´ledger´
+
+        (If the current ledger is a quote, this is a buy)
+         ´volume_spent´ quantity spent (including fees)
+        """
         pass
 
     @abstractmethod
     def sell(self, ledger, volume_spent, price, timestamp=None):
-        """TODO"""
+        """
+        Buy with the asset of the given ´ledger´ the current ledger asset
+
+        (If the current ledger is a quote, this is a sell)
+         ´volume_spent´ quantity spent (including fees)
+        """
         pass
 
     @abstractmethod
     def deposit(self, ledger, volume, timestamp=None):
-        """TODO"""
+        """Deposit from the current ledger to the given ´ledger´"""
         pass
 
     @abstractmethod
     def withdraw(self, ledger, volume, timestamp=None):
-        """TODO"""
+        """Withdraw from the current ledger to the given ´ledger´"""
         pass

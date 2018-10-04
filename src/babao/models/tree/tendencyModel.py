@@ -32,7 +32,12 @@ MIN_PROBA = 0.1  # TODO
 
 
 def _getTradeData(kraken_trades_input, since):
-    """TODO"""
+    """
+    Read the necessary data from inputs, and start feature preparation
+
+    It is important to keep the the returned data constant, as it is shared
+    across the different models
+    """
     trade_data = kraken_trades_input.read(since=since)
     trade_data = kraken_trades_input.resample(trade_data)
     cols = ["open", "high", "low", "close", "vwap", "volume"]
@@ -40,14 +45,11 @@ def _getTradeData(kraken_trades_input, since):
     cols.pop(-1)  # volume
     trade_data.loc[:, cols] = Scaler().scaleFit(trade_data.loc[:, cols])
     trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
-    # TODO: save scalers
     return trade_data
 
 
 def _prepareFeatures(trade_data, lookback):
-    """
-    Prepare features for training (copy) TODO
-    """
+    """Prepare features for train/predict"""
     features = indic.get(trade_data.copy(), [
         "sma_vwap_9", "sma_vwap_26", "sma_vwap_77",
         "sma_volume_9", "sma_volume_26", "sma_volume_77",
@@ -59,9 +61,8 @@ def _prepareFeatures(trade_data, lookback):
 
 def _prepareTargets(trade_data, lookback):
     """
-    Prepare targets for training (copy)
+    Prepare targets for training
     0 (nop), 1 (sell), 2 (buy)
-    TODO
     """
     # rev = trade_data["vwap"][::-1]
     # rev_targets = (
@@ -83,7 +84,7 @@ def _prepareTargets(trade_data, lookback):
 
 
 def _createModel(features_shape):
-    """TODO"""
+    """Create and compile a keras lstm model"""
     model = Sequential()
     model.add(
         LSTM(
@@ -130,13 +131,16 @@ def _createModel(features_shape):
 
 
 class TendencyModel(mb.ABCModel):
-    """TODO"""
+    """A variant of the extrema model, using an lstm network"""
 
     dependencies_class = [KrakenTradesXXBTZEURInput]
     need_training = True
 
-    def prepare(self, since, with_targets=False):
-        """TODO"""
+    def _prepare(self, since, with_targets=False):
+        """
+        Prepare features and eventually targets (if ´with_targets´ is True)
+        from the given ´since´ timestamp
+        """
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data, FEATURES_LOOKBACK)
         if not with_targets:
@@ -147,64 +151,9 @@ class TendencyModel(mb.ABCModel):
         targets = targets[-len(features):]  # compensate features.dropna()
         return features, targets
 
-    def train(self, since):
-        """TODO"""
-        log.debug("Train tendency")
-        features, targets = self.prepare(since, with_targets=True)
-        features = mb.reshape(features.values)
-        targets = to_categorical(targets.values)
-        if self.model is None:
-            self.model = _createModel(features.shape)
-        self.model.fit(
-            features, targets,
-            epochs=EPOCHS,
-            batch_size=BATCH_SIZE,
-            shuffle=False,
-            verbose=mb.getVerbose()
-        )  # this return the history... could be ploted or something
-        return self.score(since)
-        # return self.model.evaluate(
-        #     features, targets,
-        #     batch_size=BATCH_SIZE,
-        #     verbose=mb.getVerbose()
-        # )
-
-    def predict(self, since):
-        """
-        Format the result as values between -1 (buy) and 1 (sell))
-        """
-        features = self.prepare(since)
-        reshaped_features = mb.reshape(features.values)
-        if len(reshaped_features) == 1:
-            reshaped_features = np.array([reshaped_features])
-        pred = self.model.predict_proba(
-            reshaped_features,
-            batch_size=BATCH_SIZE,
-            # verbose=mb.getVerbose()
-        )
-        return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
-
-    def plot(self, since):
-        """TODO"""
-        features, targets = self.prepare(since, with_targets=True)
-        pred = self.model.predict_proba(
-            mb.reshape(features.values),
-            batch_size=BATCH_SIZE
-        )
-        pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
-        plot_data = features.loc[:, ["vwap"]]
-        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
-        plot_data["predict"] = plot_data.apply(
-            lambda x: 0 if -MIN_PROBA < x.predict < MIN_PROBA else x.predict,
-            axis=1
-        )
-        plot_data["target"] = targets.replace(2, -1).values / 3
-        du.toDatetime(plot_data)
-        plot_data.plot(title="Model Tendency")
-
-    def score(self, since):
-        """TODO"""
-        features, targets = self.prepare(since, with_targets=True)
+    def _score(self, since):
+        """Score our pretty model"""
+        features, targets = self._prepare(since, with_targets=True)
         pred = self.model.predict_proba(
             mb.reshape(features.values),
             batch_size=BATCH_SIZE
@@ -229,12 +178,60 @@ class TendencyModel(mb.ABCModel):
         # TODO: save best proba
         return score_table[-1][1]
 
+    def train(self, since):
+        log.debug("Train tendency")
+        features, targets = self._prepare(since, with_targets=True)
+        features = mb.reshape(features.values)
+        targets = to_categorical(targets.values)
+        if self.model is None:
+            self.model = _createModel(features.shape)
+        self.model.fit(
+            features, targets,
+            epochs=EPOCHS,
+            batch_size=BATCH_SIZE,
+            shuffle=False,
+            verbose=mb.getVerbose()
+        )  # this return the history... could be ploted or something
+        return self._score(since)
+        # return self.model.evaluate(
+        #     features, targets,
+        #     batch_size=BATCH_SIZE,
+        #     verbose=mb.getVerbose()
+        # )
+
+    def predict(self, since):
+        features = self._prepare(since)
+        reshaped_features = mb.reshape(features.values)
+        if len(reshaped_features) == 1:
+            reshaped_features = np.array([reshaped_features])
+        pred = self.model.predict_proba(
+            reshaped_features,
+            batch_size=BATCH_SIZE,
+            # verbose=mb.getVerbose()
+        )
+        return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
+
+    def plot(self, since):
+        features, targets = self._prepare(since, with_targets=True)
+        pred = self.model.predict_proba(
+            mb.reshape(features.values),
+            batch_size=BATCH_SIZE
+        )
+        pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
+        plot_data = features.loc[:, ["vwap"]]
+        plot_data["predict"] = pred_df["sell"] - pred_df["buy"]
+        plot_data["predict"] = plot_data.apply(
+            lambda x: 0 if -MIN_PROBA < x.predict < MIN_PROBA else x.predict,
+            axis=1
+        )
+        plot_data["target"] = targets.replace(2, -1).values / 3
+        du.toDatetime(plot_data)
+        plot_data.plot(title="Model Tendency")
+
     def save(self):
-        """TODO"""
         self.model.save(self.model_file)
 
     def load(self):
-        """TODO"""
         try:
             self.model = load_model(self.model_file)
         except OSError:

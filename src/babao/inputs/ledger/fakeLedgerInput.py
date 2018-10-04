@@ -1,6 +1,5 @@
 """
-TODO
-Handle money related stuffs
+Handle logging in database all our fake transactions (dry-run)
 """
 
 import sys
@@ -15,12 +14,11 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 
 class ABCFakeLedgerInput(ABCLedgerInput):
-    """TODO"""
+    """Base class for any fake ledger"""
 
     @property
     @abstractmethod
     def asset(self):
-        """TODO: warning trap"""
         pass
 
     def __init__(self, log_to_file=True):
@@ -39,14 +37,14 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def logTransaction(
             self, typ, volume, refid,
             fee=0, product=0, timestamp=None
-    ):
+    ):  # pylint: disable=R0913
         """
-        TODO
-        Log transaction in a csv ledger file
-
-        ´led_dic´ is a dict with keys == conf.RAW_LEDGER_COLUMNS
+        Log transaction in database
         if ´timestamp´ is not given, the current time will be used
+
+        This should'nt be used outside of this class
         """
+        # TODO: remove some args
 
         if timestamp is None:
             timestamp = du.nowMinus(0)
@@ -79,13 +77,6 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         self.write(df)
 
     def buy(self, ledger, volume_spent, price, timestamp=None):
-        """
-        TODO
-        Log a buy transaction (quote -> crypto)
-
-        ´quote_vol´ quantity spent in quote (including fees)
-        """
-
         if self.balance < volume_spent:
             return False
 
@@ -117,13 +108,6 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         return True
 
     def sell(self, ledger, volume_spent, price, timestamp=None):
-        """
-        TODO
-        Log a sell transaction (crypto -> quote)
-
-        ´crypto_vol´ quantity spent in crypto (including fees)
-        """
-
         if ledger.balance < volume_spent:
             return False
 
@@ -155,7 +139,6 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         return True
 
     def deposit(self, ledger, volume, timestamp=None):
-        """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
         if self.verbose:
@@ -181,7 +164,6 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         )
 
     def withdraw(self, ledger, volume, timestamp=None):
-        """TODO"""
         fee = volume / 100  # 1% hardcoded fee
         refid = str(du.nowMinus(0))
         if self.verbose:
@@ -207,7 +189,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         )
 
 
-# TODO: move that
+# Dynamically generate these inkd of classes for all assets available:
 
 # class FakeLedgerEURInput(ABCFakeLedgerInput):
 #     asset = QuoteEnum.EUR

@@ -1,5 +1,5 @@
 """
-TODO
+This module define the base class and methods for kraken inputs
 """
 
 import time
@@ -16,7 +16,7 @@ API_DELAY = 3
 
 
 def _initAPI():
-    """TODO"""
+    """Start the connexion with the api, eventually load the secret key"""
     global API
     API = krakenex.API()
     try:
@@ -29,9 +29,7 @@ def _initAPI():
 
 
 class ABCKrakenInput(ABCInput):
-    """
-    Base class for any kraken input
-    """
+    """Base class for any kraken input"""
 
     def __init__(self):
         ABCInput.__init__(self)
@@ -58,7 +56,7 @@ class ABCKrakenInput(ABCInput):
         return res["result"]
 
     def _sleep(self):
-        """TODO"""
+        """Handle waiting between each requests, so the api doesn't kick us"""
         if self._tick is not None:
             delta = time.time() - self._tick
             log.debug(

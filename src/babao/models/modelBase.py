@@ -1,4 +1,4 @@
-"""TODO"""
+"""Base class for any model"""
 
 import os
 from abc import ABC, abstractmethod
@@ -57,24 +57,24 @@ def addLookbacks3d(arr, look_back):
 
 
 class ABCModel(ABC):
-    """
-    Base class for any model
-
-    inputs: Input list
-    """
+    """Base class for any model """
 
     @property
     @abstractmethod
     def dependencies_class(
             self
     ) -> List[Union[Type["ABCModel"], Type[ib.ABCInput]]]:
-        """TODO"""
+        """
+        List of models or inputs needed by the current model
+
+        These should be class, not instances!
+        """
         pass
 
     @property
     @abstractmethod
     def need_training(self) -> bool:
-        """TODO"""
+        """Specify if the current model need to be trained"""
         pass
 
     @staticmethod
@@ -82,7 +82,7 @@ class ABCModel(ABC):
             node_class: Type[NODE],
             node_list: List[NODE]
     ) -> NODE:
-        """TODO"""
+        """Find a node instance in the MODELS list, or throw an error"""
         return node_list[
             [n.__class__ for n in node_list].index(node_class)
         ]
@@ -92,7 +92,7 @@ class ABCModel(ABC):
             node_class: Type[NODE],
             node_list: Optional[List[NODE]] = None
     ) -> NODE:
-        """TODO"""
+        """Find a node instance in the MODELS list, or instantiate a new one"""
         if node_list is None:
             if issubclass(node_class, ib.ABCInput):
                 node_list = ib.INPUTS
@@ -111,11 +111,17 @@ class ABCModel(ABC):
         node_list.append(node)  # TODO: sort the MODELS by priority order
         return node
 
+    def _initDeps(self):
+        """Instantiate all the needed dependencies"""
+        if not MODELS:
+            # TODO: should we init lm here?
+            MODELS.append(self)
+            ib.INPUTS.extend(lm.LEDGERS.values())
+            ib.INPUTS.extend(lm.TRADES.values())
+        for node_class in self.dependencies_class:
+            self.dependencies.append(self._getNodeInstance(node_class))
+
     def __init__(self):
-        # TODO: implementation checkup: in tests?
-        # that = self.__class__
-        # assert type(that.inputs) == list
-        # assert issubclass(that.inputs[0], Input)
         self.model = None
         self.model_file = os.path.join(
             conf.DATA_DIR, self.__class__.__name__ + ".model"
@@ -127,74 +133,31 @@ class ABCModel(ABC):
         self.dependencies = []
         self._initDeps()
 
-    def _initDeps(self):
-        """TODO"""
-        if not MODELS:
-            # TODO: should we init lm here?
-            MODELS.append(self)
-            ib.INPUTS.extend(lm.LEDGERS.values())
-            ib.INPUTS.extend(lm.TRADES.values())
-        for node_class in self.dependencies_class:
-            self.dependencies.append(self._getNodeInstance(node_class))
-
     @abstractmethod
     def predict(self, since):
-        """TODO"""
-        raise NotImplementedError("TODO")
+        """Return a dataframe of prediction starting from ´since´ timestamp"""
+        raise NotImplementedError("Implement me!")
 
     @abstractmethod
     def train(self, since):
-        """TODO"""
-        raise NotImplementedError("TODO")
+        """
+        Train the model with data starting from ´since´ timestamp
+
+        Return the score of model.
+        """
+        raise NotImplementedError("Implement me!")
 
     @abstractmethod
     def plot(self, since):
-        """TODO"""
-        raise NotImplementedError("TODO")
+        """Plot the model predictions from ´since´ timestamp"""
+        raise NotImplementedError("Implement me!")
 
     @abstractmethod
     def save(self):
-        """TODO"""
-        raise NotImplementedError("TODO")
+        """Save the model to self.model_file"""
+        raise NotImplementedError("Implement me!")
 
     @abstractmethod
     def load(self):
-        """TODO"""
-        raise NotImplementedError("TODO")
-
-
-# def plotModel(model, full_data):
-#     """Plot the given model"""
-
-#     y = unscale(model.FEATURES)  # be sure it has been scaleFit'ed
-#     # ndim should be 2/3, otherwise you deserve a crash
-#     if y.ndim == 3:  # keras formated
-#         y = y.reshape((y.shape[0], y.shape[2]))
-
-#     plot_data = pd.DataFrame(y).iloc[:, :len(model.REQUIRED_COLUMNS)]
-#     plot_data.columns = model.REQUIRED_COLUMNS
-#     plot_data.index = full_data.index[:len(y)]
-#     # TODO: these are not exactly the right indexes...
-
-#     plot_scale = plot_data["vwap"].max() * 2
-
-#     if hasattr(model, "TARGETS"):
-#         targets = model.getMergedTargets()
-#         if targets is not None:
-#             plot_data["y"] = targets * plot_scale * 0.8
-#             plot_data["y-sell"] = plot_data["y"].where(plot_data["y"] > 0)
-#             plot_data["y-buy"] = plot_data["y"].where(plot_data["y"] < 0) * -1
-
-#             plot_data["y-sell"].replace(0, plot_scale, inplace=True)
-#             plot_data["y-buy"].replace(0, plot_scale, inplace=True)
-
-#     plot_data["p"] = model.predict() * plot_scale
-#     plot_data["p-sell"] = plot_data["p"].where(plot_data["p"] > 0)
-#     plot_data["p-buy"] = plot_data["p"].where(plot_data["p"] < 0) * -1
-
-#     for col in plot_data.columns:
-#         if col not in ["vwap", "p-buy", "p-sell", "y-buy", "y-sell"]:
-#             del plot_data[col]
-#     du.toDatetime(plot_data)
-#     plot_data.fillna(0, inplace=True)
-#     return plot_data
+        """Load the model from self.model_file"""
+        raise NotImplementedError("Implement me!")

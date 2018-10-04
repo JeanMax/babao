@@ -2,8 +2,6 @@
 The idea of that model is to find local extrema,
 then classify them as minimum/nop/maximum (-1/0/1)
 using a knn classifier (sklearn)
-
-TODO
 """
 
 import joblib  # just use pickle instead?
@@ -29,7 +27,12 @@ Y_LABELS = ["buy", "hold", "sell"]
 
 
 def _getTradeData(kraken_trades_input, since):
-    """TODO"""
+    """
+    Read the necessary data from inputs, and start feature preparation
+
+    It is important to keep the the returned data constant, as it is shared
+    across the different models
+    """
     trade_data = kraken_trades_input.read(since=since)
     log.debug(
         "Read data from", du.toStr(trade_data.index[0]),
@@ -43,7 +46,6 @@ def _getTradeData(kraken_trades_input, since):
     trade_data = trade_data.loc[:, ["vwap", "volume"]]
     trade_data["vwap"] = Scaler().scaleFit(trade_data["vwap"])
     trade_data["volume"] = Scaler().scaleFit(trade_data["volume"])
-    # TODO: save scalers
     return trade_data
 
 
@@ -63,6 +65,7 @@ def _prepareTargets(trade_data, lookback):
     """
     prices = trade_data["vwap"]
     rev_prices = prices[::-1]
+
     return (
         (  # min forward & backward
             (prices.rolling(lookback).min() == prices)
@@ -75,13 +78,16 @@ def _prepareTargets(trade_data, lookback):
 
 
 class ExtremaModel(ABCModel):
-    """TODO"""
+    """A stupid simple model finding local extrema"""
 
     dependencies_class = [KrakenTradesXXBTZEURInput]
     need_training = True
 
-    def prepare(self, since, with_targets=False):
-        """TODO"""
+    def _prepare(self, since, with_targets=False):
+        """
+        Prepare features and eventually targets (if ´with_targets´ is True)
+        from the given ´since´ timestamp
+        """
         trade_data = _getTradeData(self.dependencies[0], since)
         features = _prepareFeatures(trade_data)
         if not with_targets:
@@ -93,21 +99,18 @@ class ExtremaModel(ABCModel):
         return features, targets
 
     def train(self, since):
-        """TODO"""
         log.debug("Train extrema")
-        features, targets = self.prepare(since, with_targets=True)
+        features, targets = self._prepare(since, with_targets=True)
         self.model.fit(features, targets)
         return self.model.score(features, targets)
 
     def predict(self, since):
-        """TODO"""
-        features = self.prepare(since)
+        features = self._prepare(since)
         pred = self.model.predict_proba(features)
         return pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
 
     def plot(self, since):
-        """TODO"""
-        features, targets = self.prepare(since, with_targets=True)
+        features, targets = self._prepare(since, with_targets=True)
         pred = self.model.predict_proba(features)
         pred_df = pd.DataFrame(pred, columns=Y_LABELS, index=features.index)
         plot_data = features.loc[:, ["vwap", "volume"]]
@@ -117,12 +120,9 @@ class ExtremaModel(ABCModel):
         plot_data.plot(title="Model Extrema")
 
     def save(self):
-        """TODO"""
         joblib.dump(self.model, self.model_file)
 
-    # TODO: move to init?
     def load(self):
-        """TODO"""
         try:
             self.model = joblib.load(self.model_file)
         except OSError:

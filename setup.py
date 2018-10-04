@@ -30,7 +30,7 @@ else:
         '"I\'ve got 99 problems But A Bot Ain\'t One".',
         long_description=long_description,
         author='JeanMax',
-        author_email='mcanal@student.42.fr',
+        author_email='max.canal@student.42.fr',
         url='https://github.com/JeanMax/babao',
 
         packages=find_packages('src'),
@@ -48,6 +48,7 @@ else:
             'Programming Language :: Python :: 3',
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: Implementation :: CPython',
         ],
         keywords='bitcoin bot',

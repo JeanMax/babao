@@ -1,9 +1,6 @@
 """
-Do you even lift bro?
-
 The idea here is to give a common interface to all the models
 so you can use these wrappers to call all of them at once.
-TODO
 """
 
 import babao.inputs.ledger.ledgerManager as lm
@@ -13,20 +10,14 @@ import babao.utils.log as log
 
 
 def plotModels(since):
-    """
-    Plot all models
-    TODO
-    """
+    """Plot all models"""
     for model in mb.MODELS:
         if model.need_training:
             model.plot(since)
 
 
 def trainModels(since):
-    """
-    Train all models and save the awesome result
-    TODO
-    """
+    """Train all models and save the awesome result"""
     for model in mb.MODELS:
         if model.need_training:
             score = model.train(since)
@@ -38,7 +29,8 @@ def trainModels(since):
 
 def predictModelsMaybeTrade(since):
     """
-    TODO
+    Call predict on the root model,
+    then eventually trade based on the preduction
     """
     root_model = mb.MODELS[0]
     pred_df = root_model.predict(since)

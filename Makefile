@@ -124,7 +124,7 @@ commit: reinstall check fclean
 
 todo:
 	grep -rin todo . | grep -vE '^(Binary file|\./\.git|\./Makefile|\./TODO.md|\./\.travis\.yml.* make todo)'
-	grep -iHn todo ./Makefile | head -n -$(shell grep -A1000 'todo:' Makefile | grep -ic todo)
+	grep -iHn todo ./Makefile | grep -vE 'todo|md'
 	cat TODO.md
 
 .PHONY: conf install install_test install_graph \

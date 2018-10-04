@@ -1,6 +1,6 @@
 """
-TODO
-Handle money related stuffs
+Handle logging in database all our real transactions on kraken api (wet-run)
+Also fetch from kraken api the history of your past transactions
 """
 
 import sys
@@ -14,7 +14,7 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 
 
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
-    """TODO"""
+    """Base class for any kraken ledger"""
 
     def __init__(self, log_to_file=True):
         super().__init__()
@@ -22,14 +22,6 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         self.balance = 0  # TODO
 
     def fetch(self):
-        """
-        TODO
-        Fetch last ledger entries from api
-
-        Transaction will be logged using functions from ledger module
-        Return a tuple (numberOfTransactionFetched, str(last_timestamp))
-        """
-
         if self.current_row is None:
             since = "0"
         else:
@@ -93,7 +85,7 @@ class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
         raise NotImplementedError("Sorry, this is not implement yet :/")
 
 
-# TODO: move that
+# Dynamically generate these inkd of classes for all assets available:
 
 # class KrakenLedgerEURInput(ABCKrakenLedgerInput):
 #     asset = QuoteEnum.EUR
