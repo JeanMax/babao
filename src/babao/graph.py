@@ -2,6 +2,8 @@
 
 import os
 import sys
+import re
+from functools import partial
 # import traceback
 
 import matplotlib.animation as animation
@@ -16,16 +18,16 @@ import babao.utils.file as fu
 import babao.utils.indicators as indic
 import babao.utils.log as log
 import babao.utils.signal as sig
-from babao.utils.enum import CryptoEnum
 
+INDEX = None
 DATA = None
 INDICATORS_COLUMNS = [
-    "sma_KrakenTradesXXBTZEURInput-vwap_9",
-    "sma_KrakenTradesXXBTZEURInput-vwap_26",
-    "sma_KrakenTradesXXBTZEURInput-vwap_77",
-    "sma_KrakenTradesXXBTZEURInput-volume_26",
-    "sma_KrakenTradesXXBTZEURInput-volume_77",
-]  # TODO :o
+    "sma_vwap_9",
+    "sma_vwap_26",
+    "sma_vwap_77",
+    "sma_volume_26",
+    "sma_volume_77",
+]
 MAX_LOOK_BACK = 77
 
 
@@ -61,26 +63,47 @@ def _getData():
         log.warning("Data files not found... Is it your first time around?")
         return False
 
+    if INDEX is None:
+        crypto = conf.CRYPTOS[0]
+    else:
+        crypto = conf.CRYPTOS[INDEX.ind]
+
     inputs = [
-        lm.TRADES[CryptoEnum.XBT],
+        lm.TRADES[crypto],
         lm.LEDGERS[conf.QUOTE],
-        lm.LEDGERS[CryptoEnum.XBT]
+        lm.LEDGERS[crypto]
     ]
     im.refreshInputs(inputs)
-    since = lm.TRADES[CryptoEnum.XBT].current_row.name - du.secToNano(
+    since = lm.TRADES[crypto].current_row.name - du.secToNano(
         (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
     )
     DATA = im.readInputs(inputs, since)
+
+    DATA.rename(
+        partial(re.sub, r'.*Trades.*-', ""),
+        axis="columns", inplace=True
+    )
+    DATA.rename(
+        partial(re.sub, r'.*Ledger' + conf.QUOTE.name + '.*-', "quote-"),
+        axis="columns", inplace=True
+    )
+    DATA.rename(
+        partial(re.sub, r'.*Ledger.*-', "crypto-"),
+        axis="columns", inplace=True
+    )
+    DATA = DATA.loc[
+        :,
+        ['close', 'vwap', 'volume', 'quote-balance', 'crypto-balance']
+    ]
+
     DATA = indic.get(DATA, INDICATORS_COLUMNS)
     DATA["macd_line"], DATA["signal_line"], DATA["macd"] = indic.macd(
-        DATA["KrakenTradesXXBTZEURInput-vwap"],
+        DATA["vwap"],
         46, 75, 22,
         True
     )
     DATA = DATA.dropna()
-    DATA["bal"] = DATA["FakeLedgerEURInput-balance"] \
-        + DATA["FakeLedgerXBTInput-balance"] \
-        * DATA["KrakenTradesXXBTZEURInput-close"]
+    DATA["bal"] = DATA["quote-balance"] + DATA["crypto-balance"] * DATA["close"]
     du.toDatetime(DATA)
 
     return True
@@ -102,20 +125,18 @@ def _updateGraph(unused_counter, lines):
 def _createAxes():
     """Create the different axes we'll need to draw in"""
     axes = {}
-    axes["KrakenTradesXXBTZEURInput-vwap"] = plt.subplot2grid(
+    axes["vwap"] = plt.subplot2grid(
         (8, 1), (0, 0), rowspan=5
     )
-    axes["KrakenTradesXXBTZEURInput-volume"] = plt.subplot2grid(
-        (8, 1), (5, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
+    axes["volume"] = plt.subplot2grid(
+        (8, 1), (5, 0), sharex=axes["vwap"]
     )
     axes["macd"] = plt.subplot2grid(
-        (8, 1), (6, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
+        (8, 1), (6, 0), sharex=axes["vwap"]
     )
     axes["bal"] = plt.subplot2grid(
-        (8, 1), (7, 0), sharex=axes["KrakenTradesXXBTZEURInput-vwap"]
+        (8, 1), (7, 0), sharex=axes["vwap"]
     )
-
-    axes["KrakenTradesXXBTZEURInput-vwap"].set_title("zboub")
     return axes
 
 
@@ -133,7 +154,7 @@ def _createLines(axes):
         )
         plt.setp(axes[key].get_xticklabels(), visible=False)
         if key == "bal":
-            col = "FakeLedgerEURInput-balance"
+            col = "quote-balance"
             lines[col], = axes[key].plot(
                 DATA.index,
                 DATA[col],
@@ -160,8 +181,8 @@ def _createLines(axes):
                         color="r",
                         alpha=0.7 - 0.2 * (i % 3)
                     )
-        if key == "KrakenTradesXXBTZEURInput-vwap":
-            col = "KrakenTradesXXBTZEURInput-close"
+        if key == "vwap":
+            col = "close"
             lines[col], = axes[key].plot(
                 DATA.index,
                 DATA[col],
@@ -200,19 +221,19 @@ def _initGraph():
     adf.scaled[30.] = "%d/%m/%y"
     adf.scaled[365.] = "%d/%m/%y"
 
-    y_min = DATA["KrakenTradesXXBTZEURInput-vwap"].min()
-    y_max = DATA["KrakenTradesXXBTZEURInput-vwap"].max()
+    y_min = DATA["vwap"].min()
+    y_max = DATA["vwap"].max()
     space = (y_max - y_min) * 0.05  # 5% space up and down
-    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylim(
+    axes["vwap"].set_ylim(
         bottom=y_min - space, top=y_max + space
     )
-    axes["KrakenTradesXXBTZEURInput-volume"].set_ylim(bottom=0)
+    axes["volume"].set_ylim(bottom=0)
     y_max = max(DATA["macd"].max(), DATA["macd"].min() * -1)
     axes["macd"].set_ylim(bottom=-y_max, top=y_max)
     axes["bal"].set_ylim(bottom=0, top=200)
 
-    axes["KrakenTradesXXBTZEURInput-vwap"].set_ylabel(conf.QUOTE.name)
-    axes["KrakenTradesXXBTZEURInput-volume"].set_ylabel("Crypto")
+    axes["vwap"].set_ylabel(conf.QUOTE.name)
+    axes["volume"].set_ylabel("Crypto")
     axes["macd"].set_ylabel("%")
     axes["bal"].set_ylabel(conf.QUOTE.name)
 
@@ -242,13 +263,14 @@ def _initGraph():
 
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
 
-    callback = Index(axes["KrakenTradesXXBTZEURInput-vwap"])
+    global INDEX
+    INDEX = Index(axes["vwap"])
     axprev = plt.axes([0.13, 0.974, 0.1, 0.025])
     axnext = plt.axes([0.75, 0.974, 0.1, 0.025])
     bnext = Button(axnext, 'next', color='0.5', hovercolor='0.9')
     bprev = Button(axprev, 'prev', color='0.5', hovercolor='0.9')
-    bnext.on_clicked(callback.next)
-    bprev.on_clicked(callback.prev)
+    bnext.on_clicked(INDEX.next)
+    bprev.on_clicked(INDEX.prev)
 
     # the assignations are needed to avoid garbage collection...
     unused_animation = animation.FuncAnimation(  # NOQA: F841
