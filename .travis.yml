@@ -11,14 +11,10 @@ matrix:
   include:
   - os: osx
     language: generic
-    python: 3.5
     env: PYTHON=3.5.5
-    env: MPLBACKEND="tkagg"
   - os: osx
     language: generic
-    python: 3.6
     env: PYTHON=3.6.3
-    env: MPLBACKEND="tkagg"
 
 addons:
   apt:
@@ -38,6 +34,7 @@ before_install:
   - osx brew outdated pyenv || brew upgrade pyenv
   - osx brew install pyenv-virtualenv
   - osx pyenv install $PYTHON
+  - osx export MPLBACKEND="tkagg"
   - osx export PYENV_VERSION=$PYTHON
   - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
   - osx pyenv virtualenv venv
