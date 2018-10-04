@@ -33,8 +33,9 @@ MAX_LOOK_BACK = 77
 
 class Index():
     """Class keeping track of the current crypto to display"""
-    def __init__(self, axes):
+    def __init__(self, axes, lines):
         self.axes = axes
+        self.lines = lines
         self.ind = 0
         self._update()
 
@@ -50,7 +51,7 @@ class Index():
 
     def _update(self):
         """Update graph data and zoom after a next/prev click"""
-        _getData()
+        _updateGraph(42, self.lines)
         self.axes["vwap"].set_title(conf.CRYPTOS[self.ind].name)
         y_min = DATA["vwap"].min()
         y_max = DATA["vwap"].max()
@@ -271,7 +272,7 @@ def _initGraph():
     plt.subplots_adjust(top=0.97, left=0.03, right=0.92, hspace=0.05)
 
     global INDEX
-    INDEX = Index(axes)
+    INDEX = Index(axes, lines)
     axprev = plt.axes([0.13, 0.974, 0.1, 0.025])
     axnext = plt.axes([0.75, 0.974, 0.1, 0.025])
     bnext = Button(axnext, 'next', color='0.5', hovercolor='0.9')
