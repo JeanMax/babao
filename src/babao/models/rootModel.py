@@ -7,7 +7,8 @@ import pandas as pd
 import babao.utils.log as log
 import babao.utils.date as du
 from babao.models.modelBase import ABCModel
-from babao.models.tree.extremaModel import ExtremaModel
+from babao.models.tree.qlearnModel import QlearnModel
+# from babao.models.tree.extremaModel import ExtremaModel
 # from babao.models.tree.tendencyModel import TendencyModel
 # from babao.models.tree.macdModel import MacdModel
 from babao.utils.enum import ActionEnum, CryptoEnum, cryptoAndActionTotrade
@@ -23,9 +24,10 @@ class RootModel(ABCModel):
     """
 
     dependencies_class = [
-        ExtremaModel,
+        # ExtremaModel,
         # TendencyModel,
         # MacdModel,
+        QlearnModel
     ]
     need_training = False
 
