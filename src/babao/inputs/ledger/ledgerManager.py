@@ -22,7 +22,7 @@ LEDGERS = None  # type: Optional[Dict[AssetEnum, ABCLedgerInput]]
 TRADES = None  # type: Optional[Dict[CryptoEnum, ABCLedgerInput]]
 
 
-def initLedgers(simulate=True, log_to_file=True):
+def initLedgers():
     """
     Instantiate all the ledgers and corresponding trade-inputs needed
     by conf.CRYPTOS / conf.QUOTE
@@ -30,7 +30,9 @@ def initLedgers(simulate=True, log_to_file=True):
     global LEDGERS
     global TRADES
 
-    # TODO: put args.func in a conf global
+    log_to_file = conf.CURRENT_COMMAND != "train"
+    simulate = conf.CURRENT_COMMAND != "wetRun"
+    temp = conf.CURRENT_COMMAND == "backtest"
     if simulate:
         import babao.inputs.ledger.fakeLedgerInput as led
     else:
@@ -40,7 +42,8 @@ def initLedgers(simulate=True, log_to_file=True):
         [c.name for c in conf.CRYPTOS]
     ) + ")"
     ledgers = [
-        led.__dict__[k](log_to_file) for k in led.__dict__ if re.match(pat, k)
+        led.__dict__[k](log_to_file, temp)
+        for k in led.__dict__ if re.match(pat, k)
     ]
 
     if conf.CURRENT_COMMAND != "fetch" and simulate \
@@ -133,7 +136,7 @@ def _canSell(crypto_enum):
 
 def buy(crypto_enum, volume):
     """Buy the given ´volume´ of ´crypto_enum´"""
-    timestamp = du.getTime()
+    timestamp = du.TIME_TRAVELER.getTime()
     if not _canBuy() or _tooSoon(timestamp):  # I can english tho
         return False
     LEDGERS[conf.QUOTE].buy(
@@ -147,7 +150,7 @@ def buy(crypto_enum, volume):
 
 def sell(crypto_enum, volume):
     """Sell the given ´volume´ of ´crypto_enum´"""
-    timestamp = du.getTime()
+    timestamp = du.TIME_TRAVELER.getTime()
     if not _canSell(crypto_enum) or _tooSoon(timestamp):
         return False
     LEDGERS[conf.QUOTE].sell(

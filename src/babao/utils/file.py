@@ -40,6 +40,33 @@ def maintenance():
             STORE.create_table_index(k, optlevel=9, kind='full')
 
 
+def delete(frame):
+    """
+    Remove the given ´frame´ entry (key) from the hdf database
+
+    Thread Safe!
+    """
+    ret = True
+    if STORE.is_open:
+        close_me = False
+        store = STORE
+    else:
+        close_me = True
+        store = pd.HDFStore(STORE.filename)
+    if LOCK is not None:
+        LOCK.acquire_write()
+    try:
+        del store[frame]
+    except KeyError:
+        ret = False
+    finally:
+        if close_me:
+            STORE.close()
+        if LOCK is not None:
+            LOCK.release()
+    return ret
+
+
 def write(frame, df):
     """
     Append the given ´df´ dataframe to the ´frame´ entry (key)

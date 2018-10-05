@@ -40,7 +40,7 @@ class RootModel(ABCModel):
             last_pred = pred_df.iat[-1, 0]
             log.debug(
                 model.__class__.__name__, "prediction:",
-                du.toStr(du.getTime()),
+                du.toStr(du.TIME_TRAVELER.getTime()),
                 last_pred, ActionEnum(round(last_pred))
             )
 

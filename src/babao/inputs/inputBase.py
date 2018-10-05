@@ -18,7 +18,8 @@ REAL_TIME_LOOKBACK_DAYS = 7  # TODO: infere this from models/graph
 CACHE_REAL_TIME_LOOKBACK_DAYS = REAL_TIME_LOOKBACK_DAYS * 4
 TRAIN_TEST_RATIO = 3 / 4
 SPLIT_DATE = int(
-    du.EPOCH + (du.getTime(force=True) - du.EPOCH) * TRAIN_TEST_RATIO
+    du.EPOCH + (du.TIME_TRAVELER.getTime(force=True) - du.EPOCH)
+    * TRAIN_TEST_RATIO
 )
 
 
@@ -79,13 +80,17 @@ class ABCInput(ABC):
         if conf.CURRENT_COMMAND == "train":
             self.cache()
         elif conf.CURRENT_COMMAND == "backtest":
-            self.cache(since=SPLIT_DATE, till=du.getTime(force=True))
+            self.cache(
+                since=SPLIT_DATE, till=du.TIME_TRAVELER.getTime(force=True)
+            )
         else:  # real-time
             last_entry = fu.getLastRows(self.__class__.__name__, 1)
             if not last_entry.empty:
-                du.setTime(last_entry.index[0])
-            since = du.nowMinus(days=CACHE_REAL_TIME_LOOKBACK_DAYS)
-            du.setTime(None)
+                du.TIME_TRAVELER.setTime(last_entry.index[0])
+            since = du.TIME_TRAVELER.nowMinus(
+                days=CACHE_REAL_TIME_LOOKBACK_DAYS
+            )
+            du.TIME_TRAVELER.setTime(None)
             self.cache(since=since)
 
     def write(self, raw_data):
@@ -120,7 +125,7 @@ class ABCInput(ABC):
         """Read data in database or cache from ´since´ to ´till´"""
         if since is None:
             since = du.EPOCH
-        now = du.getTime()
+        now = du.TIME_TRAVELER.getTime()
         if till is None or till > now:
             till = now
         if self._cache_data is not None:

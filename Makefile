@@ -63,10 +63,10 @@ develop: install
 	$(PIP_INSTALL) --editable .
 
 install_test: conf
-	$(PIP_INSTALL) .[test] # TODO
+	$(PIP_INSTALL) .[test]
 
 install_graph: conf
-	$(PIP_INSTALL) .[graph] # TODO
+	$(PIP_INSTALL) .[graph]
 
 
 clean:

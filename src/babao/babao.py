@@ -67,29 +67,25 @@ def _init(args=None):
     args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
-    real_time = conf.CURRENT_COMMAND not in ["train", "backtest"]
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
         log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
-    if real_time:
+    if conf.CURRENT_COMMAND not in ["train", "backtest"]:  # realtime
         log.setLock(Lock())
     if args.graph:
         fu.setLock(RWLock())
     fu.initStore(conf.DB_FILE)
 
     if conf.CURRENT_COMMAND == "train":
-        du.setTime(
+        du.TIME_TRAVELER.setTime(
             du.EPOCH + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
         )
     elif conf.CURRENT_COMMAND == "backtest":
-        du.setTime(
+        du.TIME_TRAVELER.setTime(
             ib.SPLIT_DATE + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
         )
 
-    lm.initLedgers(
-        simulate=conf.CURRENT_COMMAND != "wetRun",
-        log_to_file=real_time
-    )
+    lm.initLedgers()
     RootModel()
 
     if args.graph and conf.CURRENT_COMMAND != "train":

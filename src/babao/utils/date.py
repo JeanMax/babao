@@ -6,32 +6,56 @@ import pandas as pd
 
 # TODO: no hardcode: min(inputs.first_row)?
 EPOCH = pd.Timestamp("2017-06-27").value
-NOW = None
 
 
-def setTime(now):
-    """
-    Set time to the given ´now´ nanoseconds
+class TimeTraveler():
+    """Class handling time travel tricks"""
+    def __init__(self):
+        self.now = None
 
-    Used for time traveling purpose
-    """
-    global NOW
-    if now is None:
-        NOW = None
-    else:
-        NOW = int(now)
+    def setTime(self, now):
+        """
+        Set time to the given ´now´ nanoseconds
+
+        Used for time traveling purpose
+        """
+        if now is None:
+            self.now = None
+        else:
+            self.now = int(now)
+
+    def getTime(self, force=False):
+        """
+        Return the current time in nanoseconds
+
+        Used for time traveling purpose, so this might be a date in the past
+        matching the current simulation state, unless ´force´ is set to True.
+        """
+        if not force and self.now is not None:
+            return self.now
+        return secToNano(time.time())
+
+    def nowMinus(
+            self, years=0, weeks=0, days=0, hours=0, minutes=0
+    ):  # pylint: disable=R0913
+        """
+        Return the current timestamp (nanoseconds) minus the given parameters
+
+        This will take into account time traveling tricks.
+        """
+
+        seconds = (
+            minutes * 60
+            + hours * 60 * 60
+            + days * 60 * 60 * 24
+            + weeks * 60 * 60 * 24 * 7
+            + years * 60 * 60 * 24 * 365.25
+        )
+
+        return self.getTime() - secToNano(seconds)
 
 
-def getTime(force=False):
-    """
-    Return the current time in nanoseconds
-
-    Used for time traveling purpose, so this might be a date in the past
-    matching the current simulation state, unless ´force´ is set to True.
-    """
-    if not force and NOW is not None:
-        return NOW
-    return secToNano(time.time())
+TIME_TRAVELER = TimeTraveler()
 
 
 def toDatetime(df):
@@ -71,24 +95,6 @@ def toStr(t):
     if not isinstance(t, pd.Timestamp):
         t = toDatetime(t)
     return t.strftime("%Y/%m/%d %H:%M:%S")
-
-
-def nowMinus(years=0, weeks=0, days=0, hours=0, minutes=0):
-    """
-    Return the current timestamp (nanoseconds) minus the given parameters
-
-    This will take into account time traveling tricks.
-    """
-
-    seconds = (
-        minutes * 60
-        + hours * 60 * 60
-        + days * 60 * 60 * 24
-        + weeks * 60 * 60 * 24 * 7
-        + years * 60 * 60 * 24 * 365.25
-    )
-
-    return getTime() - secToNano(seconds)
 
 
 def secToNano(sec):

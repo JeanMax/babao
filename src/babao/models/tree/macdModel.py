@@ -83,7 +83,7 @@ def _play(features):
 
 def _playLoop(features, param_grid):
     """Loop through the different macd paramaters to tests"""
-    now = du.getTime()
+    now = du.TIME_TRAVELER.getTime()
     param_grid_len = len(param_grid)
 
     for i, param in enumerate(param_grid):
