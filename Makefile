@@ -2,7 +2,7 @@
 
 NAME = babao
 AUTHOR = JeanMax
-VERSION = 0.1
+VERSION = 0.2
 
 ROOT_DIR = $(HOME)/.$(NAME).d
 SRC_DIR = src/$(NAME)

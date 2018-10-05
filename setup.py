@@ -24,7 +24,7 @@ if os.environ.get("READTHEDOCS") and not os.path.isdir(".doc"):
 else:
     setup(
         name='babao',
-        version='0.1.0',
+        version='0.2.0',
         license='BeerWare',
         description='A bitcoin trading machine - '
         '"I\'ve got 99 problems But A Bot Ain\'t One".',
