@@ -39,8 +39,8 @@ commands:
   <command> [<args>]
     dry-run (d)       real-time bot simulation
     wet-run (w)       real-time bot with real-money!
-    training (t)      train bot on the given raw trade data file
-    backtest (b)      test strategy on the given raw trade data file
+    training (t)      train model(s)
+    backtest (b)      backtest previously trained model(s)
     fetch (f)         fetch raw trade data since the beginning of times
 
 Run 'babao <command> --help' for detailed help.

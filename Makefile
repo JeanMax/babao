@@ -1,45 +1,45 @@
 # yep
 
 NAME = babao
-
+AUTHOR = JeanMax
+VERSION = 0.2
 
 ROOT_DIR = $(HOME)/.$(NAME).d
-SRC_DIR = src
+SRC_DIR = src/$(NAME)
 DOC_DIR = docs
 DOC_BUILD_DIR = docs/_build
+TEST_DIR = test
 
 CONFIG_DIR = config
 CONFIG_FILE = $(CONFIG_DIR)/$(NAME).conf
 KRAKEN_KEY_FILE = $(CONFIG_DIR)/kraken.key
 
 TMP_FILES = build dist temp $(shell find . -name __pycache__) \
-            $(NAME).egg-info $(SRC_DIR)/$(NAME).egg-info $(DOC_DIR)
+            $(NAME).egg-info $(SRC_DIR).egg-info $(DOC_DIR) .pyre
+
+EUID = $(shell id -u)
 
 RM = rm -rfv
 MKDIR = mkdir -pv
 CP = cp -nv
-PY = python -u
 
-EUID = $(shell id -u)
-
-DEBUGER = ipython --no-confirm-exit --no-banner -i --pdb
 TESTER = pytest --fulltrace
 ifndef TRAVIS
 TESTER += $(shell if [ "$(TERM)" != dumb ]; then echo "--pdb"; fi)
 endif
 FLAKE = flake8
+PYRE = pyre --source-directory $(SRC_DIR) $(shell if [ "$(TERM)" = dumb ]; then echo "--noninteractive"; fi) # server looks broken :/ $(shell python -c 'import sys; import os; print(" ".join(["--search-path " + i for i in sys.path if os.path.isdir(i)]))')
+MYPY = mypy --ignore-missing-imports $(SRC_DIR)
 LINTER = pylint --rcfile=setup.cfg $(shell if [ "$(TERM)" = dumb ]; then echo "-fparseable"; fi)
 PIP_INSTALL = pip install $(shell if [ "$(EUID)" != 0 ] && [ "$(READTHEDOCS)$(TRAVIS)$(PYENV_VERSION)" = "" ]; then echo "--user"; fi)
 PIP_UNINSTALL = pip uninstall -y
 
 ifdef DEBUG
-EXEC = $(DEBUGER) -m $(NAME) --
+EXEC = ipython --no-confirm-exit --no-banner -i --pdb -m $(NAME) --
 else
-EXEC = $(PY) -m $(NAME)
+EXEC = python -u -m $(NAME)
 endif
 
-
-.PHONY: conf install install_test install_graph clean fclean uninstall reinstall flake lint test check commit coverage doc html man
 
 $(NAME): install
 	printf '#!/bin/bash\n\n$(EXEC) "$$@"\n' > $(NAME)
@@ -63,10 +63,10 @@ develop: install
 	$(PIP_INSTALL) --editable .
 
 install_test: conf
-	$(PIP_INSTALL) .[test] # TODO
+	$(PIP_INSTALL) .[test]
 
 install_graph: conf
-	$(PIP_INSTALL) .[graph] # TODO
+	$(PIP_INSTALL) .[graph]
 
 
 clean:
@@ -75,6 +75,7 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
+# TODO: clean all installed files
 uninstall: fclean
 	$(PIP_UNINSTALL) $(NAME)
 # $(RM) $(ROOT_DIR)
@@ -86,7 +87,14 @@ flake:
 	$(FLAKE)
 
 lint:
-	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_' | xargs $(LINTER)
+	find $(SRC_DIR) -name \*.py | grep -vE '\.#|flycheck_|eggs' | xargs $(LINTER)
+
+pyre:
+    # TODO: debug cache, opt stubs import
+	$(PYRE) check 2>/dev/null | grep -vE 'Undefined (import|attribute)' || true
+
+mypy:
+	$(MYPY)
 
 test:
 	$(TESTER)
@@ -95,10 +103,10 @@ coverage:
 	coverage run --source=$(NAME) setup.py test
 	coveralls
 
-check: flake lint test
+check: lint flake pyre mypy test
 
 $(DOC_BUILD_DIR):
-	sphinx-apidoc --ext-coverage -H $(NAME) -A JeanMax -V 0.1 -F -o $(DOC_DIR) $(SRC_DIR)/$(NAME)
+	sphinx-apidoc --ext-coverage -H $(NAME) -A $(AUTHOR) -V $(VERSION) -F -o $(DOC_DIR) $(SRC_DIR)
 
 html: $(DOC_BUILD_DIR)
 	sphinx-build -M html $(DOC_DIR) $(DOC_BUILD_DIR)
@@ -113,3 +121,13 @@ commit: reinstall check fclean
 	git add -A .
 	git diff --cached --minimal
 	git commit
+
+todo:
+	grep -rin todo . | grep -vE '^(Binary file|\./\.git|\./Makefile|\./TODO.md|\./\.travis\.yml.* make todo)'
+	grep -iHn todo ./Makefile | grep -vE 'todo|md'
+	cat TODO.md
+
+.PHONY: conf install install_test install_graph \
+		clean fclean uninstall reinstall \
+		flake pyre mypy lint test check commit coverage \
+		doc html man todo

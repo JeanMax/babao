@@ -1,102 +1,66 @@
 """Here we'll handle the config file and the various file/dir paths"""
 
-import os
-import time
 import configparser as cp
+import os
+
+from babao.utils.enum import QuoteEnum, CryptoEnum
 
 # globad vars
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".babao.d")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "babao.conf")
-API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")
-LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")
-
-DB_FILE = None
-TRADES_FRAME = "trades"
-LEDGER_FRAME = None
-MODEL_MACD_FILE = None
-MODEL_EXTREMA_FILE = None
-MODEL_TENDENCY_FILE = None
-MODEL_QLEARN_FILE = None
-
-RAW_TRADES_COLUMNS = [
-    "price", "volume"
-]
-RESAMPLED_TRADES_COLUMNS = [
-    "open", "high", "low", "close",
-    "vwap", "volume", "count"
-]
-RAW_LEDGER_COLUMNS = [
-    "type", "price",
-    "crypto_vol", "quote_vol",
-    "crypto_fee", "quote_fee",
-    "crypto_bal", "quote_bal"
-]
-RESAMPLED_LEDGER_COLUMNS = [
-    "crypto_bal", "quote_bal"
-]
+API_KEY_FILE = os.path.join(CONFIG_DIR, "kraken.key")  # TODO: move
+LOCK_FILE = os.path.join(CONFIG_DIR, "babao.lock")  # TODO: move?
+LOG_DIR = os.path.join(CONFIG_DIR, "log")
+DATA_DIR = os.path.join(CONFIG_DIR, "data")
+DB_FILE = os.path.join(DATA_DIR, "babao-database.hdf")  # TODO: move
 
 # config vars
-LOG_DIR = None
-DATA_DIR = None
-ASSET_PAIR = None
+QUOTE = None
+CRYPTOS = None  # TODO: infere from models
 TIME_INTERVAL = None
 MAX_GRAPH_POINTS = None
 
+CURRENT_COMMAND = None
 
-def readConfigFile(cmd_name="unamed"):
-    """Read config file and initialize file/dir paths"""
+
+def readConfigFile(cmd_name="dry-run"):
+    """Read config file and initialize global config variables"""
 
     # TODO: find a better way to handle config
-    global LOG_DIR
-    global DATA_DIR
-    global ASSET_PAIR
+    global QUOTE
+    global CRYPTOS
     global TIME_INTERVAL
     global MAX_GRAPH_POINTS
-    global DB_FILE
-    global LEDGER_FRAME
-    global MODEL_MACD_FILE
-    global MODEL_EXTREMA_FILE
-    global MODEL_TENDENCY_FILE
-    global MODEL_QLEARN_FILE
+    global CURRENT_COMMAND
 
+    CURRENT_COMMAND = cmd_name
     config = cp.RawConfigParser()
     config.read(CONFIG_FILE)
 
-    LOG_DIR = config.get(
+    QUOTE = config.get(
         "babao",
-        "LOG_DIR",
-        fallback="/tmp"
+        "QUOTE",
+        fallback="EUR"
     )
-    DATA_DIR = config.get(
+    QUOTE = QuoteEnum[QUOTE]
+
+    CRYPTOS = config.get(
         "babao",
-        "DATA_DIR",
-        fallback=os.path.join(CONFIG_DIR, "data")
+        "CRYPTOS",
+        fallback="ETH LTC XBT"
     )
-    ASSET_PAIR = config.get(
-        "babao",
-        "ASSET_PAIR",
-        fallback="XXBTZEUR"
-    )
+    CRYPTOS = [CryptoEnum[c] for c in CRYPTOS.split()]
+
     TIME_INTERVAL = config.getint(
         "babao",
         "TIME_INTERVAL",
         fallback=5
     )
+
     MAX_GRAPH_POINTS = config.getint(
         "babao",
         "MAX_GRAPH_POINTS",
         fallback=420
     )
+
     # TODO: check if these vars are valid
-
-    pre = os.path.join(DATA_DIR, ASSET_PAIR)
-
-    DB_FILE = os.path.join(DATA_DIR, ASSET_PAIR) + "-database.hdf"
-    LEDGER_FRAME = "ledger_" + cmd_name
-    if cmd_name == "backtest":
-        LEDGER_FRAME += time.strftime("_%y%m%d_%H%M%S")  # TODO: remove this
-
-    MODEL_MACD_FILE = pre + "-macd.pkl"
-    MODEL_EXTREMA_FILE = pre + "-extrema.pkl"
-    MODEL_TENDENCY_FILE = pre + "-tendency.h5"
-    MODEL_QLEARN_FILE = pre + "-qlearn.h5"

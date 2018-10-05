@@ -14,6 +14,12 @@ docs/
 # coveralls
 .coverage
 
+# pyre
+.pyre/
+
+# mypy
+.mypy_cache/
+
 # python gifts
 *.egg-info/
 *.egg
@@ -22,3 +28,6 @@ docs/
 __pycache__/
 *.so
 *~
+
+# don't tell emacs please
+.idea

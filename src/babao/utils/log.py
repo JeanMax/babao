@@ -15,6 +15,14 @@ MAGENTA = "\033[35;01m"
 WHITE = "\033[37;01m"
 RESET = "\033[0m"
 
+LOCK = None
+
+
+def setLock(lock):
+    """Store the given ´lock´ object for later use in logging"""
+    global LOCK
+    LOCK = lock
+
 
 def initLogLevel(verbose, quiet):
     """Initialize log level based on verbose flag"""
@@ -29,11 +37,15 @@ def initLogLevel(verbose, quiet):
 def _log(header, *args, **kwargs):
     """Genreral logging function, shouldn't be used directly"""
 
+    if LOCK is not None:
+        LOCK.acquire()
     print(
         *((WHITE + time.strftime("[%Y/%m/%d %H:%M:%S] ") + header + RESET, )
           + args),
         **kwargs
     )
+    if LOCK is not None:
+        LOCK.release()
 
 
 def error(*args):

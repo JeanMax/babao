@@ -24,13 +24,13 @@ if os.environ.get("READTHEDOCS") and not os.path.isdir(".doc"):
 else:
     setup(
         name='babao',
-        version='0.1.0',
+        version='0.2.0',
         license='BeerWare',
         description='A bitcoin trading machine - '
         '"I\'ve got 99 problems But A Bot Ain\'t One".',
         long_description=long_description,
         author='JeanMax',
-        author_email='mcanal@student.42.fr',
+        author_email='max.canal@student.42.fr',
         url='https://github.com/JeanMax/babao',
 
         packages=find_packages('src'),
@@ -48,6 +48,7 @@ else:
             'Programming Language :: Python :: 3',
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: Implementation :: CPython',
         ],
         keywords='bitcoin bot',
@@ -55,9 +56,9 @@ else:
 
         install_requires=[
             # machine learning
-            'keras>=2.2.0',
-            'tensorflow', # >=1.8.0',
-            # TODO: readthedocs prefers tensorflow-1.9.0rc1
+            'keras>=2.1.2',
+            # 'tensorflow',  # >=1.8.0', readthedocs prefers tensorflow-1.9.0rc1
+            'theano>=1.0.2',
             'scipy>=1.1.0',
             'scikit-learn>=0.19.1',
             'joblib>=0.11',  # just for saving scikit models...
@@ -65,7 +66,10 @@ else:
             # data handling
             'numpy>=1.14.5',
             'pandas>=0.23.1',
-            'tables>=3.4.4',
+            'tables>=3.4.2',
+
+            # reader-writer lock
+            'prwlock>=0.4.0',
 
             # parsing
             'configparser>=3.5.0',
@@ -82,8 +86,11 @@ else:
                 'pytest',
                 'pylint',
                 'flake8',
+                'flake8-bugbear',
                 'coveralls',
-                'sphinx'
+                'sphinx',
+                'pyre-check',
+                'mypy'
             ],
         },
         setup_requires=['pytest-runner'],

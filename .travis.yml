@@ -34,6 +34,7 @@ before_install:
   - osx brew outdated pyenv || brew upgrade pyenv
   - osx brew install pyenv-virtualenv
   - osx pyenv install $PYTHON
+  - osx export MPLBACKEND="tkagg"
   - osx export PYENV_VERSION=$PYTHON
   - osx export PATH="/Users/travis/.pyenv/shims:${PATH}"
   - osx pyenv virtualenv venv
@@ -47,14 +48,17 @@ before_install:
 install:
   - make
   - make install_test
-  - linux make install_graph
+  - make install_graph
 
 script:
   - babao
   - make flake
   - make lint
+  - make pyre
+  - make mypy
   - make test
   - make coverage
+  - make todo
 
 after_script:
   - make develop

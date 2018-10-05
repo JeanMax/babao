@@ -19,7 +19,6 @@ def test_initLogLevel():
     assert log.VERBOSE == 0
 
 
-
 def test_error():
     with pytest.raises(SystemExit):
         log.error("error")

@@ -46,7 +46,7 @@ def parseArgv(args):
         "dry-run",
         aliases="d",
         help="real-time bot simulation",
-        description="real-time bot simulation",  # TODO
+        description="real-time bot simulation",
     )
     parser_d.set_defaults(func=cmd.dryRun)
 
@@ -54,33 +54,31 @@ def parseArgv(args):
         "wet-run",
         aliases="w",
         help="real-time bot with real-money!",
-        description="real-time bot with real-money!",  # TODO
+        description="real-time bot with real-money!",
     )
     parser_w.set_defaults(func=cmd.wetRun)
 
     parser_t = subparsers.add_parser(
         "training",
         aliases="t",
-        help="train bot on the given raw trade data file",
-        description="train bot on the given raw trade data file",  # TODO
+        help="train model(s)",
+        description="train model(s)",
     )
-    # parser_t.add_argument('FILE', help="raw trade data file")
     parser_t.set_defaults(func=cmd.train)
 
     parser_b = subparsers.add_parser(
         "backtest",
         aliases="b",
-        help="test strategy on the given raw trade data file",
-        description="test strategy on the given raw trade data file",  # TODO
+        help="backtest previously trained model(s)",
+        description="backtest previously trained model(s)",
     )
-    # parser_b.add_argument('FILE', help="raw trade data file")
     parser_b.set_defaults(func=cmd.backtest)
 
     parser_f = subparsers.add_parser(
         "fetch",
         aliases="f",
         help="fetch raw trade data since the beginning of times",
-        description="fetch raw trade data since the beginning of times",  # TODO
+        description="fetch raw trade data since the beginning of times",
     )
     # parser_f.add_argument('TIMESTAMP', type=int, default=0, help="start date")
     parser_f.set_defaults(func=cmd.fetch)

@@ -17,30 +17,82 @@ Why does this file exist, and why not put this in __main__?
 
 # from IPython import embed; embed()
 # from ipdb import set_trace; set_trace()
-# import babao; args = babao.babao._init(["-vvgf", "t"]); args.func(args)
+# import babao; args = babao.babao._init(["-vv", "d"]); args.func(args)
 
-import babao.utils.log as log
-import babao.utils.lock as lock
+import os
+from multiprocessing import Process, Lock
+
+from prwlock import RWLock
+
+import babao.arg as arg
 import babao.config as conf
-import babao.parser as pars
+import babao.inputs.inputBase as ib
+import babao.inputs.ledger.ledgerManager as lm
+import babao.utils.date as du
+import babao.utils.file as fu
+import babao.utils.lock as lock
+import babao.utils.log as log
+import babao.utils.signal as sig
+from babao.models.rootModel import RootModel
+
+
+def _launchGraph():
+    """Start the graph process"""
+
+    # we import here, so matplotlib can stay an optional dependency
+    import babao.graph as graph
+
+    if os.environ.get("DEBUG_GRAPH"):
+        graph.initGraph(log.LOCK, fu.LOCK)  # no fork
+    else:
+        p = Process(
+            target=graph.initGraph,
+            args=(log.LOCK, fu.LOCK),
+            name="babao-graph",
+            daemon=True  # so we don't have to terminate it
+        )
+        p.start()
 
 
 def _kthxbye():
-    """KTHXBYE"""
+    """Cleanup routine"""
 
+    fu.closeStore()
     lock.tryUnlock(conf.LOCK_FILE)
-    # TODO: the graph process probably unlock that first...
 
 
 def _init(args=None):
     """Initialize config and parse argv"""
 
-    args = pars.parseArgv(args)
+    args = arg.parseArgv(args)
     log.initLogLevel(args.verbose, args.quiet)
     conf.readConfigFile(args.func.__name__)
 
     if not lock.tryLock(conf.LOCK_FILE) and not args.fuckit:
-        log.error("Lock file found (" + conf.LOCK_FILE + "), abort.")
+        log.error("Lock found (" + conf.LOCK_FILE + "), abort.")
+    if conf.CURRENT_COMMAND not in ["train", "backtest"]:  # realtime
+        log.setLock(Lock())
+    if args.graph:
+        fu.setLock(RWLock())
+    fu.initStore(conf.DB_FILE)
+
+    if conf.CURRENT_COMMAND == "train":
+        du.TIME_TRAVELER.setTime(
+            du.EPOCH + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
+        )
+    elif conf.CURRENT_COMMAND == "backtest":
+        du.TIME_TRAVELER.setTime(
+            ib.SPLIT_DATE + du.secToNano(ib.REAL_TIME_LOOKBACK_DAYS * 24 * 3600)
+        )
+
+    lm.initLedgers()
+    RootModel()
+
+    if args.graph and conf.CURRENT_COMMAND != "train":
+        fu.closeStore()
+        _launchGraph()
+    if args.func.__name__ != "train":
+        sig.catchSignal()
 
     return args
 
