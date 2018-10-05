@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor, Button
 
 import babao.config as conf
+import babao.inputs.inputBase as ib
 import babao.inputs.inputManager as im
 import babao.inputs.ledger.ledgerManager as lm
 import babao.utils.date as du
@@ -91,10 +92,15 @@ def _getData():
         lm.LEDGERS[conf.QUOTE],
         lm.LEDGERS[crypto]
     ]
-    im.refreshInputs(inputs)
-    since = lm.TRADES[crypto].current_row.name - du.secToNano(
-        (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
-    )
+    if conf.CURRENT_COMMAND == "backtest":
+        for i in inputs:
+            i._cache_data = None  # pylint: disable=W0212
+        since = ib.SPLIT_DATE
+    else:
+        im.refreshInputs(inputs)
+        since = lm.TRADES[crypto].current_row.name - du.secToNano(
+            (MAX_LOOK_BACK + conf.MAX_GRAPH_POINTS) * conf.TIME_INTERVAL * 60
+        )
     DATA = im.readInputs(inputs, since)
 
     DATA.rename(
@@ -120,7 +126,10 @@ def _getData():
         46, 75, 22,
         True
     )
-    DATA = DATA.dropna()
+    if conf.CURRENT_COMMAND == "backtest":
+        DATA = DATA.fillna(0)
+    else:
+        DATA = DATA.dropna()
     DATA["total-balance"] = DATA["quote-balance"] \
         + DATA["crypto-balance"] * DATA["close"]
     du.toDatetime(DATA)
@@ -296,6 +305,7 @@ def initGraph(log_lock, file_lock):
 
     log.setLock(log_lock)
     fu.setLock(file_lock)
+    du.TIME_TRAVELER.setTime(None)
     sig.catchSignal()
     try:
         _getData()

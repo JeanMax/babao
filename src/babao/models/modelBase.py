@@ -114,7 +114,6 @@ class ABCModel(ABC):
     def _initDeps(self):
         """Instantiate all the needed dependencies"""
         if not MODELS:
-            # TODO: should we init lm here?
             MODELS.append(self)
             ib.INPUTS.extend(lm.LEDGERS.values())
             ib.INPUTS.extend(lm.TRADES.values())

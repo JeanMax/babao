@@ -4,9 +4,11 @@ Handle logging in database all our fake transactions (dry-run)
 
 import sys
 from abc import abstractmethod
+import re
 
 import pandas as pd
 
+import babao.utils.file as fu
 import babao.utils.date as du
 import babao.utils.log as log
 from babao.inputs.ledger.ledgerInputBase import ABCLedgerInput
@@ -21,7 +23,13 @@ class ABCFakeLedgerInput(ABCLedgerInput):
     def asset(self):
         pass
 
-    def __init__(self, log_to_file=True):
+    def __init__(self, log_to_file=True, temp=False):
+        if temp:
+            self.__class__.__name__ = re.sub(
+                r"Fake", "Temp", self.__class__.__name__
+            )
+            fu.delete(self.__class__.__name__)
+
         ABCLedgerInput.__init__(self)
         self.log_to_file = log_to_file
         if self.current_row is not None and log_to_file:
@@ -47,7 +55,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
         # TODO: remove some args
 
         if timestamp is None:
-            timestamp = du.nowMinus(0)
+            timestamp = du.TIME_TRAVELER.nowMinus(0)
 
         self.balance += volume - fee
         self.last_tx = timestamp
@@ -82,7 +90,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent / price
         fee = volume_bought / 100  # 1% hardcoded fee
-        refid = str(du.nowMinus(0))
+        refid = str(du.TIME_TRAVELER.nowMinus(0))
         if self.verbose:
             log.info(
                 "Bought", round(volume_bought - fee, 4), ledger.asset.name,
@@ -113,7 +121,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
         volume_bought = volume_spent * price
         fee = volume_bought / 100  # 1% hardcoded fee
-        refid = str(du.nowMinus(0))
+        refid = str(du.TIME_TRAVELER.nowMinus(0))
         if self.verbose:
             log.info(
                 "Sold", round(volume_spent, 4), ledger.asset.name,
@@ -140,7 +148,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
     def deposit(self, ledger, volume, timestamp=None):
         fee = volume / 100  # 1% hardcoded fee
-        refid = str(du.nowMinus(0))
+        refid = str(du.TIME_TRAVELER.nowMinus(0))
         if self.verbose:
             log.info(
                 "Deposit", round(volume, 4),
@@ -165,7 +173,7 @@ class ABCFakeLedgerInput(ABCLedgerInput):
 
     def withdraw(self, ledger, volume, timestamp=None):
         fee = volume / 100  # 1% hardcoded fee
-        refid = str(du.nowMinus(0))
+        refid = str(du.TIME_TRAVELER.nowMinus(0))
         if self.verbose:
             log.info(
                 "Withdraw", round(volume, 4),

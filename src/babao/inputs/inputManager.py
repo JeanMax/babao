@@ -91,6 +91,6 @@ def readInputs(input_list: Optional[List[ib.ABCInput]] = None, since=None):
 
 def timeTravel(timestamp):
     """Travel to the specified timestamp, for simulation purposes"""
-    du.setTime(timestamp)
+    du.TIME_TRAVELER.setTime(timestamp)
     for i in ib.INPUTS:
         i.updateCurrentRow(timestamp=timestamp)

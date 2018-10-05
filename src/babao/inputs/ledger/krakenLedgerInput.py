@@ -16,7 +16,7 @@ from babao.utils.enum import CryptoEnum, QuoteEnum, ActionEnum
 class ABCKrakenLedgerInput(ABCLedgerInput, ABCKrakenInput):
     """Base class for any kraken ledger"""
 
-    def __init__(self, log_to_file=True):
+    def __init__(self, log_to_file=True, unused_temp=False):
         super().__init__()
         self.log_to_file = log_to_file  # TODO: move that to ABCLedgerInput
         self.balance = 0  # TODO

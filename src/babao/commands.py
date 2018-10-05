@@ -23,7 +23,7 @@ def dryRun(unused_args):
     while not sig.EXIT:
         if im.fetchInputs():
             mm.predictModelsMaybeTrade(
-                since=du.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
+                since=du.TIME_TRAVELER.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
             )
 
 
@@ -47,8 +47,8 @@ def backtest(args):
 
     It will call the trained strategies on each test data point
     """
-    now = du.getTime(force=True)
-    t = du.getTime()
+    now = du.TIME_TRAVELER.getTime(force=True)
+    t = du.TIME_TRAVELER.getTime()
     log.info(
         "Test data: from", du.toStr(t),
         "to", du.toStr(now)
@@ -57,7 +57,7 @@ def backtest(args):
         t += du.secToNano(conf.TIME_INTERVAL * 60)  # TODO
         im.timeTravel(t)
         mm.predictModelsMaybeTrade(
-            since=du.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
+            since=du.TIME_TRAVELER.nowMinus(days=ib.REAL_TIME_LOOKBACK_DAYS)
         )
 
     score = lm.getGlobalBalanceInQuote()
@@ -65,10 +65,8 @@ def backtest(args):
     log.info(
         "Backtesting done! Score: " + str(round(float(score)))
         # + "% vs HODL: " + str(round(hodl)) + "%"
-        # TODO
     )
 
-    # TODO: fix graph
     if args.graph:
         # TODO: exit if graph is closed
         while not sig.EXIT:
@@ -90,10 +88,12 @@ def train(args):
         mm.plotModels(since=du.EPOCH)
 
         log.debug("Plot models on test data")
-        im.timeTravel(du.getTime(force=True))  # back to the future
+        im.timeTravel(
+            du.TIME_TRAVELER.getTime(force=True)
+        )  # back to the future
         log.debug(
             "Test data: from", du.toStr(du.toStr(ib.SPLIT_DATE)),
-            "to", du.toStr(du.getTime())
+            "to", du.toStr(du.TIME_TRAVELER.getTime())
         )
         mm.plotModels(since=ib.SPLIT_DATE)
 
