@@ -6,6 +6,8 @@ import re
 from functools import partial
 # import traceback
 
+from pandas.plotting import register_matplotlib_converters
+
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor, Button
@@ -180,7 +182,7 @@ def _createLines(axes):
             color="b",
             alpha=0.5
         )
-        plt.setp(axes[key].get_xticklabels(), visible=False)
+        plt.setp(axes[key].get_xticklabels(), visible=key == "total-balance")
         if key == "total-balance":
             col = "quote-balance"
             lines[col], = axes[key].plot(
@@ -224,6 +226,8 @@ def _createLines(axes):
 def _initGraph():
     """Wrapped to display errors (this is running in a separate process)"""
 
+    register_matplotlib_converters()
+
     fig = plt.figure()
     axes = _createAxes()
     lines = _createLines(axes)
@@ -238,7 +242,7 @@ def _initGraph():
         horizOn=True
     )  # TODO: redraw me!
 
-    plt.setp(axes["total-balance"].get_xticklabels(), visible=True)
+    # plt.setp(axes["total-balance"].get_xticklabels(), visible=True)
     for label in axes["total-balance"].xaxis.get_ticklabels():
         label.set_rotation(45)
     adf = axes["total-balance"].xaxis.get_major_formatter()
